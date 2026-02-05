@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 // GET - Get single order details
 export async function GET(
@@ -130,11 +131,19 @@ export async function PATCH(
     const body = await request.json();
     const { action } = body;
 
-    // Get the order
+    // Get the order with restaurant info
     const order = await prisma.order.findFirst({
       where: {
         id: params.id,
         supplierId: user.supplier.id,
+      },
+      include: {
+        restaurant: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
       },
     });
 
@@ -158,6 +167,20 @@ export async function PATCH(
           where: { id: params.id },
           data: { status: "CONFIRMED" },
         });
+
+        // Send email to restaurant
+        if (order.restaurant.email) {
+          const template = emailTemplates.orderConfirmed(
+            order.orderNumber,
+            user.supplier.name,
+            order.restaurant.email
+          );
+          sendEmail({
+            to: order.restaurant.email,
+            subject: template.subject,
+            html: template.html,
+          });
+        }
         break;
 
       case "ship":
@@ -173,10 +196,23 @@ export async function PATCH(
           where: { id: params.id },
           data: { status: "SHIPPED" },
         });
+
+        // Send email to restaurant
+        if (order.restaurant.email) {
+          const template = emailTemplates.orderShipped(
+            order.orderNumber,
+            user.supplier.name
+          );
+          sendEmail({
+            to: order.restaurant.email,
+            subject: template.subject,
+            html: template.html,
+          });
+        }
         break;
 
       case "deliver":
-        // Mark order as delivered (SHIPPED → DELIVERED)
+        // Mark order as delivered (SHIPPED → DELIVERED) and auto-generate invoice
         if (order.status !== "SHIPPED") {
           return NextResponse.json(
             { error: "Can only mark shipped orders as delivered" },
@@ -184,13 +220,79 @@ export async function PATCH(
           );
         }
 
-        updatedOrder = await prisma.order.update({
-          where: { id: params.id },
-          data: {
-            status: "DELIVERED",
-            deliveredAt: new Date(),
-          },
+        const deliverResult = await prisma.$transaction(async (tx) => {
+          // 1. Update order to DELIVERED
+          const deliveredOrder = await tx.order.update({
+            where: { id: params.id },
+            data: {
+              status: "DELIVERED",
+              deliveredAt: new Date(),
+            },
+          });
+
+          // 2. Check for existing invoice (idempotency)
+          const existingInvoice = await tx.invoice.findUnique({
+            where: { orderId: params.id },
+          });
+          if (existingInvoice) {
+            return { order: deliveredOrder, invoice: existingInvoice };
+          }
+
+          // 3. Generate invoice number
+          const invoiceCount = await tx.invoice.count({
+            where: { supplierId: user.supplier!.id },
+          });
+          const invoiceNumber = `INV-${user.supplier!.id.slice(-4).toUpperCase()}-${String(invoiceCount + 1).padStart(5, "0")}`;
+
+          // 4. Create invoice
+          const invoice = await tx.invoice.create({
+            data: {
+              invoiceNumber,
+              supplierId: user.supplier!.id,
+              restaurantId: deliveredOrder.restaurantId,
+              orderId: deliveredOrder.id,
+              subtotal: deliveredOrder.subtotal,
+              tax: deliveredOrder.tax,
+              total: deliveredOrder.total,
+              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+              status: "PENDING",
+            },
+          });
+
+          // 5. Create notification for restaurant
+          const restaurantUser = await tx.user.findFirst({
+            where: { restaurantId: deliveredOrder.restaurantId },
+          });
+          if (restaurantUser) {
+            await tx.notification.create({
+              data: {
+                type: "ORDER_UPDATE",
+                title: "Order Delivered - Invoice Created",
+                message: `Your order has been delivered. Invoice ${invoiceNumber} has been generated for $${Number(deliveredOrder.total).toFixed(2)}.`,
+                userId: restaurantUser.id,
+                metadata: { orderId: deliveredOrder.id, invoiceId: invoice.id },
+              },
+            });
+          }
+
+          return { order: deliveredOrder, invoice, restaurantUser };
         });
+
+        updatedOrder = deliverResult.order;
+
+        // Send email to restaurant
+        if (order.restaurant.email && deliverResult.invoice) {
+          const template = emailTemplates.orderDelivered(
+            order.orderNumber,
+            deliverResult.invoice.invoiceNumber,
+            Number(deliverResult.order.total)
+          );
+          sendEmail({
+            to: order.restaurant.email,
+            subject: template.subject,
+            html: template.html,
+          });
+        }
         break;
 
       case "reject":

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -168,11 +168,7 @@ export default function InventoryPage() {
   // View item dialog
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
 
-  useEffect(() => {
-    fetchInventory();
-  }, [categoryFilter, showLowStock]);
-
-  const fetchInventory = async () => {
+  const fetchInventory = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
@@ -191,7 +187,11 @@ export default function InventoryPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [categoryFilter, showLowStock]);
+
+  useEffect(() => {
+    fetchInventory();
+  }, [fetchInventory]);
 
   const handleAddItem = async () => {
     if (!newItem.name || !newItem.category || !newItem.unit) {

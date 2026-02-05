@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -165,11 +165,7 @@ export default function ProductsPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
-  useEffect(() => {
-    fetchProducts();
-  }, [selectedCategory, selectedSupplier, sortBy, inStockOnly]);
-
-  const fetchProducts = async () => {
+  const fetchProducts = useCallback(async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
@@ -195,7 +191,11 @@ export default function ProductsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [search, selectedCategory, selectedSupplier, sortBy, inStockOnly]);
+
+  useEffect(() => {
+    fetchProducts();
+  }, [fetchProducts]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();

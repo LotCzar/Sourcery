@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { sendEmail, emailTemplates } from "@/lib/email";
 
 // GET single order details
 export async function GET(
@@ -172,6 +173,20 @@ export async function PATCH(
             deliveryDate,
           },
         });
+
+        // Send email to supplier
+        if (order.supplier.email) {
+          const template = emailTemplates.orderPlaced(
+            order.orderNumber,
+            user.restaurant.name,
+            Number(order.total)
+          );
+          sendEmail({
+            to: order.supplier.email,
+            subject: template.subject,
+            html: template.html,
+          });
+        }
         break;
 
       case "cancel":

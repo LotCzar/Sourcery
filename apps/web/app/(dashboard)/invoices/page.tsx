@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   Card,
   CardContent,
@@ -129,12 +129,7 @@ export default function InvoicesPage() {
   // View invoice dialog
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
-  useEffect(() => {
-    fetchInvoices();
-    fetchSuppliers();
-  }, [statusFilter]);
-
-  const fetchInvoices = async () => {
+  const fetchInvoices = useCallback(async () => {
     try {
       setIsLoading(true);
       const params = new URLSearchParams();
@@ -155,9 +150,9 @@ export default function InvoicesPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [statusFilter]);
 
-  const fetchSuppliers = async () => {
+  const fetchSuppliers = useCallback(async () => {
     try {
       const response = await fetch("/api/search?q=supplier");
       const data = await response.json();
@@ -167,7 +162,12 @@ export default function InvoicesPage() {
     } catch (err) {
       console.error("Failed to fetch suppliers:", err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchInvoices();
+    fetchSuppliers();
+  }, [fetchInvoices, fetchSuppliers]);
 
   const handleCreateInvoice = async () => {
     if (!newInvoice.invoiceNumber || !newInvoice.supplierId || !newInvoice.subtotal || !newInvoice.dueDate) {

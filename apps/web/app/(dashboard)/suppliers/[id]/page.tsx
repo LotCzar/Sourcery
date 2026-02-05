@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -138,11 +138,7 @@ export default function SupplierDetailPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
-  useEffect(() => {
-    fetchSupplier();
-  }, [params.id]);
-
-  const fetchSupplier = async () => {
+  const fetchSupplier = useCallback(async () => {
     try {
       const response = await fetch(`/api/suppliers/${params.id}`);
       const data = await response.json();
@@ -157,7 +153,11 @@ export default function SupplierDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params.id]);
+
+  useEffect(() => {
+    fetchSupplier();
+  }, [fetchSupplier]);
 
   const addToCart = (product: Product) => {
     const existingIndex = cart.findIndex((item) => item.productId === product.id);
