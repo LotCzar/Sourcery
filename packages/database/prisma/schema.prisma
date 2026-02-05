@@ -1,0 +1,592 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// ENUMS
+// ============================================
+
+enum UserRole {
+  OWNER
+  MANAGER
+  STAFF
+  SUPPLIER_ADMIN
+  SUPPLIER_REP
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  PROCESSING
+  SHIPPED
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  RETURNED
+}
+
+enum SupplierStatus {
+  PENDING
+  VERIFIED
+  SUSPENDED
+  INACTIVE
+}
+
+enum POSProvider {
+  SQUARE
+  TOAST
+  CLOVER
+  LIGHTSPEED
+  MANUAL
+}
+
+enum NotificationType {
+  ORDER_UPDATE
+  PRICE_ALERT
+  DELIVERY_UPDATE
+  SYSTEM
+  PROMOTION
+}
+
+enum ProductCategory {
+  PRODUCE
+  MEAT
+  SEAFOOD
+  DAIRY
+  BAKERY
+  BEVERAGES
+  DRY_GOODS
+  FROZEN
+  CLEANING
+  EQUIPMENT
+  OTHER
+}
+
+enum UnitType {
+  POUND
+  OUNCE
+  KILOGRAM
+  GRAM
+  GALLON
+  LITER
+  QUART
+  PINT
+  EACH
+  CASE
+  DOZEN
+  BOX
+  BAG
+  BUNCH
+}
+
+// ============================================
+// USER & AUTH MODELS
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  clerkId       String    @unique
+  email         String    @unique
+  firstName     String?
+  lastName      String?
+  phone         String?
+  role          UserRole  @default(STAFF)
+  avatarUrl     String?
+
+  // Relations
+  restaurantId  String?
+  restaurant    Restaurant? @relation(fields: [restaurantId], references: [id])
+  supplierId    String?
+  supplier      Supplier?   @relation(fields: [supplierId], references: [id])
+
+  orders        Order[]
+  notifications Notification[]
+  priceAlerts   PriceAlert[]
+  inventoryLogs InventoryLog[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([clerkId])
+  @@index([email])
+}
+
+// ============================================
+// RESTAURANT MODELS
+// ============================================
+
+model Restaurant {
+  id            String    @id @default(cuid())
+  name          String
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  phone         String?
+  email         String?
+  website       String?
+  logoUrl       String?
+
+  // Business details
+  taxId         String?
+  cuisineType   String?
+  seatingCapacity Int?
+
+  // Relations
+  users         User[]
+  menuItems     MenuItem[]
+  orders        Order[]
+  invoices      Invoice[]
+  inventoryItems InventoryItem[]
+  posIntegration POSIntegration?
+  supplierRelationships RestaurantSupplier[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([name])
+}
+
+model POSIntegration {
+  id            String      @id @default(cuid())
+  provider      POSProvider
+  accessToken   String?
+  refreshToken  String?
+  storeId       String?
+  lastSyncAt    DateTime?
+  isActive      Boolean     @default(true)
+
+  restaurantId  String      @unique
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model MenuItem {
+  id            String    @id @default(cuid())
+  name          String
+  description   String?
+  price         Decimal   @db.Decimal(10, 2)
+  category      String?
+  isActive      Boolean   @default(true)
+  imageUrl      String?
+
+  // POS sync
+  posItemId     String?
+
+  // Relations
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  ingredients   Ingredient[]
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([restaurantId])
+  @@index([posItemId])
+}
+
+model Ingredient {
+  id            String    @id @default(cuid())
+  name          String
+  quantity      Decimal   @db.Decimal(10, 3)
+  unit          UnitType
+  notes         String?
+
+  // Relations
+  menuItemId    String
+  menuItem      MenuItem  @relation(fields: [menuItemId], references: [id], onDelete: Cascade)
+
+  // Optional link to supplier product
+  supplierProductId String?
+  supplierProduct   SupplierProduct? @relation(fields: [supplierProductId], references: [id])
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([menuItemId])
+}
+
+// ============================================
+// SUPPLIER MODELS
+// ============================================
+
+model Supplier {
+  id            String        @id @default(cuid())
+  name          String
+  description   String?
+  email         String        @unique
+  phone         String?
+  address       String?
+  city          String?
+  state         String?
+  zipCode       String?
+  website       String?
+  logoUrl       String?
+
+  // Business details
+  taxId         String?
+  minimumOrder  Decimal?      @db.Decimal(10, 2)
+  deliveryFee   Decimal?      @db.Decimal(10, 2)
+  leadTimeDays  Int           @default(1)
+
+  // Verification
+  status        SupplierStatus @default(PENDING)
+  verifiedAt    DateTime?
+  rating        Decimal?      @db.Decimal(3, 2)
+  reviewCount   Int           @default(0)
+
+  // Relations
+  users         User[]
+  products      SupplierProduct[]
+  orders        Order[]
+  invoices      Invoice[]
+  restaurantRelationships RestaurantSupplier[]
+  deliveryZones DeliveryZone[]
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([name])
+  @@index([status])
+}
+
+model SupplierProduct {
+  id            String          @id @default(cuid())
+  name          String
+  description   String?
+  sku           String?
+  category      ProductCategory
+  brand         String?
+  imageUrl      String?
+
+  // Pricing
+  price         Decimal         @db.Decimal(10, 2)
+  unit          UnitType
+  packSize      Decimal?        @db.Decimal(10, 2)
+
+  // Inventory
+  inStock       Boolean         @default(true)
+  stockQuantity Int?
+
+  // Relations
+  supplierId    String
+  supplier      Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  priceHistory  PriceHistory[]
+  orderItems    OrderItem[]
+  ingredients   Ingredient[]
+  priceAlerts   PriceAlert[]
+  inventoryItems InventoryItem[] @relation("InventorySupplierProduct")
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@unique([supplierId, sku])
+  @@index([supplierId])
+  @@index([category])
+  @@index([name])
+}
+
+model PriceHistory {
+  id            String          @id @default(cuid())
+  price         Decimal         @db.Decimal(10, 2)
+  recordedAt    DateTime        @default(now())
+
+  productId     String
+  product       SupplierProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([recordedAt])
+}
+
+model DeliveryZone {
+  id            String    @id @default(cuid())
+  zipCodes      String[]
+  deliveryFee   Decimal   @db.Decimal(10, 2)
+  minimumOrder  Decimal?  @db.Decimal(10, 2)
+
+  supplierId    String
+  supplier      Supplier  @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([supplierId])
+}
+
+// ============================================
+// RESTAURANT-SUPPLIER RELATIONSHIP
+// ============================================
+
+model RestaurantSupplier {
+  id            String    @id @default(cuid())
+  isPreferred   Boolean   @default(false)
+  notes         String?
+
+  restaurantId  String
+  restaurant    Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  supplierId    String
+  supplier      Supplier   @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([restaurantId, supplierId])
+  @@index([restaurantId])
+  @@index([supplierId])
+}
+
+// ============================================
+// ORDER MODELS
+// ============================================
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  status        OrderStatus @default(DRAFT)
+
+  // Pricing
+  subtotal      Decimal     @db.Decimal(10, 2)
+  tax           Decimal     @db.Decimal(10, 2) @default(0)
+  deliveryFee   Decimal     @db.Decimal(10, 2) @default(0)
+  discount      Decimal     @db.Decimal(10, 2) @default(0)
+  total         Decimal     @db.Decimal(10, 2)
+
+  // Delivery
+  deliveryDate  DateTime?
+  deliveryNotes String?
+  deliveredAt   DateTime?
+
+  // Relations
+  restaurantId  String
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+
+  supplierId    String
+  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+
+  createdById   String
+  createdBy     User        @relation(fields: [createdById], references: [id])
+
+  items         OrderItem[]
+  invoice       Invoice?
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([restaurantId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([orderNumber])
+}
+
+model OrderItem {
+  id            String          @id @default(cuid())
+  quantity      Decimal         @db.Decimal(10, 3)
+  unitPrice     Decimal         @db.Decimal(10, 2)
+  subtotal      Decimal         @db.Decimal(10, 2)
+  notes         String?
+
+  // Relations
+  orderId       String
+  order         Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId     String
+  product       SupplierProduct @relation(fields: [productId], references: [id])
+
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([orderId])
+  @@index([productId])
+}
+
+// ============================================
+// INVENTORY MODELS
+// ============================================
+
+enum InventoryChangeType {
+  RECEIVED
+  USED
+  ADJUSTED
+  WASTE
+  TRANSFERRED
+  COUNT
+}
+
+model InventoryItem {
+  id              String          @id @default(cuid())
+  name            String
+  category        ProductCategory
+  currentQuantity Decimal         @db.Decimal(10, 3) @default(0)
+  unit            UnitType
+  parLevel        Decimal?        @db.Decimal(10, 3)
+  costPerUnit     Decimal?        @db.Decimal(10, 2)
+  location        String?
+  notes           String?
+
+  // Relations
+  restaurantId    String
+  restaurant      Restaurant      @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  supplierProductId String?
+  supplierProduct   SupplierProduct? @relation("InventorySupplierProduct", fields: [supplierProductId], references: [id])
+
+  logs            InventoryLog[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([restaurantId])
+  @@index([category])
+}
+
+model InventoryLog {
+  id              String              @id @default(cuid())
+  changeType      InventoryChangeType
+  quantity        Decimal             @db.Decimal(10, 3)
+  previousQuantity Decimal            @db.Decimal(10, 3)
+  newQuantity     Decimal             @db.Decimal(10, 3)
+  notes           String?
+  reference       String?
+
+  // Relations
+  inventoryItemId String
+  inventoryItem   InventoryItem       @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  createdById     String
+  createdBy       User                @relation(fields: [createdById], references: [id])
+
+  createdAt       DateTime            @default(now())
+
+  @@index([inventoryItemId])
+  @@index([createdAt])
+}
+
+// ============================================
+// INVOICE MODEL
+// ============================================
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  OVERDUE
+  PARTIALLY_PAID
+  CANCELLED
+  DISPUTED
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  CREDIT_CARD
+  BANK_TRANSFER
+  ACH
+  OTHER
+}
+
+model Invoice {
+  id              String        @id @default(cuid())
+  invoiceNumber   String
+  status          InvoiceStatus @default(PENDING)
+
+  // Amounts
+  subtotal        Decimal       @db.Decimal(10, 2)
+  tax             Decimal       @db.Decimal(10, 2) @default(0)
+  total           Decimal       @db.Decimal(10, 2)
+
+  // Dates
+  issueDate       DateTime      @default(now())
+  dueDate         DateTime
+  paidAt          DateTime?
+
+  // Payment details
+  paidAmount      Decimal?      @db.Decimal(10, 2)
+  paymentMethod   PaymentMethod?
+  paymentReference String?
+
+  // Additional info
+  notes           String?
+  fileUrl         String?
+
+  // Relations
+  restaurantId    String
+  restaurant      Restaurant    @relation(fields: [restaurantId], references: [id])
+
+  supplierId      String
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+
+  orderId         String?       @unique
+  order           Order?        @relation(fields: [orderId], references: [id])
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([restaurantId])
+  @@index([supplierId])
+  @@index([status])
+  @@index([dueDate])
+}
+
+// ============================================
+// PRICE ALERT MODEL
+// ============================================
+
+enum AlertType {
+  PRICE_DROP
+  PRICE_INCREASE
+  PRICE_THRESHOLD
+}
+
+model PriceAlert {
+  id            String      @id @default(cuid())
+  alertType     AlertType
+  targetPrice   Decimal     @db.Decimal(10, 2)
+  isActive      Boolean     @default(true)
+  triggeredAt   DateTime?
+  triggeredPrice Decimal?   @db.Decimal(10, 2)
+
+  // Relations
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  productId     String
+  product       SupplierProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([userId])
+  @@index([productId])
+  @@index([isActive])
+}
+
+// ============================================
+// NOTIFICATION MODEL
+// ============================================
+
+model Notification {
+  id            String           @id @default(cuid())
+  type          NotificationType
+  title         String
+  message       String
+  isRead        Boolean          @default(false)
+  metadata      Json?
+
+  userId        String
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime         @default(now())
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+}
