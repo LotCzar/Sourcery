@@ -81,7 +81,7 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 16384,
       messages: [
         {
           role: "user",
