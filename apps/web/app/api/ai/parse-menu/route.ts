@@ -62,7 +62,7 @@ Return your analysis as a JSON object with this structure:
 Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 4096,
       messages: [
         {
