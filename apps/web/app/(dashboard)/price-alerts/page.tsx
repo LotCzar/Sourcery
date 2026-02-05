@@ -312,7 +312,7 @@ export default function PriceAlertsPage() {
             <DialogHeader>
               <DialogTitle>Create Price Alert</DialogTitle>
               <DialogDescription>
-                Set up an alert to be notified when a product's price changes
+                Set up an alert to be notified when a product&apos;s price changes
               </DialogDescription>
             </DialogHeader>
 
@@ -628,7 +628,7 @@ export default function PriceAlertsPage() {
                       domain={["auto", "auto"]}
                     />
                     <Tooltip
-                      formatter={(value: number) => [formatCurrency(value), "Price"]}
+                      formatter={(value) => [formatCurrency(value as number), "Price"]}
                       labelFormatter={(label) => formatDate(label)}
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",

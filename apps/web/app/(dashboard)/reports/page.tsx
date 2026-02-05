@@ -252,7 +252,7 @@ export default function ReportsPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.overview.uniqueSuppliers}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Suppliers you've ordered from
+              Suppliers you&apos;ve ordered from
             </p>
           </CardContent>
         </Card>
@@ -286,7 +286,7 @@ export default function ReportsPage() {
                     className="text-muted-foreground"
                   />
                   <Tooltip
-                    formatter={(value: number) => [formatCurrency(value), "Spending"]}
+                    formatter={(value) => [formatCurrency(value as number), "Spending"]}
                     labelFormatter={(label) => formatDate(label)}
                     contentStyle={{
                       backgroundColor: "hsl(var(--card))",
@@ -337,7 +337,7 @@ export default function ReportsPage() {
                       paddingAngle={2}
                       dataKey="total"
                       nameKey="name"
-                      label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      label={({ name, percent }) => `${name || ""} (${((percent || 0) * 100).toFixed(0)}%)`}
                       labelLine={false}
                     >
                       {data.spendByCategory.map((_, index) => (
@@ -345,7 +345,7 @@ export default function ReportsPage() {
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value as number)}
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",
@@ -383,7 +383,7 @@ export default function ReportsPage() {
                       tick={{ fontSize: 12 }}
                     />
                     <Tooltip
-                      formatter={(value: number) => formatCurrency(value)}
+                      formatter={(value) => formatCurrency(value as number)}
                       contentStyle={{
                         backgroundColor: "hsl(var(--card))",
                         border: "1px solid hsl(var(--border))",

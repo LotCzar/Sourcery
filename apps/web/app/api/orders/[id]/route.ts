@@ -83,7 +83,7 @@ export async function GET(
       items: order.items.map((item) => ({
         ...item,
         unitPrice: Number(item.unitPrice),
-        totalPrice: Number(item.totalPrice),
+        subtotal: Number(item.subtotal),
         product: {
           ...item.product,
           price: Number(item.product.price),

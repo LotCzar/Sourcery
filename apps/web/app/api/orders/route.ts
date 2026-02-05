@@ -56,7 +56,7 @@ export async function GET(request: Request) {
       items: order.items.map((item) => ({
         ...item,
         unitPrice: Number(item.unitPrice),
-        subtotal: Number(item.totalPrice),
+        subtotal: Number(item.subtotal),
         product: {
           ...item.product,
           price: Number(item.product.price),
@@ -194,7 +194,7 @@ export async function POST(request: Request) {
       items: order.items.map((item) => ({
         ...item,
         unitPrice: Number(item.unitPrice),
-        subtotal: Number(item.totalPrice),
+        subtotal: Number(item.subtotal),
         product: {
           ...item.product,
           price: Number(item.product.price),

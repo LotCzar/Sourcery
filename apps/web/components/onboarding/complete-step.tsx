@@ -53,14 +53,14 @@ export function CompleteStep({ onFinish }: CompleteStepProps) {
         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
           <CheckCircle className="h-10 w-10 text-green-600" />
         </div>
-        <CardTitle className="text-3xl">You're All Set!</CardTitle>
+        <CardTitle className="text-3xl">You&apos;re All Set!</CardTitle>
         <CardDescription className="text-lg">
           Your restaurant is ready to use Sourcery
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">
         <p className="text-muted-foreground">
-          We've set up your restaurant profile. Here's what you can do next:
+          We&apos;ve set up your restaurant profile. Here&apos;s what you can do next:
         </p>
         <div className="grid gap-3 text-left">
           <div className="flex items-center gap-3 rounded-lg bg-gray-50 p-3">

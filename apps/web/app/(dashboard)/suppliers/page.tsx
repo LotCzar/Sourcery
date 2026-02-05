@@ -75,7 +75,7 @@ export default async function SuppliersPage({
       {/* Search Results Info */}
       {query && (
         <p className="text-sm text-muted-foreground">
-          Found {suppliers.length} supplier{suppliers.length !== 1 ? "s" : ""} for "{query}"
+          Found {suppliers.length} supplier{suppliers.length !== 1 ? "s" : ""} for &quot;{query}&quot;
         </p>
       )}
 

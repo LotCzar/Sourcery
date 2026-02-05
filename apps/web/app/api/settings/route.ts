@@ -28,7 +28,8 @@ export async function GET() {
         user: {
           id: user.id,
           email: user.email,
-          name: user.name,
+          firstName: user.firstName,
+          lastName: user.lastName,
           role: user.role,
           createdAt: user.createdAt,
         },
@@ -91,7 +92,8 @@ export async function PATCH(request: Request) {
         result = await prisma.user.update({
           where: { id: user.id },
           data: {
-            name: data.name,
+            firstName: data.firstName,
+            lastName: data.lastName,
           },
         });
         break;

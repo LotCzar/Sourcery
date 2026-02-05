@@ -74,14 +74,17 @@ export async function POST(
       }
 
       const unitPrice = Number(currentProduct.price);
-      const totalPrice = unitPrice * item.quantity;
+      const quantity = Number(item.quantity);
+      const totalPrice = unitPrice * quantity;
       subtotal += totalPrice;
 
       orderItems.push({
-        productId: item.productId,
-        quantity: item.quantity,
+        quantity,
         unitPrice,
-        totalPrice,
+        subtotal: totalPrice,
+        product: {
+          connect: { id: item.productId },
+        },
       });
     }
 
@@ -152,8 +155,9 @@ export async function POST(
         total: Number(newOrder.total),
         items: newOrder.items.map((item) => ({
           ...item,
+          quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
-          totalPrice: Number(item.totalPrice),
+          subtotal: Number(item.subtotal),
         })),
       },
       message: `New order created from ${originalOrder.orderNumber}`,

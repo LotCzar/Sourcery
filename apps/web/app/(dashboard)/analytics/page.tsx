@@ -282,7 +282,7 @@ export default function AnalyticsPage() {
                         className="text-muted-foreground"
                       />
                       <Tooltip
-                        formatter={(value: number) => [formatCurrency(value), "Spend"]}
+                        formatter={(value) => [formatCurrency(value as number), "Spend"]}
                         labelFormatter={(label) => formatFullDate(label)}
                       />
                       <Area
@@ -319,7 +319,7 @@ export default function AnalyticsPage() {
                         dataKey="total"
                         nameKey="name"
                         label={({ name, percent }) =>
-                          `${name.split(" ")[0]} ${(percent * 100).toFixed(0)}%`
+                          `${(name || "").split(" ")[0]} ${((percent || 0) * 100).toFixed(0)}%`
                         }
                         labelLine={false}
                       >
@@ -331,7 +331,7 @@ export default function AnalyticsPage() {
                         ))}
                       </Pie>
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency(value as number)}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -365,7 +365,7 @@ export default function AnalyticsPage() {
                         width={80}
                       />
                       <Tooltip
-                        formatter={(value: number) => formatCurrency(value)}
+                        formatter={(value) => formatCurrency(value as number)}
                       />
                       <Bar dataKey="total" radius={[0, 4, 4, 0]}>
                         {data.spendByCategory.map((entry, index) => (

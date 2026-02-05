@@ -562,7 +562,7 @@ export default function MenuParserPage() {
             <CardHeader>
               <CardTitle>Match Ingredients to Products</CardTitle>
               <CardDescription>
-                Click "Add" to add products to your order
+                Click &quot;Add&quot; to add products to your order
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -836,7 +836,7 @@ Chocolate Cake - Dark chocolate, raspberry coulis"
                 <div className="text-center">
                   <Sparkles className="mx-auto h-12 w-12 text-muted-foreground/50" />
                   <p className="mt-4 text-muted-foreground">
-                    Paste your menu and click "Parse Menu with AI" to extract ingredients
+                    Paste your menu and click &quot;Parse Menu with AI&quot; to extract ingredients
                   </p>
                 </div>
               </Card>

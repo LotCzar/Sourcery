@@ -27,12 +27,12 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
           Welcome{userName ? `, ${userName}` : ""}!
         </CardTitle>
         <CardDescription className="text-lg">
-          Let's set up your restaurant on Sourcery
+          Let&apos;s set up your restaurant on Sourcery
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">
         <p className="text-center text-muted-foreground">
-          In just a few steps, you'll be ready to:
+          In just a few steps, you&apos;ll be ready to:
         </p>
         <div className="grid gap-3">
           <div className="flex items-center gap-3 rounded-lg border p-3">
