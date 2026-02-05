@@ -18,8 +18,13 @@ import {
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SupplierSearch } from "@/components/suppliers/supplier-search";
+import { Prisma } from "@prisma/client";
 
-async function getSuppliers(query?: string) {
+type SupplierWithCount = Prisma.SupplierGetPayload<{
+  include: { _count: { select: { products: true } } };
+}>;
+
+async function getSuppliers(query?: string): Promise<SupplierWithCount[]> {
   const suppliers = await prisma.supplier.findMany({
     where: {
       status: "VERIFIED",
