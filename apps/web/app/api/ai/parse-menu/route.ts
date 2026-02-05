@@ -126,10 +126,18 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
       status: error?.status,
       type: error?.type,
     });
+
+    // Return more detailed error for debugging
+    const errorDetails = {
+      message: error?.message || "Unknown error",
+      type: error?.type || error?.name || "UnknownError",
+      status: error?.status,
+    };
+
     return NextResponse.json(
       {
         error: "Failed to parse menu",
-        details: error?.message || "Unknown error",
+        details: errorDetails,
       },
       { status: 500 }
     );
