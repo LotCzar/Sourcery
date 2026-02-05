@@ -2,12 +2,30 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+let anthropicClient: Anthropic | null = null;
+
+function getAnthropicClient(): Anthropic | null {
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return null;
+  }
+  if (!anthropicClient) {
+    anthropicClient = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+  }
+  return anthropicClient;
+}
 
 export async function POST(request: Request) {
   try {
+    const anthropic = getAnthropicClient();
+
+    if (!anthropic) {
+      return NextResponse.json(
+        { error: "AI service not configured" },
+        { status: 503 }
+      );
+    }
     const { userId } = await auth();
 
     if (!userId) {
