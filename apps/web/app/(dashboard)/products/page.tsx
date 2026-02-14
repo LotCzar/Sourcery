@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -37,8 +36,6 @@ import {
   Loader2,
   Star,
   TrendingDown,
-  ArrowUpDown,
-  Filter,
   X,
   Plus,
   Minus,
@@ -48,10 +45,10 @@ import {
   Fish,
   Milk,
   Coffee,
-  Check,
-  ExternalLink,
   Trash2,
+  ArrowRight,
 } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
 interface Supplier {
   id: string;
@@ -91,16 +88,6 @@ interface SupplierOption {
   id: string;
   name: string;
   productCount: number;
-}
-
-interface CartItem {
-  productId: string;
-  productName: string;
-  supplierId: string;
-  supplierName: string;
-  quantity: number;
-  unitPrice: number;
-  unit: string;
 }
 
 const unitLabels: Record<string, string> = {
@@ -145,7 +132,6 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function ProductsPage() {
-  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([]);
   const [categories, setCategories] = useState<FilterOption[]>([]);
@@ -161,9 +147,20 @@ export default function ProductsPage() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "table" | "compare">("grid");
 
-  // Cart
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
+  // Shared cart
+  const { addItem, updateQuantity, removeItem, getQuantity, getCartBySupplier, getCartTotal, cart } = useCart();
+
+  const handleAddToCart = (product: Product) => {
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      supplierId: product.supplier.id,
+      supplierName: product.supplier.name,
+      quantity: 1,
+      unitPrice: product.price,
+      unit: product.unit,
+    });
+  };
 
   const fetchProducts = useCallback(async () => {
     setIsLoading(true);
@@ -210,109 +207,6 @@ export default function ProductsPage() {
     setInStockOnly(false);
   };
 
-  const addToCart = (product: Product) => {
-    const existingIndex = cart.findIndex((item) => item.productId === product.id);
-
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      newCart[existingIndex].quantity += 1;
-      setCart(newCart);
-    } else {
-      setCart([
-        ...cart,
-        {
-          productId: product.id,
-          productName: product.name,
-          supplierId: product.supplier.id,
-          supplierName: product.supplier.name,
-          quantity: 1,
-          unitPrice: product.price,
-          unit: product.unit,
-        },
-      ]);
-    }
-  };
-
-  const updateCartQuantity = (productId: string, delta: number) => {
-    const newCart = cart
-      .map((item) => {
-        if (item.productId === productId) {
-          return { ...item, quantity: Math.max(0, item.quantity + delta) };
-        }
-        return item;
-      })
-      .filter((item) => item.quantity > 0);
-    setCart(newCart);
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter((item) => item.productId !== productId));
-  };
-
-  const getCartQuantity = (productId: string) => {
-    const item = cart.find((item) => item.productId === productId);
-    return item?.quantity || 0;
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  };
-
-  const getCartBySupplier = () => {
-    const bySupplier: Record<string, { supplier: string; items: CartItem[]; total: number }> = {};
-    cart.forEach((item) => {
-      if (!bySupplier[item.supplierId]) {
-        bySupplier[item.supplierId] = {
-          supplier: item.supplierName,
-          items: [],
-          total: 0,
-        };
-      }
-      bySupplier[item.supplierId].items.push(item);
-      bySupplier[item.supplierId].total += item.quantity * item.unitPrice;
-    });
-    return bySupplier;
-  };
-
-  const handleCreateOrders = async () => {
-    const bySupplier = getCartBySupplier();
-    setIsCreatingOrder(true);
-    setError(null);
-
-    try {
-      const orderPromises = Object.entries(bySupplier).map(
-        async ([supplierId, { items }]) => {
-          const response = await fetch("/api/orders", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              supplierId,
-              items: items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-            }),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || "Failed to create order");
-          }
-
-          return response.json();
-        }
-      );
-
-      await Promise.all(orderPromises);
-      setCart([]);
-      router.push("/orders");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create orders");
-    } finally {
-      setIsCreatingOrder(false);
-    }
-  };
-
   const filteredProducts = search
     ? products.filter(
         (p) =>
@@ -322,6 +216,7 @@ export default function ProductsPage() {
     : products;
 
   const hasActiveFilters = selectedCategory || selectedSupplier || inStockOnly || search;
+  const bySupplier = getCartBySupplier();
 
   return (
     <div className="space-y-6">
@@ -344,11 +239,11 @@ export default function ProductsPage() {
               Your Cart ({cart.length} items)
             </CardTitle>
             <CardDescription>
-              Items from {Object.keys(getCartBySupplier()).length} supplier(s)
+              Items from {Object.keys(bySupplier).length} supplier(s)
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {Object.entries(getCartBySupplier()).map(([supplierId, { supplier, items, total }]) => (
+            {Object.entries(bySupplier).map(([supplierId, { supplier, items, total }]) => (
               <div key={supplierId} className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Link href={`/suppliers/${supplierId}`} className="font-medium hover:underline">
@@ -365,7 +260,7 @@ export default function ProductsPage() {
                           variant="outline"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => updateCartQuantity(item.productId, -1)}
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                         >
                           <Minus className="h-3 w-3" />
                         </Button>
@@ -374,7 +269,7 @@ export default function ProductsPage() {
                           variant="outline"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => updateCartQuantity(item.productId, 1)}
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                         >
                           <Plus className="h-3 w-3" />
                         </Button>
@@ -382,7 +277,7 @@ export default function ProductsPage() {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-red-500 hover:text-red-700"
-                          onClick={() => removeFromCart(item.productId)}
+                          onClick={() => removeItem(item.productId)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
@@ -397,17 +292,11 @@ export default function ProductsPage() {
               <span>Total</span>
               <span>${getCartTotal().toFixed(2)}</span>
             </div>
-            <Button
-              className="w-full"
-              onClick={handleCreateOrders}
-              disabled={isCreatingOrder}
-            >
-              {isCreatingOrder ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Check className="mr-2 h-4 w-4" />
-              )}
-              Create {Object.keys(getCartBySupplier()).length} Order(s)
+            <Button className="w-full" asChild>
+              <Link href="/checkout">
+                Proceed to Checkout
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
             </Button>
           </CardContent>
         </Card>
@@ -676,7 +565,7 @@ export default function ProductsPage() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => addToCart(product)}
+                                  onClick={() => handleAddToCart(product)}
                                 >
                                   <Plus className="mr-1 h-3 w-3" />
                                   Add
@@ -703,7 +592,7 @@ export default function ProductsPage() {
           {viewMode === "grid" && (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {filteredProducts.map((product) => {
-                const cartQty = getCartQuantity(product.id);
+                const cartQty = getQuantity(product.id);
                 return (
                   <Card key={product.id} className="overflow-hidden">
                     <CardContent className="p-4">
@@ -739,7 +628,7 @@ export default function ProductsPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateCartQuantity(product.id, -1)}
+                              onClick={() => updateQuantity(product.id, cartQty - 1)}
                             >
                               <Minus className="h-4 w-4" />
                             </Button>
@@ -748,13 +637,13 @@ export default function ProductsPage() {
                               variant="outline"
                               size="icon"
                               className="h-8 w-8"
-                              onClick={() => updateCartQuantity(product.id, 1)}
+                              onClick={() => updateQuantity(product.id, cartQty + 1)}
                             >
                               <Plus className="h-4 w-4" />
                             </Button>
                           </div>
                         ) : (
-                          <Button size="sm" onClick={() => addToCart(product)}>
+                          <Button size="sm" onClick={() => handleAddToCart(product)}>
                             <Plus className="mr-1 h-4 w-4" />
                             Add
                           </Button>
@@ -784,7 +673,7 @@ export default function ProductsPage() {
                   </TableHeader>
                   <TableBody>
                     {filteredProducts.map((product) => {
-                      const cartQty = getCartQuantity(product.id);
+                      const cartQty = getQuantity(product.id);
                       return (
                         <TableRow key={product.id}>
                           <TableCell className="font-medium">
@@ -826,7 +715,7 @@ export default function ProductsPage() {
                                   variant="outline"
                                   size="icon"
                                   className="h-7 w-7"
-                                  onClick={() => updateCartQuantity(product.id, -1)}
+                                  onClick={() => updateQuantity(product.id, cartQty - 1)}
                                 >
                                   <Minus className="h-3 w-3" />
                                 </Button>
@@ -835,7 +724,7 @@ export default function ProductsPage() {
                                   variant="outline"
                                   size="icon"
                                   className="h-7 w-7"
-                                  onClick={() => updateCartQuantity(product.id, 1)}
+                                  onClick={() => updateQuantity(product.id, cartQty + 1)}
                                 >
                                   <Plus className="h-3 w-3" />
                                 </Button>
@@ -844,7 +733,7 @@ export default function ProductsPage() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => addToCart(product)}
+                                onClick={() => handleAddToCart(product)}
                               >
                                 <Plus className="mr-1 h-3 w-3" />
                                 Add

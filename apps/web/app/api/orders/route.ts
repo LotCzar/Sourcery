@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, supplierId } = await request.json();
+    const { items, supplierId, deliveryNotes } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -165,6 +165,7 @@ export async function POST(request: Request) {
         tax,
         deliveryFee,
         total,
+        deliveryNotes: deliveryNotes || null,
         restaurantId: user.restaurant.id,
         supplierId,
         createdById: user.id,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -12,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -47,6 +47,7 @@ import {
   Minus,
   Store,
 } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
 interface Ingredient {
   name: string;
@@ -111,16 +112,6 @@ interface MatchResult {
   suppliers: Supplier[];
 }
 
-interface CartItem {
-  productId: string;
-  productName: string;
-  supplierId: string;
-  supplierName: string;
-  quantity: number;
-  unitPrice: number;
-  unit: string;
-}
-
 const categoryIcons: Record<string, React.ReactNode> = {
   PRODUCE: <Leaf className="h-4 w-4 text-green-500" />,
   MEAT: <Drumstick className="h-4 w-4 text-red-500" />,
@@ -151,13 +142,26 @@ export default function MenuParserPage() {
   const [menuType, setMenuType] = useState("restaurant");
   const [isLoading, setIsLoading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [result, setResult] = useState<ParsedResult | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("parse");
-  const [cart, setCart] = useState<CartItem[]>([]);
+
+  // Shared cart
+  const { addItem, updateQuantity, removeItem, getCartBySupplier, getCartTotal, cart } = useCart();
+
+  const handleAddToCart = (match: ProductMatch) => {
+    addItem({
+      productId: match.product.id,
+      productName: match.product.name,
+      supplierId: match.supplier.id,
+      supplierName: match.supplier.name,
+      quantity: 1,
+      unitPrice: Number(match.product.price),
+      unit: match.product.unit,
+    });
+  };
 
   const handleParse = async () => {
     if (!menuText.trim()) {
@@ -241,112 +245,11 @@ export default function MenuParserPage() {
     }
   };
 
-  const addToCart = (match: ProductMatch, ingredient: Ingredient) => {
-    const existingIndex = cart.findIndex(
-      (item) => item.productId === match.product.id
-    );
-
-    if (existingIndex >= 0) {
-      // Update quantity
-      const newCart = [...cart];
-      newCart[existingIndex].quantity += 1;
-      setCart(newCart);
-    } else {
-      // Add new item
-      setCart([
-        ...cart,
-        {
-          productId: match.product.id,
-          productName: match.product.name,
-          supplierId: match.supplier.id,
-          supplierName: match.supplier.name,
-          quantity: 1,
-          unitPrice: Number(match.product.price),
-          unit: match.product.unit,
-        },
-      ]);
-    }
-  };
-
-  const updateCartQuantity = (productId: string, delta: number) => {
-    const newCart = cart
-      .map((item) => {
-        if (item.productId === productId) {
-          return { ...item, quantity: Math.max(0, item.quantity + delta) };
-        }
-        return item;
-      })
-      .filter((item) => item.quantity > 0);
-    setCart(newCart);
-  };
-
-  const removeFromCart = (productId: string) => {
-    setCart(cart.filter((item) => item.productId !== productId));
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  };
-
-  const getCartBySupplier = () => {
-    const bySupplier: Record<string, { supplier: string; items: CartItem[]; total: number }> = {};
-    cart.forEach((item) => {
-      if (!bySupplier[item.supplierId]) {
-        bySupplier[item.supplierId] = {
-          supplier: item.supplierName,
-          items: [],
-          total: 0,
-        };
-      }
-      bySupplier[item.supplierId].items.push(item);
-      bySupplier[item.supplierId].total += item.quantity * item.unitPrice;
-    });
-    return bySupplier;
-  };
-
-  const handleCreateOrders = async () => {
-    const bySupplier = getCartBySupplier();
-    setIsCreatingOrder(true);
-    setError(null);
-
-    try {
-      const orderPromises = Object.entries(bySupplier).map(
-        async ([supplierId, { items }]) => {
-          const response = await fetch("/api/orders", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              supplierId,
-              items: items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-            }),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || "Failed to create order");
-          }
-
-          return response.json();
-        }
-      );
-
-      await Promise.all(orderPromises);
-      setCart([]);
-      setViewMode("parse");
-      alert(`Successfully created ${Object.keys(bySupplier).length} draft order(s)! Check your Orders page.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create orders");
-    } finally {
-      setIsCreatingOrder(false);
-    }
-  };
-
   const selectedMenuItem = result?.menuItems.find(
     (item) => item.name === selectedDish
   );
+
+  const bySupplier = getCartBySupplier();
 
   return (
     <div className="space-y-6">
@@ -416,11 +319,11 @@ export default function MenuParserPage() {
                 Your Order
               </CardTitle>
               <CardDescription>
-                Review items before creating draft orders
+                Review items before checking out
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {Object.entries(getCartBySupplier()).map(([supplierId, { supplier, items, total }]) => (
+              {Object.entries(bySupplier).map(([supplierId, { supplier, items, total }]) => (
                 <div key={supplierId} className="mb-6 last:mb-0">
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -456,7 +359,7 @@ export default function MenuParserPage() {
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.productId, -1)}
+                                onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                               >
                                 <Minus className="h-3 w-3" />
                               </Button>
@@ -465,7 +368,7 @@ export default function MenuParserPage() {
                                 variant="outline"
                                 size="icon"
                                 className="h-8 w-8"
-                                onClick={() => updateCartQuantity(item.productId, 1)}
+                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                               >
                                 <Plus className="h-3 w-3" />
                               </Button>
@@ -479,7 +382,7 @@ export default function MenuParserPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-red-500"
-                              onClick={() => removeFromCart(item.productId)}
+                              onClick={() => removeItem(item.productId)}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -497,20 +400,14 @@ export default function MenuParserPage() {
                     Total: ${getCartTotal().toFixed(2)}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {Object.keys(getCartBySupplier()).length} supplier(s)
+                    {Object.keys(bySupplier).length} supplier(s)
                   </p>
                 </div>
-                <Button
-                  size="lg"
-                  onClick={handleCreateOrders}
-                  disabled={isCreatingOrder}
-                >
-                  {isCreatingOrder ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <Check className="mr-2 h-4 w-4" />
-                  )}
-                  Create Draft Orders
+                <Button size="lg" asChild>
+                  <Link href="/checkout">
+                    Proceed to Checkout
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                  </Link>
                 </Button>
               </div>
             </CardContent>
@@ -607,14 +504,14 @@ export default function MenuParserPage() {
                                   ${Number(match.product.price).toFixed(2)}/{match.product.unit.toLowerCase()}
                                 </span>
                                 {match.supplier.rating && (
-                                  <span>⭐ {Number(match.supplier.rating).toFixed(1)}</span>
+                                  <span>&#11088; {Number(match.supplier.rating).toFixed(1)}</span>
                                 )}
                               </div>
                             </div>
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => addToCart(match, item.ingredient)}
+                              onClick={() => handleAddToCart(match)}
                             >
                               <Plus className="mr-1 h-3 w-3" />
                               Add
