@@ -28,6 +28,10 @@
     "db:generate": {
       "cache": false
     },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
     "db:push": {
       "cache": false
     }
