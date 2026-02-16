@@ -213,7 +213,7 @@ export async function PATCH(
         }
         break;
 
-      case "deliver":
+      case "deliver": {
         // Mark order as delivered (SHIPPED → DELIVERED) and auto-generate invoice
         if (order.status !== "SHIPPED") {
           return NextResponse.json(
@@ -296,6 +296,7 @@ export async function PATCH(
           });
         }
         break;
+      }
 
       case "reject":
         // Supplier rejects the order (PENDING → CANCELLED)

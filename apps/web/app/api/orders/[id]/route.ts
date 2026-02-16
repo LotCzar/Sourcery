@@ -153,7 +153,7 @@ export async function PATCH(
     let updatedOrder;
 
     switch (action) {
-      case "submit":
+      case "submit": {
         // Can only submit DRAFT orders
         if (order.status !== "DRAFT") {
           return NextResponse.json(
@@ -190,6 +190,7 @@ export async function PATCH(
           });
         }
         break;
+      }
 
       case "cancel":
         // Can only cancel DRAFT or PENDING orders

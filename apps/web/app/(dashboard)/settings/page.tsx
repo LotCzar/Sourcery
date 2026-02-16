@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import {
   Card,
@@ -339,9 +340,11 @@ export default function SettingsPage() {
             <CardContent className="space-y-4">
               <div className="flex items-center gap-3">
                 {clerkUser?.imageUrl ? (
-                  <img
+                  <Image
                     src={clerkUser.imageUrl}
                     alt="Profile"
+                    width={48}
+                    height={48}
                     className="h-12 w-12 rounded-full"
                   />
                 ) : (
