@@ -19,7 +19,7 @@ type CartAction =
   | { type: "CLEAR_CART" }
   | { type: "HYDRATE"; payload: CartItem[] };
 
-function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
+export function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
   switch (action.type) {
     case "ADD_ITEM": {
       const existing = state.find((item) => item.productId === action.payload.productId);

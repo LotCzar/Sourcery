@@ -134,6 +134,31 @@ export function createMockUserWithRestaurant(
   };
 }
 
+export function createMockInvoice(overrides?: Record<string, unknown>) {
+  return {
+    id: "inv_1",
+    invoiceNumber: "INV-001",
+    status: "PENDING" as const,
+    subtotal: new Decimal("100.00"),
+    tax: new Decimal("8.25"),
+    total: new Decimal("108.25"),
+    issueDate: new Date("2024-01-15"),
+    dueDate: new Date("2024-02-15"),
+    paidAt: null,
+    paidAmount: null,
+    paymentMethod: null,
+    paymentReference: null,
+    notes: null,
+    fileUrl: null,
+    restaurantId: "rest_1",
+    supplierId: "sup_1",
+    orderId: "order_1",
+    createdAt: new Date("2024-01-15"),
+    updatedAt: new Date("2024-01-15"),
+    ...overrides,
+  };
+}
+
 export function createMockSupplierUser(overrides?: Record<string, unknown>) {
   return createMockUser({
     id: "sup_user_1",
