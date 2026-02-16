@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "main": "./src/index.tsx",
   "types": "./src/index.tsx",
-  "scripts": {},
+  "scripts": {
+    "lint": "eslint src/"
+  },
   "peerDependencies": {
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
