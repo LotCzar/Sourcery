@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   Card,
@@ -39,13 +39,14 @@ import {
   Plus,
   Minus,
   Loader2,
-  Check,
+  ArrowRight,
   Leaf,
   Drumstick,
   Fish,
   Milk,
   Coffee,
 } from "lucide-react";
+import { useCart } from "@/lib/cart-context";
 
 interface Product {
   id: string;
@@ -76,14 +77,6 @@ interface Supplier {
   reviewCount: number;
   products: Product[];
   _count: { products: number };
-}
-
-interface CartItem {
-  productId: string;
-  productName: string;
-  quantity: number;
-  unitPrice: number;
-  unit: string;
 }
 
 const unitLabels: Record<string, string> = {
@@ -129,14 +122,12 @@ const categoryColors: Record<string, string> = {
 
 export default function SupplierDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const { addItem, updateQuantity, getQuantity, getCartTotal, cart } = useCart();
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [isCreatingOrder, setIsCreatingOrder] = useState(false);
 
   const fetchSupplier = useCallback(async () => {
     try {
@@ -159,80 +150,25 @@ export default function SupplierDetailPage() {
     fetchSupplier();
   }, [fetchSupplier]);
 
-  const addToCart = (product: Product) => {
-    const existingIndex = cart.findIndex((item) => item.productId === product.id);
-
-    if (existingIndex >= 0) {
-      const newCart = [...cart];
-      newCart[existingIndex].quantity += 1;
-      setCart(newCart);
-    } else {
-      setCart([
-        ...cart,
-        {
-          productId: product.id,
-          productName: product.name,
-          quantity: 1,
-          unitPrice: product.price,
-          unit: product.unit,
-        },
-      ]);
-    }
+  const handleAddToCart = (product: Product) => {
+    if (!supplier) return;
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      supplierId: supplier.id,
+      supplierName: supplier.name,
+      quantity: 1,
+      unitPrice: product.price,
+      unit: product.unit,
+    });
   };
 
-  const updateCartQuantity = (productId: string, delta: number) => {
-    const newCart = cart
-      .map((item) => {
-        if (item.productId === productId) {
-          return { ...item, quantity: Math.max(0, item.quantity + delta) };
-        }
-        return item;
-      })
-      .filter((item) => item.quantity > 0);
-    setCart(newCart);
-  };
-
-  const getCartQuantity = (productId: string) => {
-    const item = cart.find((item) => item.productId === productId);
-    return item?.quantity || 0;
-  };
-
-  const getCartTotal = () => {
-    return cart.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-  };
-
-  const handleCreateOrder = async () => {
-    if (!supplier || cart.length === 0) return;
-
-    setIsCreatingOrder(true);
-    setError(null);
-
-    try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          supplierId: supplier.id,
-          items: cart.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-        }),
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Failed to create order");
-      }
-
-      setCart([]);
-      router.push("/orders");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create order");
-    } finally {
-      setIsCreatingOrder(false);
-    }
-  };
+  // Filter cart to items from this supplier
+  const supplierCart = cart.filter((item) => item.supplierId === supplier?.id);
+  const supplierCartTotal = supplierCart.reduce(
+    (sum, item) => sum + item.quantity * item.unitPrice,
+    0
+  );
 
   if (isLoading) {
     return (
@@ -326,7 +262,7 @@ export default function SupplierDetailPage() {
         </div>
 
         {/* Cart Summary */}
-        {cart.length > 0 && (
+        {supplierCart.length > 0 && (
           <Card className="w-full lg:w-80">
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-lg">
@@ -336,7 +272,7 @@ export default function SupplierDetailPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="max-h-32 overflow-y-auto space-y-2">
-                {cart.map((item) => (
+                {supplierCart.map((item) => (
                   <div key={item.productId} className="flex items-center justify-between text-sm">
                     <span className="truncate flex-1">{item.productName}</span>
                     <div className="flex items-center gap-2">
@@ -344,7 +280,7 @@ export default function SupplierDetailPage() {
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => updateCartQuantity(item.productId, -1)}
+                        onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                       >
                         <Minus className="h-3 w-3" />
                       </Button>
@@ -353,7 +289,7 @@ export default function SupplierDetailPage() {
                         variant="outline"
                         size="icon"
                         className="h-6 w-6"
-                        onClick={() => updateCartQuantity(item.productId, 1)}
+                        onClick={() => updateQuantity(item.productId, item.quantity + 1)}
                       >
                         <Plus className="h-3 w-3" />
                       </Button>
@@ -364,25 +300,19 @@ export default function SupplierDetailPage() {
               <Separator />
               <div className="flex items-center justify-between font-semibold">
                 <span>Total</span>
-                <span>${getCartTotal().toFixed(2)}</span>
+                <span>${supplierCartTotal.toFixed(2)}</span>
               </div>
-              {supplier.minimumOrder && getCartTotal() < supplier.minimumOrder && (
+              {supplier.minimumOrder && supplierCartTotal < supplier.minimumOrder && (
                 <p className="text-xs text-orange-600">
-                  Minimum order: ${supplier.minimumOrder.toFixed(2)} (${(supplier.minimumOrder - getCartTotal()).toFixed(2)} more needed)
+                  Minimum order: ${supplier.minimumOrder.toFixed(2)} (${(supplier.minimumOrder - supplierCartTotal).toFixed(2)} more needed)
                 </p>
               )}
-              <Button
-                className="w-full"
-                onClick={handleCreateOrder}
-                disabled={isCreatingOrder || (supplier.minimumOrder ? getCartTotal() < supplier.minimumOrder : false)}
-              >
-                {isCreatingOrder ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="mr-2 h-4 w-4" />
-                )}
-                Create Order
-              </Button>
+              <Link href="/checkout" className="block">
+                <Button className="w-full">
+                  Proceed to Checkout
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         )}
@@ -449,7 +379,7 @@ export default function SupplierDetailPage() {
           {/* Products Grid */}
           <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
             {filteredProducts.map((product) => {
-              const cartQty = getCartQuantity(product.id);
+              const cartQty = getQuantity(product.id);
               return (
                 <Card key={product.id} className="overflow-hidden">
                   <CardContent className="p-4">
@@ -489,7 +419,7 @@ export default function SupplierDetailPage() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateCartQuantity(product.id, -1)}
+                            onClick={() => updateQuantity(product.id, cartQty - 1)}
                           >
                             <Minus className="h-4 w-4" />
                           </Button>
@@ -498,13 +428,13 @@ export default function SupplierDetailPage() {
                             variant="outline"
                             size="icon"
                             className="h-8 w-8"
-                            onClick={() => updateCartQuantity(product.id, 1)}
+                            onClick={() => updateQuantity(product.id, cartQty + 1)}
                           >
                             <Plus className="h-4 w-4" />
                           </Button>
                         </div>
                       ) : (
-                        <Button size="sm" onClick={() => addToCart(product)}>
+                        <Button size="sm" onClick={() => handleAddToCart(product)}>
                           <Plus className="mr-1 h-4 w-4" />
                           Add
                         </Button>
