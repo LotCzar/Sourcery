@@ -6,9 +6,10 @@ import { sendEmail, emailTemplates } from "@/lib/email";
 // GET - Get single order details
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -30,7 +31,7 @@ export async function GET(
 
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         supplierId: user.supplier.id,
       },
       include: {
@@ -106,9 +107,10 @@ export async function GET(
 // PATCH - Update order status (supplier actions)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -134,7 +136,7 @@ export async function PATCH(
     // Get the order with restaurant info
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         supplierId: user.supplier.id,
       },
       include: {
@@ -164,7 +166,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id: id },
           data: { status: "CONFIRMED" },
         });
 
@@ -193,7 +195,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id: id },
           data: { status: "SHIPPED" },
         });
 
@@ -223,7 +225,7 @@ export async function PATCH(
         const deliverResult = await prisma.$transaction(async (tx) => {
           // 1. Update order to DELIVERED
           const deliveredOrder = await tx.order.update({
-            where: { id: params.id },
+            where: { id: id },
             data: {
               status: "DELIVERED",
               deliveredAt: new Date(),
@@ -232,7 +234,7 @@ export async function PATCH(
 
           // 2. Check for existing invoice (idempotency)
           const existingInvoice = await tx.invoice.findUnique({
-            where: { orderId: params.id },
+            where: { orderId: id },
           });
           if (existingInvoice) {
             return { order: deliveredOrder, invoice: existingInvoice };
@@ -305,7 +307,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id: id },
           data: { status: "CANCELLED" },
         });
         break;

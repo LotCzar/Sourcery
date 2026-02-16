@@ -13,7 +13,7 @@ import {
 import { createRequest, createJsonRequest, parseResponse } from "@/__tests__/helpers";
 import { Decimal } from "@prisma/client/runtime/library";
 
-const mockParams = { params: { id: "order_1" } };
+const mockParams = { params: Promise.resolve({ id: "order_1" }) };
 
 describe("PATCH /api/orders/[id]", () => {
   beforeEach(() => {

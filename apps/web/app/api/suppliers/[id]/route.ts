@@ -4,9 +4,10 @@ import prisma from "@/lib/prisma";
 
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -14,7 +15,7 @@ export async function GET(
     }
 
     const supplier = await prisma.supplier.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         products: {
           orderBy: [

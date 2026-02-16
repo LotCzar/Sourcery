@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // PATCH mark notification as read
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -24,7 +25,7 @@ export async function PATCH(
 
     const notification = await prisma.notification.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     });
@@ -37,7 +38,7 @@ export async function PATCH(
     const { isRead } = body;
 
     const updated = await prisma.notification.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { isRead: isRead ?? true },
     });
 
@@ -57,9 +58,10 @@ export async function PATCH(
 // DELETE notification
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -76,7 +78,7 @@ export async function DELETE(
 
     const notification = await prisma.notification.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     });
@@ -86,7 +88,7 @@ export async function DELETE(
     }
 
     await prisma.notification.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

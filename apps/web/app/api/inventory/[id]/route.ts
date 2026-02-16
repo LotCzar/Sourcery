@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // GET single inventory item with full history
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -25,7 +26,7 @@ export async function GET(
 
     const item = await prisma.inventoryItem.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
       include: {
@@ -99,9 +100,10 @@ export async function GET(
 // PATCH update inventory item or adjust quantity
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -119,7 +121,7 @@ export async function PATCH(
 
     const existingItem = await prisma.inventoryItem.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
     });
@@ -167,14 +169,14 @@ export async function PATCH(
 
       // Update item quantity
       await prisma.inventoryItem.update({
-        where: { id: params.id },
+        where: { id: id },
         data: { currentQuantity: newQuantity },
       });
 
       // Create log entry
       await prisma.inventoryLog.create({
         data: {
-          inventoryItemId: params.id,
+          inventoryItemId: id,
           changeType,
           quantity: changeType === "COUNT" ? newQuantity - previousQuantity : adjustQuantity,
           previousQuantity,
@@ -209,7 +211,7 @@ export async function PATCH(
     if (supplierProductId !== undefined) updateData.supplierProductId = supplierProductId;
 
     const item = await prisma.inventoryItem.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -236,9 +238,10 @@ export async function PATCH(
 // DELETE inventory item
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -256,7 +259,7 @@ export async function DELETE(
 
     const item = await prisma.inventoryItem.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
     });
@@ -266,7 +269,7 @@ export async function DELETE(
     }
 
     await prisma.inventoryItem.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

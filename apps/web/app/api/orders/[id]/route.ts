@@ -6,9 +6,10 @@ import { sendEmail, emailTemplates } from "@/lib/email";
 // GET single order details
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -30,7 +31,7 @@ export async function GET(
 
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id,
         restaurantId: user.restaurant.id,
       },
       include: {
@@ -108,9 +109,10 @@ export async function GET(
 // PATCH - Update order (submit, cancel, etc.)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -136,7 +138,7 @@ export async function PATCH(
     // Get the order
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id,
         restaurantId: user.restaurant.id,
       },
       include: {
@@ -167,7 +169,7 @@ export async function PATCH(
         );
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             status: "PENDING",
             deliveryDate,
@@ -199,7 +201,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             status: "CANCELLED",
           },
@@ -216,7 +218,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             status: "CONFIRMED",
           },
@@ -233,7 +235,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             status: "SHIPPED",
           },
@@ -250,7 +252,7 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: params.id },
+          where: { id },
           data: {
             status: "DELIVERED",
             deliveredAt: new Date(),
@@ -287,9 +289,10 @@ export async function PATCH(
 // DELETE - Delete a draft order
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -312,7 +315,7 @@ export async function DELETE(
     // Get the order
     const order = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id,
         restaurantId: user.restaurant.id,
       },
     });
@@ -331,11 +334,11 @@ export async function DELETE(
 
     // Delete order items first, then the order
     await prisma.orderItem.deleteMany({
-      where: { orderId: params.id },
+      where: { orderId: id },
     });
 
     await prisma.order.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

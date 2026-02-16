@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // GET single invoice
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -25,7 +26,7 @@ export async function GET(
 
     const invoice = await prisma.invoice.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
       include: {
@@ -97,9 +98,10 @@ export async function GET(
 // PATCH update invoice (including marking as paid)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -117,7 +119,7 @@ export async function PATCH(
 
     const existingInvoice = await prisma.invoice.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
     });
@@ -155,7 +157,7 @@ export async function PATCH(
     }
 
     const invoice = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         supplier: {
@@ -191,9 +193,10 @@ export async function PATCH(
 // DELETE invoice
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -211,7 +214,7 @@ export async function DELETE(
 
     const invoice = await prisma.invoice.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
     });
@@ -221,7 +224,7 @@ export async function DELETE(
     }
 
     await prisma.invoice.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

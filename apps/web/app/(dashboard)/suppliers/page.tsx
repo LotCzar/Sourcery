@@ -48,9 +48,9 @@ async function getSuppliers(query?: string) {
 export default async function SuppliersPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
-  const query = searchParams.q;
+  const { q: query } = await searchParams;
   const suppliers = await getSuppliers(query);
 
   return (

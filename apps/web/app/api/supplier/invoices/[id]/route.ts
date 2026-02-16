@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // GET - Get single invoice
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -28,7 +29,7 @@ export async function GET(
     }
 
     const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         restaurant: {
           select: {
@@ -111,9 +112,10 @@ export async function GET(
 // PATCH - Update invoice (mark as paid, add notes, etc.)
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -134,7 +136,7 @@ export async function PATCH(
     }
 
     const invoice = await prisma.invoice.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!invoice) {
@@ -216,7 +218,7 @@ export async function PATCH(
     }
 
     const updatedInvoice = await prisma.invoice.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         restaurant: {

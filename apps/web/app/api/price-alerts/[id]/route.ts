@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // DELETE a price alert
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -25,7 +26,7 @@ export async function DELETE(
     // Check if alert exists and belongs to user
     const alert = await prisma.priceAlert.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     });
@@ -35,7 +36,7 @@ export async function DELETE(
     }
 
     await prisma.priceAlert.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({
@@ -54,9 +55,10 @@ export async function DELETE(
 // PATCH update a price alert
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -74,7 +76,7 @@ export async function PATCH(
     // Check if alert exists and belongs to user
     const existingAlert = await prisma.priceAlert.findFirst({
       where: {
-        id: params.id,
+        id: id,
         userId: user.id,
       },
     });
@@ -98,7 +100,7 @@ export async function PATCH(
     }
 
     const alert = await prisma.priceAlert.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
       include: {
         product: {

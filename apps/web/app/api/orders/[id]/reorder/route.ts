@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // POST - Create a new order from an existing order's items
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -30,7 +31,7 @@ export async function POST(
     // Get the original order with items
     const originalOrder = await prisma.order.findFirst({
       where: {
-        id: params.id,
+        id: id,
         restaurantId: user.restaurant.id,
       },
       include: {

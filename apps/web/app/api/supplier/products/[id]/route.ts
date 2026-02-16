@@ -5,9 +5,10 @@ import prisma from "@/lib/prisma";
 // GET - Get single product
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -29,7 +30,7 @@ export async function GET(
 
     const product = await prisma.supplierProduct.findFirst({
       where: {
-        id: params.id,
+        id: id,
         supplierId: user.supplier.id,
       },
       include: {
@@ -71,9 +72,10 @@ export async function GET(
 // PATCH - Update product
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -96,7 +98,7 @@ export async function PATCH(
     // Check product belongs to supplier
     const existingProduct = await prisma.supplierProduct.findFirst({
       where: {
-        id: params.id,
+        id: id,
         supplierId: user.supplier.id,
       },
     });
@@ -138,7 +140,7 @@ export async function PATCH(
         // Record price change in history
         await prisma.priceHistory.create({
           data: {
-            productId: params.id,
+            productId: id,
             price: newPrice,
           },
         });
@@ -146,7 +148,7 @@ export async function PATCH(
     }
 
     const product = await prisma.supplierProduct.update({
-      where: { id: params.id },
+      where: { id: id },
       data: updateData,
     });
 
@@ -170,9 +172,10 @@ export async function PATCH(
 // DELETE - Delete product
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const { userId } = await auth();
 
     if (!userId) {
@@ -195,7 +198,7 @@ export async function DELETE(
     // Check product belongs to supplier
     const product = await prisma.supplierProduct.findFirst({
       where: {
-        id: params.id,
+        id: id,
         supplierId: user.supplier.id,
       },
     });
@@ -209,7 +212,7 @@ export async function DELETE(
 
     // Check if product is used in any orders
     const orderItemCount = await prisma.orderItem.count({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     if (orderItemCount > 0) {
@@ -223,12 +226,12 @@ export async function DELETE(
 
     // Delete price history first
     await prisma.priceHistory.deleteMany({
-      where: { productId: params.id },
+      where: { productId: id },
     });
 
     // Delete product
     await prisma.supplierProduct.delete({
-      where: { id: params.id },
+      where: { id: id },
     });
 
     return NextResponse.json({

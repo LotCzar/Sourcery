@@ -26,6 +26,10 @@
   "prisma": {
     "seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} packages/database/prisma/seed.ts"
   },
+  "overrides": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0"
+  },
   "packageManager": "npm@10.5.0",
   "workspaces": [
     "apps/*",
