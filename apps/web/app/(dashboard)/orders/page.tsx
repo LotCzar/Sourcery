@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,6 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useOrders, useUpdateOrder, useDeleteOrder } from "@/hooks/use-orders";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -121,11 +125,12 @@ const statusConfig: Record<
 const statusSteps = ["DRAFT", "PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
 
 export default function OrdersPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: result, isLoading, error } = useOrders();
+  const updateOrder = useUpdateOrder();
+  const deleteOrder = useDeleteOrder();
+  const queryClient = useQueryClient();
+
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
-  const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
   // Dialog states
@@ -136,70 +141,38 @@ export default function OrdersPage() {
     orderNumber: string | null;
   }>({ open: false, type: null, orderId: null, orderNumber: null });
 
-  useEffect(() => {
-    fetchOrders();
-  }, []);
-
-  const fetchOrders = async () => {
-    try {
-      const response = await fetch("/api/orders");
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch orders");
+  const reorderMutation = useMutation({
+    mutationFn: (orderId: string) =>
+      apiFetch<{ success: boolean; data: { id: string } }>(`/api/orders/${orderId}/reorder`, {
+        method: "POST",
+      }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+      if (data?.data?.id) {
+        setExpandedOrder(data.data.id);
       }
+    },
+  });
 
-      setOrders(data.data || []);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const orders: Order[] = result?.data || [];
+  const isMutating = updateOrder.isPending || deleteOrder.isPending || reorderMutation.isPending;
+  const actionError = updateOrder.error || deleteOrder.error || reorderMutation.error;
+  const actionLoading = isMutating ? confirmDialog.orderId : null;
 
   const handleOrderAction = async (
     orderId: string,
     action: "submit" | "cancel" | "delete" | "reorder"
   ) => {
-    setActionLoading(orderId);
-    setError(null);
-
     try {
-      let response;
-
       if (action === "delete") {
-        response = await fetch(`/api/orders/${orderId}`, {
-          method: "DELETE",
-        });
+        await deleteOrder.mutateAsync(orderId);
       } else if (action === "reorder") {
-        response = await fetch(`/api/orders/${orderId}/reorder`, {
-          method: "POST",
-        });
+        await reorderMutation.mutateAsync(orderId);
       } else {
-        response = await fetch(`/api/orders/${orderId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action }),
-        });
+        await updateOrder.mutateAsync({ id: orderId, action });
       }
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || `Failed to ${action} order`);
-      }
-
-      // Refresh orders
-      await fetchOrders();
-
-      // If reorder, expand the new order
-      if (action === "reorder" && data.data?.id) {
-        setExpandedOrder(data.data.id);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
-      setActionLoading(null);
       setConfirmDialog({ open: false, type: null, orderId: null, orderNumber: null });
     }
   };
@@ -304,11 +277,11 @@ export default function OrdersPage() {
         })}
       </div>
 
-      {error && (
+      {(error || actionError) && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6 flex items-center gap-2">
             <AlertCircle className="h-5 w-5 text-red-600" />
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{(error || actionError)?.message}</p>
           </CardContent>
         </Card>
       )}
@@ -612,9 +585,9 @@ export default function OrdersPage() {
                   handleOrderAction(confirmDialog.orderId, confirmDialog.type);
                 }
               }}
-              disabled={actionLoading !== null}
+              disabled={isMutating}
             >
-              {actionLoading ? (
+              {isMutating ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : null}
               {confirmDialog.type === "submit" && "Submit Order"}

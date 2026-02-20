@@ -2,6 +2,9 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { UpdateOrderSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
+import { inngest } from "@/lib/inngest/client";
 
 // GET single order details
 export async function GET(
@@ -120,7 +123,9 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { action } = body;
+    const validation = validateBody(UpdateOrderSchema, body);
+    if (!validation.success) return validation.response;
+    const { action } = validation.data;
 
     // Get user's restaurant
     const user = await prisma.user.findUnique({
@@ -224,6 +229,20 @@ export async function PATCH(
             status: "CONFIRMED",
           },
         });
+
+        // Send confirmation email to restaurant
+        if (user.restaurant.email) {
+          const confirmTemplate = emailTemplates.orderConfirmed(
+            order.orderNumber,
+            order.supplier.name,
+            user.restaurant.email
+          );
+          sendEmail({
+            to: user.restaurant.email,
+            subject: confirmTemplate.subject,
+            html: confirmTemplate.html,
+          });
+        }
         break;
 
       case "ship":
@@ -241,6 +260,19 @@ export async function PATCH(
             status: "SHIPPED",
           },
         });
+
+        // Send shipped email to restaurant
+        if (user.restaurant.email) {
+          const shipTemplate = emailTemplates.orderShipped(
+            order.orderNumber,
+            order.supplier.name
+          );
+          sendEmail({
+            to: user.restaurant.email,
+            subject: shipTemplate.subject,
+            html: shipTemplate.html,
+          });
+        }
         break;
 
       case "deliver":
@@ -259,6 +291,20 @@ export async function PATCH(
             deliveredAt: new Date(),
           },
         });
+
+        // Send delivered email to restaurant
+        if (user.restaurant.email) {
+          const deliverTemplate = emailTemplates.orderDelivered(
+            order.orderNumber,
+            `INV-${order.orderNumber}`,
+            Number(order.total)
+          );
+          sendEmail({
+            to: user.restaurant.email,
+            subject: deliverTemplate.subject,
+            html: deliverTemplate.html,
+          });
+        }
         break;
 
       default:
@@ -266,6 +312,33 @@ export async function PATCH(
           { error: "Invalid action" },
           { status: 400 }
         );
+    }
+
+    // Emit Inngest events for status changes
+    inngest
+      .send({
+        name: "order/status.changed",
+        data: {
+          orderId: id,
+          previousStatus: order.status,
+          newStatus: updatedOrder.status,
+          restaurantId: user.restaurant.id,
+          supplierId: order.supplierId,
+        },
+      })
+      .catch(() => {});
+
+    if (updatedOrder.status === "DELIVERED") {
+      inngest
+        .send({
+          name: "order/delivered",
+          data: {
+            orderId: id,
+            restaurantId: user.restaurant.id,
+            supplierId: order.supplierId,
+          },
+        })
+        .catch(() => {});
     }
 
     return NextResponse.json({

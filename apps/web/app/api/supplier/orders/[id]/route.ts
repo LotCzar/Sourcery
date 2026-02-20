@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { inngest } from "@/lib/inngest/client";
 
 // GET - Get single order details
 export async function GET(
@@ -315,6 +316,33 @@ export async function PATCH(
 
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
+    }
+
+    // Emit Inngest events
+    inngest
+      .send({
+        name: "order/status.changed",
+        data: {
+          orderId: id,
+          previousStatus: order.status,
+          newStatus: updatedOrder.status,
+          restaurantId: order.restaurantId,
+          supplierId: user.supplier.id,
+        },
+      })
+      .catch(() => {});
+
+    if (updatedOrder.status === "DELIVERED") {
+      inngest
+        .send({
+          name: "order/delivered",
+          data: {
+            orderId: id,
+            restaurantId: order.restaurantId,
+            supplierId: user.supplier.id,
+          },
+        })
+        .catch(() => {});
     }
 
     return NextResponse.json({

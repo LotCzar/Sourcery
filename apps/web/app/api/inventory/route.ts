@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreateInventoryItemSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET all inventory items for user's restaurant
 export async function GET(request: Request) {
@@ -153,24 +155,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const validation = validateBody(CreateInventoryItemSchema, body);
+    if (!validation.success) return validation.response;
     const {
       name,
       category,
-      currentQuantity = 0,
+      currentQuantity,
       unit,
       parLevel,
       costPerUnit,
       location,
       notes,
       supplierProductId,
-    } = body;
-
-    if (!name || !category || !unit) {
-      return NextResponse.json(
-        { error: "Missing required fields: name, category, unit" },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     const item = await prisma.inventoryItem.create({
       data: {

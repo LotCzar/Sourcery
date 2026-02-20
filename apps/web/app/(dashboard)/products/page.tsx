@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useProducts } from "@/hooks/use-products";
 import Link from "next/link";
 import {
   Card,
@@ -132,13 +133,6 @@ const categoryColors: Record<string, string> = {
 };
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [priceComparisons, setPriceComparisons] = useState<PriceComparison[]>([]);
-  const [categories, setCategories] = useState<FilterOption[]>([]);
-  const [suppliers, setSuppliers] = useState<SupplierOption[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   // Filters
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -149,6 +143,17 @@ export default function ProductsPage() {
 
   // Shared cart
   const { addItem, updateQuantity, removeItem, getQuantity, getCartBySupplier, getCartTotal, cart } = useCart();
+
+  const { data: result, isLoading, error } = useProducts({
+    category: selectedCategory || undefined,
+    search: search || undefined,
+    supplierId: selectedSupplier || undefined,
+  });
+
+  const products: Product[] = result?.data?.products || [];
+  const priceComparisons: PriceComparison[] = result?.data?.priceComparisons || [];
+  const categories: FilterOption[] = result?.data?.filters?.categories || [];
+  const suppliers: SupplierOption[] = result?.data?.filters?.suppliers || [];
 
   const handleAddToCart = (product: Product) => {
     addItem({
@@ -162,41 +167,9 @@ export default function ProductsPage() {
     });
   };
 
-  const fetchProducts = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const params = new URLSearchParams();
-      if (search) params.set("search", search);
-      if (selectedCategory) params.set("category", selectedCategory);
-      if (selectedSupplier) params.set("supplier", selectedSupplier);
-      if (sortBy) params.set("sort", sortBy);
-      if (inStockOnly) params.set("inStock", "true");
-
-      const response = await fetch(`/api/products?${params.toString()}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch products");
-      }
-
-      setProducts(data.data.products);
-      setPriceComparisons(data.data.priceComparisons);
-      setCategories(data.data.filters.categories);
-      setSuppliers(data.data.filters.suppliers);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [search, selectedCategory, selectedSupplier, sortBy, inStockOnly]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    fetchProducts();
+    // React Query will automatically refetch when search state changes
   };
 
   const clearFilters = () => {
@@ -466,7 +439,7 @@ export default function ProductsPage() {
       {error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error.message}</p>
           </CardContent>
         </Card>
       )}

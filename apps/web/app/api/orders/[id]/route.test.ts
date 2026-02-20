@@ -179,7 +179,7 @@ describe("PATCH /api/orders/[id]", () => {
       const { status, data } = await parseResponse(response);
 
       expect(status).toBe(400);
-      expect(data.error).toBe("Invalid action");
+      expect(data.error).toBe("Validation failed");
     });
   });
 });

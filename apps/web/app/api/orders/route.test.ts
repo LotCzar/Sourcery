@@ -111,7 +111,7 @@ describe("POST /api/orders", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Order items are required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 400 when items is empty", async () => {
@@ -124,7 +124,7 @@ describe("POST /api/orders", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Order items are required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 400 when supplierId is missing", async () => {
@@ -136,7 +136,7 @@ describe("POST /api/orders", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Supplier ID is required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 404 when supplier not found", async () => {

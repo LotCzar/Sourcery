@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreateOrderSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // Generate a unique order number
 function generateOrderNumber(): string {
@@ -82,21 +84,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, supplierId, deliveryNotes } = await request.json();
-
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      return NextResponse.json(
-        { error: "Order items are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!supplierId) {
-      return NextResponse.json(
-        { error: "Supplier ID is required" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validation = validateBody(CreateOrderSchema, body);
+    if (!validation.success) return validation.response;
+    const { items, supplierId, deliveryNotes } = validation.data;
 
     // Get user and their restaurant
     const user = await prisma.user.findUnique({

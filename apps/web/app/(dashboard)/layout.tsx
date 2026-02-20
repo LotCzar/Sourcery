@@ -3,6 +3,9 @@ import { auth } from "@clerk/nextjs/server";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Header } from "@/components/dashboard/header";
 import { MobileNav } from "@/components/dashboard/mobile-nav";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { ChatSidebar } from "@/components/chat/chat-sidebar";
+import { RealtimeProvider } from "@/components/realtime-provider";
 import prisma from "@/lib/prisma";
 
 async function checkOnboarding(userId: string) {
@@ -48,9 +51,12 @@ export default async function DashboardLayout({
           <Header />
         </div>
         <main className="flex-1 overflow-y-auto bg-background p-6">
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </main>
       </div>
+
+      <ChatSidebar />
+      <RealtimeProvider />
     </div>
   );
 }

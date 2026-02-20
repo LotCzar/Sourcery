@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreatePriceAlertSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET all price alerts for user
 export async function GET() {
@@ -91,14 +93,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { productId, alertType, targetPrice } = body;
-
-    if (!productId || !alertType || targetPrice === undefined) {
-      return NextResponse.json(
-        { error: "Missing required fields: productId, alertType, targetPrice" },
-        { status: 400 }
-      );
-    }
+    const validation = validateBody(CreatePriceAlertSchema, body);
+    if (!validation.success) return validation.response;
+    const { productId, alertType, targetPrice } = validation.data;
 
     // Check if product exists
     const product = await prisma.supplierProduct.findUnique({

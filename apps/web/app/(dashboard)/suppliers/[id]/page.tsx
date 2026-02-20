@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
+import { useSupplier } from "@/hooks/use-suppliers";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -123,32 +124,11 @@ const categoryColors: Record<string, string> = {
 export default function SupplierDetailPage() {
   const params = useParams();
   const { addItem, updateQuantity, getQuantity, getCartTotal, cart } = useCart();
-  const [supplier, setSupplier] = useState<Supplier | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: result, isLoading, error } = useSupplier(params.id as string);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const fetchSupplier = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/suppliers/${params.id}`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch supplier");
-      }
-
-      setSupplier(data.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [params.id]);
-
-  useEffect(() => {
-    fetchSupplier();
-  }, [fetchSupplier]);
+  const supplier = result?.data as Supplier | undefined;
 
   const handleAddToCart = (product: Product) => {
     if (!supplier) return;
@@ -189,7 +169,7 @@ export default function SupplierDetailPage() {
         </Link>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error?.message}</p>
           </CardContent>
         </Card>
       </div>
@@ -321,7 +301,7 @@ export default function SupplierDetailPage() {
       {error && (
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error?.message}</p>
           </CardContent>
         </Card>
       )}

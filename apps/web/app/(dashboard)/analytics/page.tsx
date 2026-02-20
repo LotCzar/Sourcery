@@ -1,6 +1,4 @@
 "use client";
-
-import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -42,30 +40,7 @@ import {
   Bar,
   Legend,
 } from "recharts";
-
-interface AnalyticsData {
-  overview: {
-    totalSpend: number;
-    totalOrders: number;
-    totalItems: number;
-    uniqueSuppliers: number;
-    avgOrderValue: number;
-  };
-  spendBySupplier: Array<{ name: string; total: number; orders: number }>;
-  spendByCategory: Array<{ category: string; total: number }>;
-  topProducts: Array<{ name: string; total: number; quantity: number }>;
-  spendOverTime: Array<{ date: string; total: number; orders: number }>;
-  ordersByStatus: Array<{ status: string; count: number }>;
-  recentOrders: Array<{
-    id: string;
-    orderNumber: string;
-    supplier: string;
-    total: number;
-    status: string;
-    date: string;
-    itemCount: number;
-  }>;
-}
+import { useAnalytics } from "@/hooks/use-analytics";
 
 const COLORS = [
   "#22C55E", // green
@@ -101,30 +76,7 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AnalyticsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
-    try {
-      const response = await fetch("/api/analytics");
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch analytics");
-      }
-
-      setData(result.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: result, isLoading, error } = useAnalytics();
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -167,13 +119,14 @@ export default function AnalyticsPage() {
         </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
-            <p className="text-red-600">{error}</p>
+            <p className="text-red-600">{error.message}</p>
           </CardContent>
         </Card>
       </div>
     );
   }
 
+  const data = result?.data;
   if (!data) return null;
 
   const hasOrders = data.overview.totalOrders > 0;

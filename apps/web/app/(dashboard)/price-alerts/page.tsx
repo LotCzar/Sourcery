@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePriceAlerts, useCreatePriceAlert, useDeletePriceAlert, useUpdatePriceAlert } from "@/hooks/use-price-alerts";
+import { apiFetch } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -120,9 +122,10 @@ const unitLabels: Record<string, string> = {
 };
 
 export default function PriceAlertsPage() {
-  const [alerts, setAlerts] = useState<PriceAlert[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: result, isLoading, error } = usePriceAlerts();
+  const createAlert = useCreatePriceAlert();
+  const deleteAlert = useDeletePriceAlert();
+  const updateAlert = useUpdatePriceAlert();
 
   // Create alert dialog state
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -132,58 +135,29 @@ export default function PriceAlertsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [alertType, setAlertType] = useState<string>("PRICE_DROP");
   const [targetPrice, setTargetPrice] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
 
   // Selected alert for price history
   const [selectedAlert, setSelectedAlert] = useState<PriceAlert | null>(null);
 
+  const alerts = (result?.data || []) as PriceAlert[];
+
   useEffect(() => {
-    fetchAlerts();
-  }, []);
-
-  const fetchAlerts = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/price-alerts");
-      const data = await response.json();
-
-      if (data.success) {
-        setAlerts(data.data);
-      } else {
-        setError(data.error || "Failed to fetch alerts");
-      }
-    } catch (err) {
-      setError("Failed to fetch alerts");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const searchProducts = async (query: string) => {
-    if (query.length < 2) {
+    if (searchQuery.length < 2) {
       setProducts([]);
       return;
     }
-
-    setIsSearching(true);
-    try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const data = await response.json();
-
-      if (data.success && data.data.products) {
-        setProducts(data.data.products);
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const data = await apiFetch<any>(`/api/search?q=${encodeURIComponent(searchQuery)}`);
+        if (data.success && data.data.products) {
+          setProducts(data.data.products);
+        }
+      } catch (err) {
+        console.error("Search error:", err);
+      } finally {
+        setIsSearching(false);
       }
-    } catch (err) {
-      console.error("Search error:", err);
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      searchProducts(searchQuery);
     }, 300);
     return () => clearTimeout(timer);
   }, [searchQuery]);
@@ -191,78 +165,34 @@ export default function PriceAlertsPage() {
   const handleCreateAlert = async () => {
     if (!selectedProduct || !alertType || !targetPrice) return;
 
-    setIsCreating(true);
-    try {
-      const response = await fetch("/api/price-alerts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          productId: selectedProduct.id,
-          alertType,
-          targetPrice: parseFloat(targetPrice),
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setIsCreateOpen(false);
-        setSelectedProduct(null);
-        setAlertType("PRICE_DROP");
-        setTargetPrice("");
-        setSearchQuery("");
-        fetchAlerts();
-      } else {
-        alert(data.error || "Failed to create alert");
+    createAlert.mutate(
+      {
+        productId: selectedProduct.id,
+        alertType,
+        targetPrice: parseFloat(targetPrice),
+      },
+      {
+        onSuccess: () => {
+          setIsCreateOpen(false);
+          setSelectedProduct(null);
+          setAlertType("PRICE_DROP");
+          setTargetPrice("");
+          setSearchQuery("");
+        },
+        onError: (err) => {
+          alert(err.message || "Failed to create alert");
+        },
       }
-    } catch (err) {
-      console.error("Create error:", err);
-      alert("Failed to create alert");
-    } finally {
-      setIsCreating(false);
-    }
+    );
   };
 
   const handleDeleteAlert = async (alertId: string) => {
     if (!confirm("Are you sure you want to delete this alert?")) return;
-
-    try {
-      const response = await fetch(`/api/price-alerts/${alertId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchAlerts();
-      } else {
-        alert(data.error || "Failed to delete alert");
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete alert");
-    }
+    deleteAlert.mutate(alertId);
   };
 
   const handleToggleAlert = async (alertId: string, isActive: boolean) => {
-    try {
-      const response = await fetch(`/api/price-alerts/${alertId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !isActive }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchAlerts();
-      } else {
-        alert(data.error || "Failed to update alert");
-      }
-    } catch (err) {
-      console.error("Update error:", err);
-      alert("Failed to update alert");
-    }
+    updateAlert.mutate({ id: alertId, isActive: !isActive });
   };
 
   const formatCurrency = (amount: number) => {
@@ -459,9 +389,9 @@ export default function PriceAlertsPage() {
               </Button>
               <Button
                 onClick={handleCreateAlert}
-                disabled={!selectedProduct || !targetPrice || isCreating}
+                disabled={!selectedProduct || !targetPrice || createAlert.isPending}
               >
-                {isCreating ? (
+                {createAlert.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : null}
                 Create Alert

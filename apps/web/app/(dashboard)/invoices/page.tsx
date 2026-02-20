@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
+import { useInvoices } from "@/hooks/use-invoices";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { apiFetch } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -98,10 +102,8 @@ const paymentMethods: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data: result, isLoading, error } = useInvoices();
+  const queryClient = useQueryClient();
 
   // Filters
   const [statusFilter, setStatusFilter] = useState("all");
@@ -118,154 +120,87 @@ export default function InvoicesPage() {
     dueDate: "",
     notes: "",
   });
-  const [isCreating, setIsCreating] = useState(false);
 
   // Payment dialog
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("");
   const [paymentReference, setPaymentReference] = useState("");
-  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
 
   // View invoice dialog
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
-  const fetchInvoices = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") params.set("status", statusFilter);
-
-      const response = await fetch(`/api/invoices?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setInvoices(data.data);
-        setSummary(data.summary);
-      } else {
-        setError(data.error || "Failed to fetch invoices");
-      }
-    } catch (err) {
-      setError("Failed to fetch invoices");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [statusFilter]);
-
-  const fetchSuppliers = useCallback(async () => {
-    try {
-      const response = await fetch("/api/search?q=supplier");
-      const data = await response.json();
-      if (data.success && data.data.suppliers) {
-        setSuppliers(data.data.suppliers);
-      }
-    } catch (err) {
-      console.error("Failed to fetch suppliers:", err);
-    }
-  }, []);
+  const invoices = (result?.data || []) as Invoice[];
+  const summary = (result as any)?.summary as Summary | undefined;
 
   useEffect(() => {
-    fetchInvoices();
-    fetchSuppliers();
-  }, [fetchInvoices, fetchSuppliers]);
+    apiFetch<any>("/api/search?q=supplier")
+      .then((data) => {
+        if (data.success && data.data.suppliers) {
+          setSuppliers(data.data.suppliers);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
-  const handleCreateInvoice = async () => {
+  const createInvoiceMutation = useMutation({
+    mutationFn: (data: any) =>
+      apiFetch("/api/invoices", { method: "POST", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      setIsCreateOpen(false);
+      setNewInvoice({ invoiceNumber: "", supplierId: "", subtotal: "", tax: "", dueDate: "", notes: "" });
+    },
+    onError: (err: any) => alert(err.message || "Failed to create invoice"),
+  });
+
+  const markPaidMutation = useMutation({
+    mutationFn: ({ id, ...data }: { id: string; [k: string]: any }) =>
+      apiFetch(`/api/invoices/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+      setPaymentInvoice(null);
+      setPaymentMethod("");
+      setPaymentReference("");
+    },
+    onError: (err: any) => alert(err.message || "Failed to update invoice"),
+  });
+
+  const deleteInvoiceMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/invoices/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
+    },
+  });
+
+  const handleCreateInvoice = () => {
     if (!newInvoice.invoiceNumber || !newInvoice.supplierId || !newInvoice.subtotal || !newInvoice.dueDate) {
       alert("Please fill in all required fields");
       return;
     }
-
-    setIsCreating(true);
-    try {
-      const response = await fetch("/api/invoices", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceNumber: newInvoice.invoiceNumber,
-          supplierId: newInvoice.supplierId,
-          subtotal: parseFloat(newInvoice.subtotal),
-          tax: newInvoice.tax ? parseFloat(newInvoice.tax) : 0,
-          dueDate: newInvoice.dueDate,
-          notes: newInvoice.notes || null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setIsCreateOpen(false);
-        setNewInvoice({
-          invoiceNumber: "",
-          supplierId: "",
-          subtotal: "",
-          tax: "",
-          dueDate: "",
-          notes: "",
-        });
-        fetchInvoices();
-      } else {
-        alert(data.error || "Failed to create invoice");
-      }
-    } catch (err) {
-      console.error("Create error:", err);
-      alert("Failed to create invoice");
-    } finally {
-      setIsCreating(false);
-    }
+    createInvoiceMutation.mutate({
+      invoiceNumber: newInvoice.invoiceNumber,
+      supplierId: newInvoice.supplierId,
+      subtotal: parseFloat(newInvoice.subtotal),
+      tax: newInvoice.tax ? parseFloat(newInvoice.tax) : 0,
+      dueDate: newInvoice.dueDate,
+      notes: newInvoice.notes || null,
+    });
   };
 
-  const handleMarkAsPaid = async () => {
+  const handleMarkAsPaid = () => {
     if (!paymentInvoice || !paymentMethod) return;
-
-    setIsProcessingPayment(true);
-    try {
-      const response = await fetch(`/api/invoices/${paymentInvoice.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          status: "PAID",
-          paymentMethod,
-          paymentReference: paymentReference || null,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setPaymentInvoice(null);
-        setPaymentMethod("");
-        setPaymentReference("");
-        fetchInvoices();
-      } else {
-        alert(data.error || "Failed to update invoice");
-      }
-    } catch (err) {
-      console.error("Payment error:", err);
-      alert("Failed to process payment");
-    } finally {
-      setIsProcessingPayment(false);
-    }
+    markPaidMutation.mutate({
+      id: paymentInvoice.id,
+      status: "PAID",
+      paymentMethod,
+      paymentReference: paymentReference || null,
+    });
   };
 
-  const handleDeleteInvoice = async (invoiceId: string) => {
+  const handleDeleteInvoice = (invoiceId: string) => {
     if (!confirm("Are you sure you want to delete this invoice?")) return;
-
-    try {
-      const response = await fetch(`/api/invoices/${invoiceId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchInvoices();
-      } else {
-        alert(data.error || "Failed to delete invoice");
-      }
-    } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete invoice");
-    }
+    deleteInvoiceMutation.mutate(invoiceId);
   };
 
   const formatCurrency = (amount: number) => {
@@ -456,8 +391,8 @@ export default function InvoicesPage() {
               <Button variant="outline" onClick={() => setIsCreateOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleCreateInvoice} disabled={isCreating}>
-                {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <Button onClick={handleCreateInvoice} disabled={createInvoiceMutation.isPending}>
+                {createInvoiceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Add Invoice
               </Button>
             </DialogFooter>
@@ -714,10 +649,10 @@ export default function InvoicesPage() {
             </Button>
             <Button
               onClick={handleMarkAsPaid}
-              disabled={!paymentMethod || isProcessingPayment}
+              disabled={!paymentMethod || markPaidMutation.isPending}
               className="bg-green-600 hover:bg-green-700"
             >
-              {isProcessingPayment && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              {markPaidMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Mark as Paid
             </Button>
           </DialogFooter>

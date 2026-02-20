@@ -1,6 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
+import { useInventory, useCreateInventory, useUpdateInventory } from "@/hooks/use-inventory";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 import {
   Card,
   CardContent,
@@ -136,10 +140,6 @@ const changeTypeConfig: Record<string, { label: string; color: string; icon: any
 };
 
 export default function InventoryPage() {
-  const [items, setItems] = useState<InventoryItem[]>([]);
-  const [summary, setSummary] = useState<Summary | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
   // Filters
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -156,42 +156,34 @@ export default function InventoryPage() {
     costPerUnit: "",
     location: "",
   });
-  const [isCreating, setIsCreating] = useState(false);
 
   // Adjust quantity dialog
   const [adjustItem, setAdjustItem] = useState<InventoryItem | null>(null);
   const [adjustType, setAdjustType] = useState("RECEIVED");
   const [adjustQuantity, setAdjustQuantity] = useState("");
   const [adjustNotes, setAdjustNotes] = useState("");
-  const [isAdjusting, setIsAdjusting] = useState(false);
 
   // View item dialog
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
 
-  const fetchInventory = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      if (categoryFilter !== "all") params.set("category", categoryFilter);
-      if (showLowStock) params.set("lowStock", "true");
+  const { data: result, isLoading } = useInventory({
+    category: categoryFilter !== "all" ? categoryFilter : undefined,
+    lowStock: showLowStock || undefined,
+  });
+  const createInventory = useCreateInventory();
+  const updateInventory = useUpdateInventory();
+  const queryClient = useQueryClient();
 
-      const response = await fetch(`/api/inventory?${params}`);
-      const data = await response.json();
+  const deleteInventoryMutation = useMutation({
+    mutationFn: (itemId: string) =>
+      apiFetch(`/api/inventory/${itemId}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+    },
+  });
 
-      if (data.success) {
-        setItems(data.data);
-        setSummary(data.summary);
-      }
-    } catch (err) {
-      console.error("Failed to fetch inventory:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [categoryFilter, showLowStock]);
-
-  useEffect(() => {
-    fetchInventory();
-  }, [fetchInventory]);
+  const items: InventoryItem[] = result?.data || [];
+  const summary: Summary | null = result?.summary || null;
 
   const handleAddItem = async () => {
     if (!newItem.name || !newItem.category || !newItem.unit) {
@@ -199,78 +191,47 @@ export default function InventoryPage() {
       return;
     }
 
-    setIsCreating(true);
     try {
-      const response = await fetch("/api/inventory", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: newItem.name,
-          category: newItem.category,
-          currentQuantity: newItem.currentQuantity ? parseFloat(newItem.currentQuantity) : 0,
-          unit: newItem.unit,
-          parLevel: newItem.parLevel ? parseFloat(newItem.parLevel) : null,
-          costPerUnit: newItem.costPerUnit ? parseFloat(newItem.costPerUnit) : null,
-          location: newItem.location || null,
-        }),
+      await createInventory.mutateAsync({
+        name: newItem.name,
+        category: newItem.category,
+        currentQuantity: newItem.currentQuantity ? parseFloat(newItem.currentQuantity) : 0,
+        unit: newItem.unit,
+        parLevel: newItem.parLevel ? parseFloat(newItem.parLevel) : undefined,
+        costPerUnit: newItem.costPerUnit ? parseFloat(newItem.costPerUnit) : undefined,
+        location: newItem.location || undefined,
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setIsAddOpen(false);
-        setNewItem({
-          name: "",
-          category: "PRODUCE",
-          currentQuantity: "",
-          unit: "EACH",
-          parLevel: "",
-          costPerUnit: "",
-          location: "",
-        });
-        fetchInventory();
-      } else {
-        alert(data.error || "Failed to add item");
-      }
+      setIsAddOpen(false);
+      setNewItem({
+        name: "",
+        category: "PRODUCE",
+        currentQuantity: "",
+        unit: "EACH",
+        parLevel: "",
+        costPerUnit: "",
+        location: "",
+      });
     } catch (err) {
-      console.error("Add error:", err);
-      alert("Failed to add item");
-    } finally {
-      setIsCreating(false);
+      alert(err instanceof Error ? err.message : "Failed to add item");
     }
   };
 
   const handleAdjustQuantity = async () => {
     if (!adjustItem || !adjustQuantity) return;
 
-    setIsAdjusting(true);
     try {
-      const response = await fetch(`/api/inventory/${adjustItem.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          adjustQuantity: parseFloat(adjustQuantity),
-          changeType: adjustType,
-          adjustmentNotes: adjustNotes || null,
-        }),
+      await updateInventory.mutateAsync({
+        id: adjustItem.id,
+        adjustQuantity: parseFloat(adjustQuantity),
+        changeType: adjustType,
+        adjustmentNotes: adjustNotes || null,
       });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setAdjustItem(null);
-        setAdjustType("RECEIVED");
-        setAdjustQuantity("");
-        setAdjustNotes("");
-        fetchInventory();
-      } else {
-        alert(data.error || "Failed to adjust quantity");
-      }
+      setAdjustItem(null);
+      setAdjustType("RECEIVED");
+      setAdjustQuantity("");
+      setAdjustNotes("");
     } catch (err) {
-      console.error("Adjust error:", err);
-      alert("Failed to adjust quantity");
-    } finally {
-      setIsAdjusting(false);
+      alert(err instanceof Error ? err.message : "Failed to adjust quantity");
     }
   };
 
@@ -278,20 +239,9 @@ export default function InventoryPage() {
     if (!confirm("Are you sure you want to delete this item?")) return;
 
     try {
-      const response = await fetch(`/api/inventory/${itemId}`, {
-        method: "DELETE",
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchInventory();
-      } else {
-        alert(data.error || "Failed to delete item");
-      }
+      await deleteInventoryMutation.mutateAsync(itemId);
     } catch (err) {
-      console.error("Delete error:", err);
-      alert("Failed to delete item");
+      alert(err instanceof Error ? err.message : "Failed to delete item");
     }
   };
 
@@ -460,8 +410,8 @@ export default function InventoryPage() {
               <Button variant="outline" onClick={() => setIsAddOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddItem} disabled={isCreating}>
-                {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+              <Button onClick={handleAddItem} disabled={createInventory.isPending}>
+                {createInventory.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                 Add Item
               </Button>
             </DialogFooter>
@@ -753,8 +703,8 @@ export default function InventoryPage() {
             <Button variant="outline" onClick={() => setAdjustItem(null)}>
               Cancel
             </Button>
-            <Button onClick={handleAdjustQuantity} disabled={!adjustQuantity || isAdjusting}>
-              {isAdjusting && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+            <Button onClick={handleAdjustQuantity} disabled={!adjustQuantity || updateInventory.isPending}>
+              {updateInventory.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Save Adjustment
             </Button>
           </DialogFooter>

@@ -1,3 +1,6 @@
+// API Response types (typed responses for frontend consumption)
+export * from "./api";
+
 // User types
 export type UserRole =
   | "OWNER"
@@ -177,13 +180,7 @@ export interface Notification {
   createdAt: Date;
 }
 
-// API Response types
-export interface ApiResponse<T> {
-  data?: T;
-  error?: string;
-  message?: string;
-}
-
+// PaginatedResponse kept here for backward compatibility
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

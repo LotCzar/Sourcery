@@ -168,3 +168,78 @@ export function createMockSupplierUser(overrides?: Record<string, unknown>) {
     ...overrides,
   });
 }
+
+export function createMockConversation(overrides?: Record<string, unknown>) {
+  return {
+    id: "conv_1",
+    title: "Test Conversation",
+    userId: "user_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockMessage(overrides?: Record<string, unknown>) {
+  return {
+    id: "msg_1",
+    role: "USER" as const,
+    content: "Hello, can you help me?",
+    toolName: null,
+    toolInput: null,
+    toolResult: null,
+    conversationId: "conv_1",
+    createdAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockInventoryItem(overrides?: Record<string, unknown>) {
+  return {
+    id: "inv_item_1",
+    name: "Organic Tomatoes",
+    category: "PRODUCE" as const,
+    currentQuantity: new Decimal("50.000"),
+    unit: "POUND" as const,
+    parLevel: new Decimal("20.000"),
+    costPerUnit: new Decimal("4.99"),
+    location: "Walk-in Cooler",
+    notes: null,
+    supplierProductId: "prod_1",
+    restaurantId: "rest_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockNotification(overrides?: Record<string, unknown>) {
+  return {
+    id: "notif_1",
+    type: "ORDER_UPDATE" as const,
+    title: "Order Confirmed",
+    message: "Your order ORD-001 has been confirmed.",
+    isRead: false,
+    metadata: null,
+    userId: "user_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockPriceAlert(overrides?: Record<string, unknown>) {
+  return {
+    id: "alert_1",
+    alertType: "PRICE_DROP" as const,
+    targetPrice: new Decimal("3.50"),
+    isActive: true,
+    triggeredAt: null,
+    triggeredPrice: null,
+    userId: "user_1",
+    productId: "prod_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}

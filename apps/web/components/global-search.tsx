@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Search, Loader2, X } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { apiFetch } from "@/lib/api";
 
 interface SearchResult {
   products: { id: string; name: string; category: string; price: number; unit: string; supplier: string; }[];
@@ -13,38 +16,28 @@ interface SearchResult {
 export function GlobalSearch() {
   const router = useRouter();
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Debounced search
+  // Debounce the query
   useEffect(() => {
-    if (query.length < 2) {
-      setResults(null);
-      return;
-    }
-
-    const timer = setTimeout(async () => {
-      setIsLoading(true);
-      try {
-        const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-        console.log("Search response:", data); // Debug log
-        if (data.success) {
-          setResults(data.data);
-        } else {
-          console.error("Search error:", data.error);
-        }
-      } catch (error) {
-        console.error("Search fetch error:", error);
-      } finally {
-        setIsLoading(false);
-      }
+    const timer = setTimeout(() => {
+      setDebouncedQuery(query);
     }, 300);
-
     return () => clearTimeout(timer);
   }, [query]);
+
+  const { data: searchData, isLoading } = useQuery({
+    queryKey: queryKeys.search.query(debouncedQuery),
+    queryFn: () =>
+      apiFetch<{ success: boolean; data: SearchResult }>(
+        `/api/search?q=${encodeURIComponent(debouncedQuery)}`
+      ),
+    enabled: debouncedQuery.length >= 2,
+  });
+
+  const results = searchData?.data || null;
 
   // Click outside to close
   useEffect(() => {
@@ -85,7 +78,7 @@ export function GlobalSearch() {
           <button
             onClick={() => {
               setQuery("");
-              setResults(null);
+              setDebouncedQuery("");
             }}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
           >

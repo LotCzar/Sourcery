@@ -1,20 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
-
-let anthropicClient: Anthropic | null = null;
-
-function getAnthropicClient(): Anthropic | null {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return null;
-  }
-  if (!anthropicClient) {
-    anthropicClient = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
-  }
-  return anthropicClient;
-}
+import { getAnthropicClient } from "@/lib/anthropic";
+import { ParseMenuSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 export async function POST(request: Request) {
   try {
@@ -32,14 +20,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { menuText, menuType } = await request.json();
-
-    if (!menuText) {
-      return NextResponse.json(
-        { error: "Menu text is required" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validation = validateBody(ParseMenuSchema, body);
+    if (!validation.success) return validation.response;
+    const { menuText, menuType } = validation.data;
 
     const systemPrompt = `You are an expert culinary analyst. Your task is to analyze restaurant menus and extract all ingredients that would need to be sourced from suppliers.
 

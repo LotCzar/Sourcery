@@ -16,6 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DollarSign,
   ShoppingCart,
@@ -28,6 +29,7 @@ import {
   PieChart as PieChartIcon,
   ArrowUpRight,
   ArrowDownRight,
+  Download,
 } from "lucide-react";
 import {
   LineChart,
@@ -180,16 +182,44 @@ export default function ReportsPage() {
             Track your spending patterns and optimize your sourcing
           </p>
         </div>
-        <Select value={timeRange} onValueChange={setTimeRange}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Select time range" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="7">Last 7 days</SelectItem>
-            <SelectItem value="30">Last 30 days</SelectItem>
-            <SelectItem value="90">Last 90 days</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("/api/reports/export?type=spending&format=csv", "_blank")}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Spending CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("/api/reports/export?type=orders&format=csv", "_blank")}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Orders CSV
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open("/api/reports/export?type=suppliers&format=csv", "_blank")}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Suppliers CSV
+            </Button>
+          </div>
+          <Select value={timeRange} onValueChange={setTimeRange}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select time range" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Overview Cards */}

@@ -1,6 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateInventoryItemSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
+import { inngest } from "@/lib/inngest/client";
 
 // GET single inventory item with full history
 export async function GET(
@@ -131,8 +134,9 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const validation = validateBody(UpdateInventoryItemSchema, body);
+    if (!validation.success) return validation.response;
     const {
-      // For updating item details
       name,
       category,
       unit,
@@ -141,12 +145,11 @@ export async function PATCH(
       location,
       notes,
       supplierProductId,
-      // For adjusting quantity
       adjustQuantity,
       changeType,
       adjustmentNotes,
       reference,
-    } = body;
+    } = validation.data;
 
     // If adjusting quantity
     if (adjustQuantity !== undefined && changeType) {
@@ -186,6 +189,25 @@ export async function PATCH(
           createdById: user.id,
         },
       });
+
+      // Check if below par level and emit event
+      const itemParLevel = existingItem.parLevel
+        ? Number(existingItem.parLevel)
+        : null;
+      if (itemParLevel && newQuantity < itemParLevel) {
+        inngest
+          .send({
+            name: "inventory/below.par",
+            data: {
+              inventoryItemId: id,
+              restaurantId: user.restaurant.id,
+              itemName: existingItem.name,
+              currentQuantity: newQuantity,
+              parLevel: itemParLevel,
+            },
+          })
+          .catch(() => {});
+      }
 
       return NextResponse.json({
         success: true,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -23,16 +23,14 @@ import {
   Trash2,
   RefreshCw,
 } from "lucide-react";
-
-interface Notification {
-  id: string;
-  type: string;
-  title: string;
-  message: string;
-  isRead: boolean;
-  metadata: any;
-  createdAt: string;
-}
+import {
+  useNotifications,
+  useMarkNotificationRead,
+  useMarkAllNotificationsRead,
+} from "@/hooks/use-notifications";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
+import { apiFetch } from "@/lib/api";
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   ORDER_UPDATE: {
@@ -63,88 +61,22 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
 };
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  const { data: result, isLoading, refetch } = useNotifications(filter === "unread");
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const queryClient = useQueryClient();
 
-  const fetchNotifications = useCallback(async () => {
-    try {
-      setIsLoading(true);
-      const params = new URLSearchParams();
-      if (filter === "unread") {
-        params.set("unreadOnly", "true");
-      }
+  const deleteNotification = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch(`/api/notifications/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
+    },
+  });
 
-      const response = await fetch(`/api/notifications?${params}`);
-      const data = await response.json();
-
-      if (data.success) {
-        setNotifications(data.data);
-        setUnreadCount(data.unreadCount);
-      }
-    } catch (err) {
-      console.error("Failed to fetch notifications:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [filter]);
-
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
-
-  const markAsRead = async (id: string) => {
-    try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isRead: true }),
-      });
-
-      if (response.ok) {
-        setNotifications((prev) =>
-          prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
-        );
-        setUnreadCount((prev) => Math.max(0, prev - 1));
-      }
-    } catch (err) {
-      console.error("Failed to mark as read:", err);
-    }
-  };
-
-  const markAllAsRead = async () => {
-    try {
-      const response = await fetch("/api/notifications", {
-        method: "PATCH",
-      });
-
-      if (response.ok) {
-        setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-        setUnreadCount(0);
-      }
-    } catch (err) {
-      console.error("Failed to mark all as read:", err);
-    }
-  };
-
-  const deleteNotification = async (id: string) => {
-    try {
-      const response = await fetch(`/api/notifications/${id}`, {
-        method: "DELETE",
-      });
-
-      if (response.ok) {
-        const notification = notifications.find((n) => n.id === id);
-        setNotifications((prev) => prev.filter((n) => n.id !== id));
-        if (notification && !notification.isRead) {
-          setUnreadCount((prev) => Math.max(0, prev - 1));
-        }
-      }
-    } catch (err) {
-      console.error("Failed to delete notification:", err);
-    }
-  };
+  const notifications = result?.data || [];
+  const unreadCount = result?.unreadCount || 0;
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -184,12 +116,12 @@ export default function NotificationsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchNotifications}>
+          <Button variant="outline" size="sm" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
           {unreadCount > 0 && (
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
+            <Button variant="outline" size="sm" onClick={() => markAllRead.mutate()}>
               <CheckCheck className="h-4 w-4 mr-2" />
               Mark all read
             </Button>
@@ -260,7 +192,7 @@ export default function NotificationsPage() {
             </div>
           ) : (
             <div className="space-y-3">
-              {notifications.map((notification) => {
+              {notifications.map((notification: any) => {
                 const config = typeConfig[notification.type] || typeConfig.SYSTEM;
                 const Icon = config.icon;
 
@@ -303,7 +235,7 @@ export default function NotificationsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => markAsRead(notification.id)}
+                            onClick={() => markRead.mutate(notification.id)}
                           >
                             <Check className="h-4 w-4 mr-1" />
                             Mark read
@@ -312,7 +244,7 @@ export default function NotificationsPage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => deleteNotification(notification.id)}
+                          onClick={() => deleteNotification.mutate(notification.id)}
                           className="text-red-600 hover:text-red-700 hover:bg-red-50"
                         >
                           <Trash2 className="h-4 w-4 mr-1" />

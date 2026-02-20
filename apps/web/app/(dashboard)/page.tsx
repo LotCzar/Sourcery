@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import {
@@ -33,45 +32,7 @@ import {
   BarChart3,
   Plus,
 } from "lucide-react";
-
-interface DashboardData {
-  stats: {
-    thisMonthSpend: number;
-    lastMonthSpend: number;
-    spendChange: number;
-    totalOrders: number;
-    pendingOrders: number;
-    activeSuppliers: number;
-  };
-  ordersByStatus: Record<string, number>;
-  recentOrders: {
-    id: string;
-    orderNumber: string;
-    status: string;
-    total: number;
-    supplier: string;
-    supplierId: string;
-    itemCount: number;
-    createdAt: string;
-  }[];
-  topSuppliers: {
-    id: string;
-    name: string;
-    orderCount: number;
-    totalSpend: number;
-  }[];
-  savingsOpportunities: {
-    productName: string;
-    supplierCount: number;
-    lowestPrice: number;
-    highestPrice: number;
-    potentialSavings: number;
-  }[];
-  restaurant: {
-    name: string;
-    cuisineType: string | null;
-  };
-}
+import { useDashboard } from "@/hooks/use-dashboard";
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   DRAFT: {
@@ -108,30 +69,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 
 export default function DashboardPage() {
   const { user } = useUser();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      const response = await fetch("/api/dashboard");
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch dashboard");
-      }
-
-      setData(result.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: result, isLoading, error } = useDashboard();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -166,12 +104,13 @@ export default function DashboardPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );
   }
 
+  const data = result?.data;
   if (!data) return null;
 
   return (
