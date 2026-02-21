@@ -189,6 +189,36 @@ export const aiTools: Anthropic.Tool[] = [
     },
   },
   {
+    name: "adjust_inventory",
+    description:
+      "Adjust inventory quantity for a specific item. Use this when a user reports using, receiving, wasting, or counting inventory.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        item_name: {
+          type: "string",
+          description: "Name of the inventory item (fuzzy match)",
+        },
+        quantity: {
+          type: "number",
+          description:
+            "Amount to adjust. For USED/WASTE this is the amount consumed. For RECEIVED this is the amount added. For COUNT this is the new absolute quantity.",
+        },
+        change_type: {
+          type: "string",
+          enum: ["USED", "WASTE", "RECEIVED", "COUNT"],
+          description:
+            "Type of adjustment: USED (consumed in production), WASTE (spoiled/discarded), RECEIVED (new delivery), COUNT (physical count override)",
+        },
+        notes: {
+          type: "string",
+          description: "Optional notes about the adjustment",
+        },
+      },
+      required: ["item_name", "quantity", "change_type"],
+    },
+  },
+  {
     name: "get_consumption_insights",
     description:
       "Get AI-powered consumption forecasting data for inventory items. Shows average usage rates, trend direction, days until stockout, and suggested par levels based on historical usage patterns.",

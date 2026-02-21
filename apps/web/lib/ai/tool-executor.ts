@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { inngest } from "@/lib/inngest/client";
 
 interface ToolContext {
   userId: string;
@@ -25,6 +26,8 @@ export async function executeTool(
       return getSupplierInfo(input);
     case "create_price_alert":
       return createPriceAlert(input, context);
+    case "adjust_inventory":
+      return adjustInventory(input, context);
     case "get_consumption_insights":
       return getConsumptionInsights(input, context);
     default:
@@ -394,6 +397,105 @@ async function createPriceAlert(
       supplier: product.supplier.name,
     },
     message: `Price alert created for ${product.name}. You'll be notified when the price ${input.alert_type === "PRICE_DROP" ? "drops below" : input.alert_type === "PRICE_INCREASE" ? "rises above" : "crosses"} $${input.target_price}.`,
+  };
+}
+
+async function adjustInventory(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  // Find inventory item by name (case-insensitive fuzzy match)
+  const matches = await prisma.inventoryItem.findMany({
+    where: {
+      restaurantId: context.restaurantId,
+      name: { contains: input.item_name, mode: "insensitive" },
+    },
+  });
+
+  if (matches.length === 0) {
+    return {
+      error: `No inventory item found matching "${input.item_name}". Check the name and try again, or use get_inventory to see available items.`,
+    };
+  }
+
+  if (matches.length > 1) {
+    return {
+      error: "Multiple items matched. Please be more specific.",
+      matches: matches.map((m) => ({
+        id: m.id,
+        name: m.name,
+        category: m.category,
+        currentQuantity: Number(m.currentQuantity),
+        unit: m.unit,
+      })),
+    };
+  }
+
+  const item = matches[0];
+  const previousQuantity = Number(item.currentQuantity);
+  let newQuantity: number;
+
+  if (input.change_type === "COUNT") {
+    newQuantity = input.quantity;
+  } else if (input.change_type === "USED" || input.change_type === "WASTE") {
+    newQuantity = previousQuantity - Math.abs(input.quantity);
+  } else {
+    // RECEIVED
+    newQuantity = previousQuantity + input.quantity;
+  }
+
+  // Don't allow negative inventory
+  if (newQuantity < 0) newQuantity = 0;
+
+  // Update item quantity
+  await prisma.inventoryItem.update({
+    where: { id: item.id },
+    data: { currentQuantity: newQuantity },
+  });
+
+  // Create log entry
+  await prisma.inventoryLog.create({
+    data: {
+      inventoryItemId: item.id,
+      changeType: input.change_type,
+      quantity:
+        input.change_type === "COUNT"
+          ? newQuantity - previousQuantity
+          : input.quantity,
+      previousQuantity,
+      newQuantity,
+      notes: input.notes || null,
+      reference: null,
+      createdById: context.userId,
+    },
+  });
+
+  // Check if below par level and emit event
+  const itemParLevel = item.parLevel ? Number(item.parLevel) : null;
+  if (itemParLevel && newQuantity < itemParLevel) {
+    inngest
+      .send({
+        name: "inventory/below.par",
+        data: {
+          inventoryItemId: item.id,
+          restaurantId: context.restaurantId,
+          itemName: item.name,
+          currentQuantity: newQuantity,
+          parLevel: itemParLevel,
+        },
+      })
+      .catch(() => {});
+  }
+
+  return {
+    success: true,
+    item: item.name,
+    unit: item.unit,
+    previousQuantity,
+    newQuantity,
+    changeType: input.change_type,
+    belowParLevel: itemParLevel ? newQuantity < itemParLevel : false,
+    message: `Updated ${item.name}: ${previousQuantity} → ${newQuantity} ${item.unit} (${input.change_type})`,
   };
 }
 

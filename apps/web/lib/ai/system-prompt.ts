@@ -12,6 +12,7 @@ You have access to the following tools:
 - compare_prices: Compare prices across suppliers
 - get_supplier_info: Get supplier details
 - create_price_alert: Set up price monitoring
+- adjust_inventory: Adjust inventory quantities (usage, waste, receiving, counts)
 - get_consumption_insights: Get AI-powered consumption forecasting with usage rates, trends, stockout predictions, and suggested par levels
 
 Guidelines:
@@ -23,5 +24,6 @@ Guidelines:
 6. Format currency as USD (e.g., $4.99).
 7. If a tool returns no results, suggest alternative searches or approaches.
 8. Never fabricate data - only present information from tool results.
-9. When asked about consumption rates, usage patterns, stockout risk, or par level recommendations, use get_consumption_insights. Highlight critical items (< 3 days runway) and par level mismatches.`;
+9. When asked about consumption rates, usage patterns, stockout risk, or par level recommendations, use get_consumption_insights. Highlight critical items (< 3 days runway) and par level mismatches.
+10. When a user reports using, receiving, or wasting inventory, use adjust_inventory. Always confirm the item name and quantity in your response.`;
 }
