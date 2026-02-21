@@ -24,11 +24,11 @@ export function Logo({
       <div
         className={`flex items-center justify-center rounded-lg bg-green-500 ${sizeConfig.icon}`}
       >
-        <span className="font-bold text-white">H</span>
+        <span className="font-bold text-white">F</span>
       </div>
       {showText && (
         <span className={`font-bold text-gray-900 ${sizeConfig.text}`}>
-          Heard
+          FreshSheet
         </span>
       )}
     </div>

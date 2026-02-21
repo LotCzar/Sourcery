@@ -42,9 +42,9 @@ export function Sidebar() {
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">H</span>
+            <span className="text-lg font-bold text-primary-foreground">F</span>
           </div>
-          <span className="text-xl font-bold text-foreground">Heard</span>
+          <span className="text-xl font-bold text-foreground">FreshSheet</span>
         </Link>
       </div>
 

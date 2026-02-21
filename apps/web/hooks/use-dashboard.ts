@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
-import type { DashboardData } from "@heard/shared";
+import type { DashboardData } from "@freshsheet/shared";
 
 interface DashboardResponse {
   success: boolean;

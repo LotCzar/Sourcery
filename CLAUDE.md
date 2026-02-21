@@ -1,4 +1,4 @@
-# Heard - AI-Powered Restaurant Sourcing Platform
+# FreshSheet - AI-Powered Restaurant Sourcing Platform
 
 ## Project Overview
 B2B restaurant-supplier marketplace built with Next.js 15, React 19, Prisma/PostgreSQL, Clerk auth, Claude AI, and Resend email.

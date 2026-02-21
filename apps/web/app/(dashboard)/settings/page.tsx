@@ -1005,8 +1005,8 @@ export default function SettingsPage() {
           <div className="py-4">
             <p className="text-sm text-muted-foreground">
               Please contact support at{" "}
-              <a href="mailto:support@heard.app" className="text-primary hover:underline">
-                support@heard.app
+              <a href="mailto:support@freshsheet.app" className="text-primary hover:underline">
+                support@freshsheet.app
               </a>{" "}
               to request account deletion.
             </p>

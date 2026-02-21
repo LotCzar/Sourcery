@@ -36,7 +36,7 @@ export function PreferencesStep({
         </div>
         <CardTitle className="text-2xl">Your Preferences</CardTitle>
         <CardDescription>
-          Customize your Heard experience
+          Customize your FreshSheet experience
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">

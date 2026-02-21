@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
-import type { PriceAlertData } from "@heard/shared";
+import type { PriceAlertData } from "@freshsheet/shared";
 
 interface PriceAlertsResponse {
   success: boolean;

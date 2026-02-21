@@ -1,4 +1,4 @@
-export type HeardEvents = {
+export type FreshSheetEvents = {
   "order/status.changed": {
     data: {
       orderId: string;

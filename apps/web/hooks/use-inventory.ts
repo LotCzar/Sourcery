@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
-import type { InventoryItemData } from "@heard/shared";
+import type { InventoryItemData } from "@freshsheet/shared";
 
 interface InventoryResponse {
   success: boolean;

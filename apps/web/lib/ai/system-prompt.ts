@@ -2,7 +2,7 @@ export function buildSystemPrompt(
   restaurantName: string,
   userName: string
 ): string {
-  return `You are Heard AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
+  return `You are FreshSheet AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
 
 You have access to the following tools:
 - search_products: Find products from suppliers

@@ -27,7 +27,7 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
           Welcome{userName ? `, ${userName}` : ""}!
         </CardTitle>
         <CardDescription className="text-lg">
-          Let&apos;s set up your restaurant on Heard
+          Let&apos;s set up your restaurant on FreshSheet
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 pt-4">

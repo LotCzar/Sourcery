@@ -3,7 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
-import type { InvoiceData } from "@heard/shared";
+import type { InvoiceData } from "@freshsheet/shared";
 
 interface InvoicesResponse {
   success: boolean;

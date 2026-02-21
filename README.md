@@ -1,4 +1,4 @@
-# Heard
+# FreshSheet
 
 AI-powered restaurant sourcing platform that helps restaurants discover suppliers, compare prices, and streamline ordering.
 
@@ -13,7 +13,7 @@ AI-powered restaurant sourcing platform that helps restaurants discover supplier
 ## Project Structure
 
 ```
-heard/
+freshsheet/
 ├── apps/
 │   └── web/                 # Next.js web application
 ├── packages/
@@ -39,7 +39,7 @@ heard/
 1. Clone the repository:
    ```bash
    git clone <repository-url>
-   cd heard
+   cd freshsheet
    ```
 
 2. Install dependencies:
@@ -81,7 +81,7 @@ The app will be available at [http://localhost:3000](http://localhost:3000).
 
 ## Packages
 
-### @heard/web
+### @freshsheet/web
 
 The main Next.js web application with:
 - Dashboard for restaurant owners
@@ -89,7 +89,7 @@ The main Next.js web application with:
 - Order management
 - AI-powered recommendations
 
-### @heard/database
+### @freshsheet/database
 
 Prisma schema and database client including models for:
 - Users & Authentication
@@ -97,11 +97,11 @@ Prisma schema and database client including models for:
 - Suppliers & Products
 - Orders & Notifications
 
-### @heard/shared
+### @freshsheet/shared
 
 Shared TypeScript types, utility functions, and constants.
 
-### @heard/ui
+### @freshsheet/ui
 
 Reusable React components for consistent branding.
 

@@ -1,5 +1,5 @@
 {
-  "name": "heard",
+  "name": "freshsheet",
   "private": true,
   "scripts": {
     "build": "turbo build",

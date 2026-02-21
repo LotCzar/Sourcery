@@ -3,7 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
-import type { SupplierDetail } from "@heard/shared";
+import type { SupplierDetail } from "@freshsheet/shared";
 
 interface SupplierResponse {
   success: boolean;

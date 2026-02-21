@@ -34,7 +34,7 @@ export function Header() {
           variant="ghost"
           size="icon"
           onClick={toggleChat}
-          title="Heard AI"
+          title="FreshSheet AI"
         >
           <Sparkles className="h-5 w-5" />
         </Button>
