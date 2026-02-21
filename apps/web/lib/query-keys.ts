@@ -43,4 +43,20 @@ export const queryKeys = {
     messages: (conversationId: string) =>
       ["chat", "messages", conversationId] as const,
   },
+  supplier: {
+    dashboard: ["supplier", "dashboard"] as const,
+    products: {
+      all: ["supplier", "products"] as const,
+      detail: (id: string) => ["supplier", "products", id] as const,
+    },
+    orders: {
+      all: ["supplier", "orders"] as const,
+      detail: (id: string) => ["supplier", "orders", id] as const,
+    },
+    invoices: {
+      all: ["supplier", "invoices"] as const,
+      detail: (id: string) => ["supplier", "invoices", id] as const,
+    },
+    settings: ["supplier", "settings"] as const,
+  },
 };

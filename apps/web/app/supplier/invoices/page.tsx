@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -37,6 +37,8 @@ import {
   AlertTriangle,
   DollarSign,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSupplierInvoices, useUpdateSupplierInvoice } from "@/hooks/use-supplier-invoices";
 
 interface Invoice {
   id: string;
@@ -58,14 +60,6 @@ interface Invoice {
     id: string;
     orderNumber: string;
   } | null;
-}
-
-interface Stats {
-  totalOutstanding: number;
-  pendingCount: number;
-  overdueCount: number;
-  paidThisMonth: number;
-  paidThisMonthCount: number;
 }
 
 const statusConfig: Record<
@@ -105,70 +99,36 @@ const statusConfig: Record<
 };
 
 export default function SupplierInvoicesPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>([]);
-  const [stats, setStats] = useState<Stats>({
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+
+  const { data: result, isLoading, error } = useSupplierInvoices(selectedStatus);
+  const updateInvoice = useUpdateSupplierInvoice();
+
+  const invoices: Invoice[] = result?.data ?? [];
+  const stats = result?.stats ?? {
     totalOutstanding: 0,
     pendingCount: 0,
     overdueCount: 0,
     paidThisMonth: 0,
     paidThisMonthCount: 0,
-  });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
-  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [isActionLoading, setIsActionLoading] = useState(false);
-
-  const fetchInvoices = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (selectedStatus && selectedStatus !== "ALL") {
-        params.append("status", selectedStatus);
-      }
-
-      const response = await fetch(`/api/supplier/invoices?${params}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch invoices");
-      }
-
-      setInvoices(result.data);
-      setStats(result.stats);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedStatus]);
-
-  useEffect(() => {
-    fetchInvoices();
-  }, [fetchInvoices]);
+  };
 
   const handleAction = async (invoiceId: string, action: string) => {
-    setIsActionLoading(true);
-    try {
-      const response = await fetch(`/api/supplier/invoices/${invoiceId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to update invoice");
+    updateInvoice.mutate(
+      { id: invoiceId, action },
+      {
+        onSuccess: () => {
+          setSelectedInvoice(null);
+          toast({ title: `Invoice updated successfully` });
+        },
+        onError: (err) => {
+          toast({ title: "Failed to update invoice", description: err.message, variant: "destructive" });
+        },
       }
-
-      setSelectedInvoice(null);
-      fetchInvoices();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsActionLoading(false);
-    }
+    );
   };
 
   const formatCurrency = (amount: number) => {
@@ -211,7 +171,7 @@ export default function SupplierInvoicesPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );
@@ -497,17 +457,17 @@ export default function SupplierInvoicesPage() {
                 <Button
                   variant="outline"
                   onClick={() => handleAction(selectedInvoice.id, "markOverdue")}
-                  disabled={isActionLoading}
+                  disabled={updateInvoice.isPending}
                   className="text-red-600"
                 >
                   Mark Overdue
                 </Button>
                 <Button
                   onClick={() => handleAction(selectedInvoice.id, "markPaid")}
-                  disabled={isActionLoading}
+                  disabled={updateInvoice.isPending}
                   className="bg-green-600 hover:bg-green-700"
                 >
-                  {isActionLoading ? (
+                  {updateInvoice.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
                   ) : (
                     <CheckCircle className="h-4 w-4 mr-2" />
@@ -519,10 +479,10 @@ export default function SupplierInvoicesPage() {
             {selectedInvoice?.status === "OVERDUE" && (
               <Button
                 onClick={() => handleAction(selectedInvoice.id, "markPaid")}
-                disabled={isActionLoading}
+                disabled={updateInvoice.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
-                {isActionLoading ? (
+                {updateInvoice.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
                 ) : (
                   <CheckCircle className="h-4 w-4 mr-2" />
@@ -533,7 +493,7 @@ export default function SupplierInvoicesPage() {
             {selectedInvoice?.status === "PARTIALLY_PAID" && (
               <Button
                 onClick={() => handleAction(selectedInvoice.id, "markPaid")}
-                disabled={isActionLoading}
+                disabled={updateInvoice.isPending}
                 className="bg-green-600 hover:bg-green-700"
               >
                 Mark Fully Paid

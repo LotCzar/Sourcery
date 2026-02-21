@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import Link from "next/link";
 import {
@@ -26,41 +25,7 @@ import {
   AlertCircle,
   Plus,
 } from "lucide-react";
-
-interface DashboardData {
-  stats: {
-    totalProducts: number;
-    pendingOrders: number;
-    confirmedOrders: number;
-    shippedOrders: number;
-    deliveredOrdersThisMonth: number;
-    totalRevenue: number;
-  };
-  recentOrders: {
-    id: string;
-    orderNumber: string;
-    status: string;
-    total: number;
-    restaurant: {
-      id: string;
-      name: string;
-    };
-    createdAt: string;
-  }[];
-  topProducts: {
-    id: string;
-    name: string;
-    category: string;
-    price: number;
-    orderCount: number;
-    totalRevenue: number;
-  }[];
-  supplier: {
-    id: string;
-    name: string;
-    status: string;
-  };
-}
+import { useSupplierDashboard } from "@/hooks/use-supplier-dashboard";
 
 const statusConfig: Record<
   string,
@@ -107,30 +72,7 @@ const supplierStatusConfig: Record<string, { label: string; color: string }> = {
 
 export default function SupplierDashboardPage() {
   const { user } = useUser();
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    fetchDashboard();
-  }, []);
-
-  const fetchDashboard = async () => {
-    try {
-      const response = await fetch("/api/supplier/dashboard");
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch dashboard");
-      }
-
-      setData(result.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: result, isLoading, error } = useSupplierDashboard();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -165,12 +107,13 @@ export default function SupplierDashboardPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );
   }
 
+  const data = result?.data;
   if (!data) return null;
 
   return (
@@ -379,7 +322,7 @@ export default function SupplierDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {data.recentOrders.map((order) => (
+                {data.recentOrders.map((order: any) => (
                   <Link
                     key={order.id}
                     href="/supplier/orders"
@@ -446,7 +389,7 @@ export default function SupplierDashboardPage() {
               </div>
             ) : (
               <div className="space-y-3">
-                {data.topProducts.map((product) => (
+                {data.topProducts.map((product: any) => (
                   <div
                     key={product.id}
                     className="flex items-center justify-between rounded-lg border p-3"

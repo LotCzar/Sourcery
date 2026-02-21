@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -39,6 +39,13 @@ import {
   Check,
   X,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import {
+  useSupplierProducts,
+  useCreateSupplierProduct,
+  useUpdateSupplierProduct,
+  useDeleteSupplierProduct,
+} from "@/hooks/use-supplier-products";
 
 interface Product {
   id: string;
@@ -100,72 +107,52 @@ const initialFormData = {
 };
 
 export default function SupplierProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const fetchProducts = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (selectedCategory && selectedCategory !== "ALL") params.append("category", selectedCategory);
+  const { data: result, isLoading, error } = useSupplierProducts(selectedCategory);
+  const createProduct = useCreateSupplierProduct();
+  const updateProduct = useUpdateSupplierProduct();
+  const deleteProduct = useDeleteSupplierProduct();
 
-      const response = await fetch(`/api/supplier/products?${params}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch products");
-      }
-
-      setProducts(result.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedCategory]);
-
-  useEffect(() => {
-    fetchProducts();
-  }, [fetchProducts]);
+  const products: Product[] = result?.data ?? [];
 
   const handleSubmit = async () => {
     if (!formData.name || !formData.category || !formData.price || !formData.unit) {
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      const url = editingProduct
-        ? `/api/supplier/products/${editingProduct.id}`
-        : "/api/supplier/products";
-      const method = editingProduct ? "PATCH" : "POST";
-
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+    if (editingProduct) {
+      updateProduct.mutate(
+        { id: editingProduct.id, ...formData },
+        {
+          onSuccess: () => {
+            setIsDialogOpen(false);
+            setFormData(initialFormData);
+            setEditingProduct(null);
+            toast({ title: "Product updated successfully" });
+          },
+          onError: (err) => {
+            toast({ title: "Failed to update product", description: err.message, variant: "destructive" });
+          },
+        }
+      );
+    } else {
+      createProduct.mutate(formData, {
+        onSuccess: () => {
+          setIsDialogOpen(false);
+          setFormData(initialFormData);
+          setEditingProduct(null);
+          toast({ title: "Product created successfully" });
+        },
+        onError: (err) => {
+          toast({ title: "Failed to create product", description: err.message, variant: "destructive" });
+        },
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save product");
-      }
-
-      setIsDialogOpen(false);
-      setFormData(initialFormData);
-      setEditingProduct(null);
-      fetchProducts();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -189,39 +176,25 @@ export default function SupplierProductsPage() {
   const handleDelete = async (productId: string) => {
     if (!confirm("Are you sure you want to delete this product?")) return;
 
-    try {
-      const response = await fetch(`/api/supplier/products/${productId}`, {
-        method: "DELETE",
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to delete product");
-      }
-
-      fetchProducts();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    }
+    deleteProduct.mutate(productId, {
+      onSuccess: () => {
+        toast({ title: "Product deleted successfully" });
+      },
+      onError: (err) => {
+        toast({ title: "Failed to delete product", description: err.message, variant: "destructive" });
+      },
+    });
   };
 
   const toggleStock = async (product: Product) => {
-    try {
-      const response = await fetch(`/api/supplier/products/${product.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inStock: !product.inStock }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to update stock status");
+    updateProduct.mutate(
+      { id: product.id, inStock: !product.inStock },
+      {
+        onError: (err) => {
+          toast({ title: "Failed to update stock status", description: err.message, variant: "destructive" });
+        },
       }
-
-      fetchProducts();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    }
+    );
   };
 
   const formatCurrency = (amount: number) => {
@@ -230,6 +203,8 @@ export default function SupplierProductsPage() {
       currency: "USD",
     }).format(amount);
   };
+
+  const isSubmitting = createProduct.isPending || updateProduct.isPending;
 
   const filteredProducts = products.filter((product) =>
     product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -248,7 +223,7 @@ export default function SupplierProductsPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );

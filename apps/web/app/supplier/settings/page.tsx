@@ -19,29 +19,9 @@ import {
   MapPin,
   Truck,
   Save,
-  CheckCircle,
 } from "lucide-react";
-
-interface SupplierSettings {
-  id: string;
-  name: string;
-  description: string | null;
-  email: string;
-  phone: string | null;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zipCode: string | null;
-  website: string | null;
-  logoUrl: string | null;
-  taxId: string | null;
-  minimumOrder: number | null;
-  deliveryFee: number | null;
-  leadTimeDays: number;
-  status: string;
-  rating: number | null;
-  reviewCount: number;
-}
+import { useToast } from "@/hooks/use-toast";
+import { useSupplierSettings, useUpdateSupplierSettings } from "@/hooks/use-supplier-settings";
 
 const supplierStatusConfig: Record<string, { label: string; color: string }> = {
   PENDING: { label: "Pending Verification", color: "bg-yellow-100 text-yellow-700" },
@@ -51,11 +31,11 @@ const supplierStatusConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function SupplierSettingsPage() {
-  const [settings, setSettings] = useState<SupplierSettings | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const { toast } = useToast();
+  const { data: result, isLoading, error } = useSupplierSettings();
+  const updateSettings = useUpdateSupplierSettings();
+
+  const settings = result?.data;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -73,64 +53,33 @@ export default function SupplierSettingsPage() {
   });
 
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch("/api/supplier/settings");
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch settings");
-      }
-
-      setSettings(result.data);
+    if (settings) {
       setFormData({
-        name: result.data.name || "",
-        description: result.data.description || "",
-        email: result.data.email || "",
-        phone: result.data.phone || "",
-        address: result.data.address || "",
-        city: result.data.city || "",
-        state: result.data.state || "",
-        zipCode: result.data.zipCode || "",
-        website: result.data.website || "",
-        minimumOrder: result.data.minimumOrder?.toString() || "",
-        deliveryFee: result.data.deliveryFee?.toString() || "",
-        leadTimeDays: result.data.leadTimeDays?.toString() || "1",
+        name: settings.name || "",
+        description: settings.description || "",
+        email: settings.email || "",
+        phone: settings.phone || "",
+        address: settings.address || "",
+        city: settings.city || "",
+        state: settings.state || "",
+        zipCode: settings.zipCode || "",
+        website: settings.website || "",
+        minimumOrder: settings.minimumOrder?.toString() || "",
+        deliveryFee: settings.deliveryFee?.toString() || "",
+        leadTimeDays: settings.leadTimeDays?.toString() || "1",
       });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [settings]);
 
   const handleSave = async () => {
-    setIsSaving(true);
-    setSuccessMessage(null);
-    try {
-      const response = await fetch("/api/supplier/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save settings");
-      }
-
-      setSettings(result.data);
-      setSuccessMessage("Settings saved successfully!");
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsSaving(false);
-    }
+    updateSettings.mutate(formData, {
+      onSuccess: () => {
+        toast({ title: "Settings saved successfully!" });
+      },
+      onError: (err) => {
+        toast({ title: "Failed to save settings", description: err.message, variant: "destructive" });
+      },
+    });
   };
 
   if (isLoading) {
@@ -146,7 +95,7 @@ export default function SupplierSettingsPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );
@@ -178,16 +127,6 @@ export default function SupplierSettingsPage() {
           )}
         </div>
       </div>
-
-      {/* Success Message */}
-      {successMessage && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6 flex items-center gap-2">
-            <CheckCircle className="h-5 w-5 text-green-600" />
-            <p className="text-green-600">{successMessage}</p>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Business Information */}
       <Card>
@@ -380,8 +319,8 @@ export default function SupplierSettingsPage() {
 
       {/* Save Button */}
       <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={isSaving}>
-          {isSaving ? (
+        <Button onClick={handleSave} disabled={updateSettings.isPending}>
+          {updateSettings.isPending ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Saving...

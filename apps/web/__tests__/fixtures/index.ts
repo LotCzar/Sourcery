@@ -169,6 +169,16 @@ export function createMockSupplierUser(overrides?: Record<string, unknown>) {
   });
 }
 
+export function createMockSupplierUserWithSupplier(
+  userOverrides?: Record<string, unknown>,
+  supplierOverrides?: Record<string, unknown>
+) {
+  return {
+    ...createMockSupplierUser(userOverrides),
+    supplier: createMockSupplier(supplierOverrides),
+  };
+}
+
 export function createMockConversation(overrides?: Record<string, unknown>) {
   return {
     id: "conv_1",

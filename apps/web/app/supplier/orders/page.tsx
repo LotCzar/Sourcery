@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   Card,
@@ -42,6 +42,8 @@ import {
   Phone,
   Mail,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { useSupplierOrders, useUpdateSupplierOrder } from "@/hooks/use-supplier-orders";
 
 interface OrderItem {
   id: string;
@@ -136,61 +138,30 @@ const statusActions: Record<string, { action: string; label: string; color: stri
 export default function SupplierOrdersPage() {
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get("status") || "ALL";
+  const { toast } = useToast();
 
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(initialStatus);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isActionLoading, setIsActionLoading] = useState(false);
 
-  const fetchOrders = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (selectedStatus && selectedStatus !== "ALL") params.append("status", selectedStatus);
+  const { data: result, isLoading, error } = useSupplierOrders(selectedStatus);
+  const updateOrder = useUpdateSupplierOrder();
 
-      const response = await fetch(`/api/supplier/orders?${params}`);
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to fetch orders");
-      }
-
-      setOrders(result.data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [selectedStatus]);
-
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  const orders: Order[] = result?.data ?? [];
 
   const handleAction = async (orderId: string, action: string) => {
-    setIsActionLoading(true);
-    try {
-      const response = await fetch(`/api/supplier/orders/${orderId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to update order");
+    updateOrder.mutate(
+      { id: orderId, action },
+      {
+        onSuccess: () => {
+          setSelectedOrder(null);
+          toast({ title: `Order ${action}ed successfully` });
+        },
+        onError: (err) => {
+          toast({ title: "Failed to update order", description: err.message, variant: "destructive" });
+        },
       }
-
-      setSelectedOrder(null);
-      fetchOrders();
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsActionLoading(false);
-    }
+    );
   };
 
   const formatCurrency = (amount: number) => {
@@ -229,7 +200,7 @@ export default function SupplierOrdersPage() {
       <Card className="border-red-200 bg-red-50">
         <CardContent className="pt-6 flex items-center gap-2">
           <AlertCircle className="h-5 w-5 text-red-600" />
-          <p className="text-red-600">{error}</p>
+          <p className="text-red-600">{error.message}</p>
         </CardContent>
       </Card>
     );
@@ -492,9 +463,9 @@ export default function SupplierOrdersPage() {
                         onClick={() =>
                           handleAction(selectedOrder.id, action.action)
                         }
-                        disabled={isActionLoading}
+                        disabled={updateOrder.isPending}
                       >
-                        {isActionLoading ? (
+                        {updateOrder.isPending ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : null}
                         {action.label}
