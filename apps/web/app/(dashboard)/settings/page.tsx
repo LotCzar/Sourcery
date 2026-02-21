@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
+import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { useToast } from "@/hooks/use-toast";
 import {
   Card,
   CardContent,
@@ -49,34 +51,6 @@ import {
   Trash2,
 } from "lucide-react";
 
-interface UserSettings {
-  id: string;
-  email: string;
-  name: string | null;
-  role: string;
-  createdAt: string;
-}
-
-interface RestaurantSettings {
-  id: string;
-  name: string;
-  address: string | null;
-  city: string | null;
-  state: string | null;
-  zipCode: string | null;
-  phone: string | null;
-  website: string | null;
-  cuisineType: string | null;
-  createdAt: string;
-}
-
-interface Preferences {
-  emailNotifications: boolean;
-  orderUpdates: boolean;
-  priceAlerts: boolean;
-  weeklyReport: boolean;
-}
-
 const cuisineTypes = [
   "American",
   "Italian",
@@ -113,14 +87,13 @@ const usStates = [
 
 export default function SettingsPage() {
   const { user: clerkUser } = useUser();
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  const { data: settingsData, isLoading } = useSettings();
+  const updateSettings = useUpdateSettings();
+  const { toast } = useToast();
 
-  const [userSettings, setUserSettings] = useState<UserSettings | null>(null);
-  const [restaurantSettings, setRestaurantSettings] = useState<RestaurantSettings | null>(null);
-  const [preferences, setPreferences] = useState<Preferences>({
+  const userSettings = settingsData?.data?.user ?? null;
+  const restaurantSettings = settingsData?.data?.restaurant ?? null;
+  const [preferences, setPreferences] = useState({
     emailNotifications: true,
     orderUpdates: true,
     priceAlerts: true,
@@ -145,74 +118,43 @@ export default function SettingsPage() {
   const [isClearing, setIsClearing] = useState(false);
   const [seedResult, setSeedResult] = useState<any>(null);
 
+  // Initialize forms when data loads
   useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const fetchSettings = async () => {
-    try {
-      const response = await fetch("/api/settings");
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to fetch settings");
-      }
-
-      setUserSettings(data.data.user);
-      setRestaurantSettings(data.data.restaurant);
-      setPreferences(data.data.preferences);
-
-      // Initialize forms
-      setProfileForm({ name: data.data.user.name || "" });
-      if (data.data.restaurant) {
+    if (settingsData?.data) {
+      const { user, restaurant, preferences: prefs } = settingsData.data;
+      setProfileForm({ name: `${user.firstName || ""} ${user.lastName || ""}`.trim() });
+      setPreferences(prefs);
+      if (restaurant) {
         setRestaurantForm({
-          name: data.data.restaurant.name || "",
-          address: data.data.restaurant.address || "",
-          city: data.data.restaurant.city || "",
-          state: data.data.restaurant.state || "",
-          zipCode: data.data.restaurant.zipCode || "",
-          phone: data.data.restaurant.phone || "",
-          website: data.data.restaurant.website || "",
-          cuisineType: data.data.restaurant.cuisineType || "",
+          name: restaurant.name || "",
+          address: restaurant.address || "",
+          city: restaurant.city || "",
+          state: restaurant.state || "",
+          zipCode: restaurant.zipCode || "",
+          phone: restaurant.phone || "",
+          website: restaurant.website || "",
+          cuisineType: restaurant.cuisineType || "",
         });
       }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
     }
-  };
+  }, [settingsData]);
 
-  const saveSettings = async (section: string, data: any) => {
-    setIsSaving(section);
-    setError(null);
-    setSuccess(null);
-
-    try {
-      const response = await fetch("/api/settings", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ section, data }),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save settings");
+  const saveSettings = (section: string, data: Record<string, unknown>) => {
+    updateSettings.mutate(
+      { section, data },
+      {
+        onSuccess: () => {
+          toast({ title: `${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully` });
+        },
+        onError: (err) => {
+          toast({
+            title: "Failed to save settings",
+            description: err instanceof Error ? err.message : undefined,
+            variant: "destructive",
+          });
+        },
       }
-
-      setSuccess(`${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully`);
-
-      // Refresh settings
-      await fetchSettings();
-
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(null), 3000);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save settings");
-    } finally {
-      setIsSaving(null);
-    }
+    );
   };
 
   const handleProfileSave = () => {
@@ -230,7 +172,6 @@ export default function SettingsPage() {
   const handleSeedTestData = async () => {
     setIsSeeding(true);
     setSeedResult(null);
-    setError(null);
 
     try {
       const response = await fetch("/api/seed-test-data", {
@@ -247,10 +188,13 @@ export default function SettingsPage() {
       }
 
       setSeedResult(result.data);
-      setSuccess("Test data seeded successfully!");
-      setTimeout(() => setSuccess(null), 5000);
+      toast({ title: "Test data seeded successfully!" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to seed test data");
+      toast({
+        title: "Failed to seed test data",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setIsSeeding(false);
     }
@@ -259,7 +203,6 @@ export default function SettingsPage() {
   const handleClearTestData = async () => {
     setIsClearing(true);
     setSeedResult(null);
-    setError(null);
 
     try {
       const response = await fetch("/api/seed-test-data", {
@@ -272,10 +215,13 @@ export default function SettingsPage() {
         throw new Error(result.error || "Failed to clear test data");
       }
 
-      setSuccess("Test data cleared successfully!");
-      setTimeout(() => setSuccess(null), 5000);
+      toast({ title: "Test data cleared successfully!" });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to clear test data");
+      toast({
+        title: "Failed to clear test data",
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
     } finally {
       setIsClearing(false);
     }
@@ -307,25 +253,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* Success/Error Messages */}
-      {success && (
-        <Card className="border-green-200 bg-green-50">
-          <CardContent className="pt-6 flex items-center gap-2">
-            <Check className="h-5 w-5 text-green-600" />
-            <p className="text-green-600">{success}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {error && (
-        <Card className="border-red-200 bg-red-50">
-          <CardContent className="pt-6 flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <p className="text-red-600">{error}</p>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Sidebar */}
         <div className="space-y-6">
@@ -349,11 +276,15 @@ export default function SettingsPage() {
                   />
                 ) : (
                   <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary text-lg font-semibold">
-                    {userSettings?.name?.charAt(0) || userSettings?.email.charAt(0).toUpperCase()}
+                    {userSettings?.firstName?.charAt(0) || userSettings?.email.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div className="overflow-hidden">
-                  <p className="font-medium truncate">{userSettings?.name || "No name set"}</p>
+                  <p className="font-medium truncate">
+                    {userSettings?.firstName && userSettings?.lastName
+                      ? `${userSettings.firstName} ${userSettings.lastName}`
+                      : "No name set"}
+                  </p>
                   <p className="text-xs text-muted-foreground truncate">{userSettings?.email}</p>
                 </div>
               </div>
@@ -474,8 +405,8 @@ export default function SettingsPage() {
                     </div>
                   </div>
                   <div className="flex justify-end">
-                    <Button onClick={handleProfileSave} disabled={isSaving === "profile"}>
-                      {isSaving === "profile" ? (
+                    <Button onClick={handleProfileSave} disabled={updateSettings.isPending}>
+                      {updateSettings.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <Save className="mr-2 h-4 w-4" />
@@ -658,9 +589,9 @@ export default function SettingsPage() {
                     <div className="flex justify-end">
                       <Button
                         onClick={handleRestaurantSave}
-                        disabled={isSaving === "restaurant"}
+                        disabled={updateSettings.isPending}
                       >
-                        {isSaving === "restaurant" ? (
+                        {updateSettings.isPending ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         ) : (
                           <Save className="mr-2 h-4 w-4" />
@@ -784,9 +715,9 @@ export default function SettingsPage() {
                   <div className="flex justify-end pt-4">
                     <Button
                       onClick={handlePreferencesSave}
-                      disabled={isSaving === "preferences"}
+                      disabled={updateSettings.isPending}
                     >
-                      {isSaving === "preferences" ? (
+                      {updateSettings.isPending ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       ) : (
                         <Save className="mr-2 h-4 w-4" />

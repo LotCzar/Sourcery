@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
+import type { InvoiceData } from "@heard/shared";
 
 interface InvoicesResponse {
   success: boolean;
-  data: any[];
+  data: InvoiceData[];
 }
 
 export function useInvoices() {

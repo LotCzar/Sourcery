@@ -35,6 +35,9 @@ export const queryKeys = {
     all: ["invoices"] as const,
     detail: (id: string) => ["invoices", id] as const,
   },
+  settings: {
+    all: ["settings"] as const,
+  },
   search: {
     query: (q: string) => ["search", q] as const,
   },

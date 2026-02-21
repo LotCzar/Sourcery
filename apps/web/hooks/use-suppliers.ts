@@ -3,10 +3,11 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
+import type { SupplierDetail } from "@heard/shared";
 
 interface SupplierResponse {
   success: boolean;
-  data: any;
+  data: SupplierDetail;
 }
 
 export function useSupplier(id: string) {

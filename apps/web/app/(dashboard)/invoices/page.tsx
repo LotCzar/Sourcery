@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useInvoices } from "@/hooks/use-invoices";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
@@ -102,6 +103,7 @@ const paymentMethods: Record<string, string> = {
 };
 
 export default function InvoicesPage() {
+  const { toast } = useToast();
   const { data: result, isLoading, error } = useInvoices();
   const queryClient = useQueryClient();
 
@@ -150,7 +152,7 @@ export default function InvoicesPage() {
       setIsCreateOpen(false);
       setNewInvoice({ invoiceNumber: "", supplierId: "", subtotal: "", tax: "", dueDate: "", notes: "" });
     },
-    onError: (err: any) => alert(err.message || "Failed to create invoice"),
+    onError: (err: any) => toast({ title: "Failed to create invoice", description: err.message, variant: "destructive" }),
   });
 
   const markPaidMutation = useMutation({
@@ -162,7 +164,7 @@ export default function InvoicesPage() {
       setPaymentMethod("");
       setPaymentReference("");
     },
-    onError: (err: any) => alert(err.message || "Failed to update invoice"),
+    onError: (err: any) => toast({ title: "Failed to update invoice", description: err.message, variant: "destructive" }),
   });
 
   const deleteInvoiceMutation = useMutation({
@@ -175,7 +177,7 @@ export default function InvoicesPage() {
 
   const handleCreateInvoice = () => {
     if (!newInvoice.invoiceNumber || !newInvoice.supplierId || !newInvoice.subtotal || !newInvoice.dueDate) {
-      alert("Please fill in all required fields");
+      toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
     createInvoiceMutation.mutate({

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { useInventory, useCreateInventory, useUpdateInventory } from "@/hooks/use-inventory";
 import { useConsumptionInsights } from "@/hooks/use-consumption-insights";
 import type { ConsumptionInsight } from "@/hooks/use-consumption-insights";
@@ -170,6 +171,8 @@ export default function InventoryPage() {
   // View item dialog
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
 
+  const { toast } = useToast();
+
   const { data: result, isLoading } = useInventory({
     category: categoryFilter !== "all" ? categoryFilter : undefined,
     lowStock: showLowStock || undefined,
@@ -192,7 +195,7 @@ export default function InventoryPage() {
 
   const handleAddItem = async () => {
     if (!newItem.name || !newItem.category || !newItem.unit) {
-      alert("Please fill in required fields");
+      toast({ title: "Please fill in required fields", variant: "destructive" });
       return;
     }
 
@@ -217,7 +220,7 @@ export default function InventoryPage() {
         location: "",
       });
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to add item");
+      toast({ title: "Failed to add item", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 
@@ -236,7 +239,7 @@ export default function InventoryPage() {
       setAdjustQuantity("");
       setAdjustNotes("");
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to adjust quantity");
+      toast({ title: "Failed to adjust quantity", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 
@@ -246,7 +249,7 @@ export default function InventoryPage() {
     try {
       await deleteInventoryMutation.mutateAsync(itemId);
     } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to delete item");
+      toast({ title: "Failed to delete item", description: err instanceof Error ? err.message : undefined, variant: "destructive" });
     }
   };
 

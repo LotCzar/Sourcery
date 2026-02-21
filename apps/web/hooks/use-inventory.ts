@@ -3,10 +3,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
+import type { InventoryItemData } from "@heard/shared";
 
 interface InventoryResponse {
   success: boolean;
-  data: any[];
+  data: InventoryItemData[];
   summary: {
     totalItems: number;
     lowStockCount: number;

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
 import { usePriceAlerts, useCreatePriceAlert, useDeletePriceAlert, useUpdatePriceAlert } from "@/hooks/use-price-alerts";
 import { apiFetch } from "@/lib/api";
 import {
@@ -122,6 +123,7 @@ const unitLabels: Record<string, string> = {
 };
 
 export default function PriceAlertsPage() {
+  const { toast } = useToast();
   const { data: result, isLoading, error } = usePriceAlerts();
   const createAlert = useCreatePriceAlert();
   const deleteAlert = useDeletePriceAlert();
@@ -180,7 +182,7 @@ export default function PriceAlertsPage() {
           setSearchQuery("");
         },
         onError: (err) => {
-          alert(err.message || "Failed to create alert");
+          toast({ title: "Failed to create alert", description: err.message, variant: "destructive" });
         },
       }
     );

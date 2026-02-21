@@ -3,14 +3,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
+import type { ProductWithSupplier } from "@heard/shared";
 
 interface ProductsResponse {
   success: boolean;
   data: {
-    products: any[];
+    products: ProductWithSupplier[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     priceComparisons: any[];
     filters: {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       categories: any[];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       suppliers: any[];
     };
     totalCount: number;

@@ -6,6 +6,8 @@ import { apiFetch } from "@/lib/api";
 
 interface AnalyticsResponse {
   success: boolean;
+  // Analytics data shape varies by consumer — typed locally in each page
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any;
 }
 

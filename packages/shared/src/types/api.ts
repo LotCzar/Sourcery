@@ -110,6 +110,10 @@ export interface ProductWithSupplier {
   supplier: {
     id: string;
     name: string;
+    rating: number | null;
+    minimumOrder: number | null;
+    deliveryFee: number | null;
+    leadTimeDays: number;
   };
 }
 
@@ -216,8 +220,8 @@ export interface InvoiceData {
   restaurantId: string;
   supplierId: string;
   orderId: string | null;
-  supplier: { id: string; name: string };
-  order?: { orderNumber: string } | null;
+  supplier: { id: string; name: string; email?: string };
+  order?: { id?: string; orderNumber: string; status?: string } | null;
   createdAt: string;
   updatedAt: string;
 }
