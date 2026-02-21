@@ -261,4 +261,49 @@ describe("GET /api/analytics", () => {
     expect(data.data.ordersByStatus).toHaveLength(0);
     expect(data.data.recentOrders).toHaveLength(0);
   });
+
+  describe("time range filtering", () => {
+    it("returns 7-day time series when timeRange=7", async () => {
+      prismaMock.order.findMany.mockResolvedValueOnce([] as any);
+
+      const response = await GET(createRequest("http://localhost/api/analytics?timeRange=7"));
+      const { data } = await parseResponse(response);
+
+      expect(data.data.spendOverTime).toHaveLength(7);
+    });
+
+    it("returns 90-day time series when timeRange=90", async () => {
+      prismaMock.order.findMany.mockResolvedValueOnce([] as any);
+
+      const response = await GET(createRequest("http://localhost/api/analytics?timeRange=90"));
+      const { data } = await parseResponse(response);
+
+      expect(data.data.spendOverTime).toHaveLength(90);
+    });
+
+    it("defaults to 30-day time series for invalid timeRange", async () => {
+      prismaMock.order.findMany.mockResolvedValueOnce([] as any);
+
+      const response = await GET(createRequest("http://localhost/api/analytics?timeRange=invalid"));
+      const { data } = await parseResponse(response);
+
+      expect(data.data.spendOverTime).toHaveLength(30);
+    });
+
+    it("passes createdAt gte filter to Prisma", async () => {
+      prismaMock.order.findMany.mockResolvedValueOnce([] as any);
+
+      await GET(createRequest("http://localhost/api/analytics?timeRange=7"));
+
+      expect(prismaMock.order.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            createdAt: expect.objectContaining({
+              gte: expect.any(Date),
+            }),
+          }),
+        })
+      );
+    });
+  });
 });

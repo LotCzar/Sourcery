@@ -167,6 +167,25 @@ export async function PATCH(
           );
         }
 
+        // Validate supplier is verified
+        if (order.supplier.status !== "VERIFIED") {
+          return NextResponse.json(
+            { error: `Cannot submit order: supplier is ${order.supplier.status.toLowerCase()}` },
+            { status: 400 }
+          );
+        }
+
+        // Validate minimum order amount
+        if (order.supplier.minimumOrder) {
+          const minAmount = Number(order.supplier.minimumOrder);
+          if (Number(order.subtotal) < minAmount) {
+            return NextResponse.json(
+              { error: `Order subtotal ($${Number(order.subtotal).toFixed(2)}) is below supplier minimum ($${minAmount.toFixed(2)})` },
+              { status: 400 }
+            );
+          }
+        }
+
         // Calculate expected delivery date based on supplier lead time
         const deliveryDate = new Date();
         deliveryDate.setDate(

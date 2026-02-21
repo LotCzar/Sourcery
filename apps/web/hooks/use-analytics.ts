@@ -9,7 +9,7 @@ interface AnalyticsResponse {
   data: any;
 }
 
-export function useAnalytics(timeRange: string = "6months") {
+export function useAnalytics(timeRange: string = "30") {
   return useQuery({
     queryKey: queryKeys.analytics.byRange(timeRange),
     queryFn: () =>

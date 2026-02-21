@@ -24,6 +24,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const format = searchParams.get("format") || "json";
     const type = searchParams.get("type") || "spending";
+    const timeRangeParam = searchParams.get("timeRange") || "30";
+    const days = ["7", "30", "90"].includes(timeRangeParam) ? parseInt(timeRangeParam) : 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
 
     if (!["csv", "json"].includes(format)) {
       return NextResponse.json(
@@ -48,6 +52,7 @@ export async function GET(request: Request) {
           where: {
             restaurantId: user.restaurant.id,
             status: { in: ["DELIVERED", "CONFIRMED", "SHIPPED"] },
+            createdAt: { gte: startDate },
           },
           include: { supplier: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
@@ -78,7 +83,7 @@ export async function GET(request: Request) {
 
       case "orders": {
         const orders = await prisma.order.findMany({
-          where: { restaurantId: user.restaurant.id },
+          where: { restaurantId: user.restaurant.id, createdAt: { gte: startDate } },
           include: {
             supplier: { select: { name: true } },
             items: {
@@ -130,6 +135,7 @@ export async function GET(request: Request) {
               where: {
                 restaurantId: user.restaurant.id,
                 status: { in: ["DELIVERED", "CONFIRMED", "SHIPPED"] },
+                createdAt: { gte: startDate },
               },
               select: { total: true },
             },

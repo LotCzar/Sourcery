@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useAnalytics } from "@/hooks/use-analytics";
 import {
   Card,
   CardContent,
@@ -95,33 +96,9 @@ const statusConfig: Record<string, { label: string; color: string }> = {
 };
 
 export default function ReportsPage() {
-  const [data, setData] = useState<AnalyticsData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [timeRange, setTimeRange] = useState("30");
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
-
-  const fetchAnalytics = async () => {
-    try {
-      setIsLoading(true);
-      const response = await fetch("/api/analytics");
-      const result = await response.json();
-
-      if (result.success) {
-        setData(result.data);
-      } else {
-        setError(result.error || "Failed to fetch analytics");
-      }
-    } catch (err) {
-      setError("Failed to fetch analytics");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  const { data: result, isLoading, error } = useAnalytics(timeRange);
+  const data: AnalyticsData | null = result?.data ?? null;
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -147,13 +124,7 @@ export default function ReportsPage() {
     return (
       <div className="flex items-center justify-center h-96">
         <div className="text-center">
-          <p className="text-red-500 mb-2">{error}</p>
-          <button
-            onClick={fetchAnalytics}
-            className="text-primary hover:underline"
-          >
-            Try again
-          </button>
+          <p className="text-red-500 mb-2">{error.message}</p>
         </div>
       </div>
     );
@@ -187,7 +158,7 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open("/api/reports/export?type=spending&format=csv", "_blank")}
+              onClick={() => window.open(`/api/reports/export?type=spending&format=csv&timeRange=${timeRange}`, "_blank")}
             >
               <Download className="h-4 w-4 mr-1" />
               Spending CSV
@@ -195,7 +166,7 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open("/api/reports/export?type=orders&format=csv", "_blank")}
+              onClick={() => window.open(`/api/reports/export?type=orders&format=csv&timeRange=${timeRange}`, "_blank")}
             >
               <Download className="h-4 w-4 mr-1" />
               Orders CSV
@@ -203,7 +174,7 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open("/api/reports/export?type=suppliers&format=csv", "_blank")}
+              onClick={() => window.open(`/api/reports/export?type=suppliers&format=csv&timeRange=${timeRange}`, "_blank")}
             >
               <Download className="h-4 w-4 mr-1" />
               Suppliers CSV
@@ -297,7 +268,7 @@ export default function ReportsPage() {
               <BarChart3 className="h-5 w-5" />
               Spending Over Time
             </CardTitle>
-            <CardDescription>Daily spending for the last 30 days</CardDescription>
+            <CardDescription>Daily spending for the last {timeRange} days</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[300px]">

@@ -71,6 +71,107 @@ describe("PATCH /api/orders/[id]", () => {
       expect(data.error).toBe("Can only submit draft orders");
     });
 
+    it("rejects submit when supplier is SUSPENDED", async () => {
+      const order = {
+        ...createMockOrder({ status: "DRAFT" }),
+        supplier: createMockSupplier({ status: "SUSPENDED" }),
+      };
+      prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+
+      const response = await PATCH(
+        createJsonRequest("http://localhost/api/orders/order_1", {
+          action: "submit",
+        }),
+        mockParams
+      );
+      const { status, data } = await parseResponse(response);
+
+      expect(status).toBe(400);
+      expect(data.error).toBe("Cannot submit order: supplier is suspended");
+    });
+
+    it("rejects submit when supplier is INACTIVE", async () => {
+      const order = {
+        ...createMockOrder({ status: "DRAFT" }),
+        supplier: createMockSupplier({ status: "INACTIVE" }),
+      };
+      prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+
+      const response = await PATCH(
+        createJsonRequest("http://localhost/api/orders/order_1", {
+          action: "submit",
+        }),
+        mockParams
+      );
+      const { status, data } = await parseResponse(response);
+
+      expect(status).toBe(400);
+      expect(data.error).toBe("Cannot submit order: supplier is inactive");
+    });
+
+    it("rejects submit when subtotal < minimumOrder", async () => {
+      const order = {
+        ...createMockOrder({ status: "DRAFT", subtotal: new Decimal("30.00") }),
+        supplier: createMockSupplier({ minimumOrder: new Decimal("50.00") }),
+      };
+      prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+
+      const response = await PATCH(
+        createJsonRequest("http://localhost/api/orders/order_1", {
+          action: "submit",
+        }),
+        mockParams
+      );
+      const { status, data } = await parseResponse(response);
+
+      expect(status).toBe(400);
+      expect(data.error).toContain("below supplier minimum");
+    });
+
+    it("allows submit when subtotal equals minimumOrder", async () => {
+      const order = {
+        ...createMockOrder({ status: "DRAFT", subtotal: new Decimal("50.00") }),
+        supplier: createMockSupplier({ minimumOrder: new Decimal("50.00") }),
+      };
+      prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+
+      const updatedOrder = createMockOrder({ status: "PENDING" });
+      prismaMock.order.update.mockResolvedValueOnce(updatedOrder as any);
+
+      const response = await PATCH(
+        createJsonRequest("http://localhost/api/orders/order_1", {
+          action: "submit",
+        }),
+        mockParams
+      );
+      const { status, data } = await parseResponse(response);
+
+      expect(status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
+    it("allows submit when supplier has no minimumOrder", async () => {
+      const order = {
+        ...createMockOrder({ status: "DRAFT", subtotal: new Decimal("10.00") }),
+        supplier: createMockSupplier({ minimumOrder: null }),
+      };
+      prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+
+      const updatedOrder = createMockOrder({ status: "PENDING" });
+      prismaMock.order.update.mockResolvedValueOnce(updatedOrder as any);
+
+      const response = await PATCH(
+        createJsonRequest("http://localhost/api/orders/order_1", {
+          action: "submit",
+        }),
+        mockParams
+      );
+      const { status, data } = await parseResponse(response);
+
+      expect(status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+
     it("sends email to supplier", async () => {
       const supplier = createMockSupplier({ email: "supplier@test.com" });
       const order = {

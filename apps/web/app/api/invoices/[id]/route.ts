@@ -2,6 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
+const VALID_INVOICE_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["PAID", "PARTIALLY_PAID", "CANCELLED"],
+  OVERDUE: ["PAID", "PARTIALLY_PAID", "CANCELLED", "DISPUTED"],
+  PARTIALLY_PAID: ["PAID", "CANCELLED"],
+  DISPUTED: ["PAID", "CANCELLED"],
+};
+// PAID and CANCELLED are terminal — not in the map.
+
 // GET single invoice
 export async function GET(
   request: Request,
@@ -137,6 +145,39 @@ export async function PATCH(
       notes,
       dueDate,
     } = body;
+
+    // Validate status transitions
+    if (status) {
+      const allowedTransitions = VALID_INVOICE_TRANSITIONS[existingInvoice.status];
+      if (!allowedTransitions) {
+        return NextResponse.json(
+          { error: `Cannot transition from ${existingInvoice.status}` },
+          { status: 400 }
+        );
+      }
+      if (!allowedTransitions.includes(status)) {
+        return NextResponse.json(
+          { error: `Invalid transition from ${existingInvoice.status} to ${status}` },
+          { status: 400 }
+        );
+      }
+
+      // PARTIALLY_PAID requires a valid paidAmount
+      if (status === "PARTIALLY_PAID") {
+        if (!paidAmount || paidAmount <= 0) {
+          return NextResponse.json(
+            { error: "PARTIALLY_PAID requires paidAmount > 0" },
+            { status: 400 }
+          );
+        }
+        if (paidAmount >= Number(existingInvoice.total)) {
+          return NextResponse.json(
+            { error: "PARTIALLY_PAID requires paidAmount < total" },
+            { status: 400 }
+          );
+        }
+      }
+    }
 
     const updateData: any = {};
 

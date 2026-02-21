@@ -25,9 +25,15 @@ export async function GET(request: Request) {
 
     const restaurantId = user.restaurant.id;
 
-    // Get all orders for this restaurant
+    const { searchParams } = new URL(request.url);
+    const timeRangeParam = searchParams.get("timeRange") || "30";
+    const days = ["7", "30", "90"].includes(timeRangeParam) ? parseInt(timeRangeParam) : 30;
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Get orders for this restaurant within the time range
     const orders = await prisma.order.findMany({
-      where: { restaurantId },
+      where: { restaurantId, createdAt: { gte: startDate } },
       include: {
         supplier: {
           select: { id: true, name: true },
@@ -106,26 +112,19 @@ export async function GET(request: Request) {
       .sort((a, b) => b.total - a.total)
       .slice(0, 10);
 
-    // Orders over time (last 30 days)
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-    const recentOrders = orders.filter(
-      (o) => new Date(o.createdAt) >= thirtyDaysAgo
-    );
-
+    // Orders over time (within the selected time range)
     // Group by day
     const ordersByDay: Record<string, { date: string; total: number; orders: number }> = {};
 
-    // Initialize last 30 days with zeros
-    for (let i = 29; i >= 0; i--) {
+    // Initialize days with zeros
+    for (let i = days - 1; i >= 0; i--) {
       const date = new Date();
       date.setDate(date.getDate() - i);
       const dateStr = date.toISOString().split("T")[0];
       ordersByDay[dateStr] = { date: dateStr, total: 0, orders: 0 };
     }
 
-    recentOrders.forEach((order) => {
+    orders.forEach((order) => {
       const dateStr = new Date(order.createdAt).toISOString().split("T")[0];
       if (ordersByDay[dateStr]) {
         ordersByDay[dateStr].total += Number(order.total);
