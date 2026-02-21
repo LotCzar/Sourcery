@@ -27,10 +27,8 @@ import {
   useNotifications,
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
+  useDeleteNotification,
 } from "@/hooks/use-notifications";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { queryKeys } from "@/lib/query-keys";
-import { apiFetch } from "@/lib/api";
 
 const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   ORDER_UPDATE: {
@@ -65,15 +63,7 @@ export default function NotificationsPage() {
   const { data: result, isLoading, refetch } = useNotifications(filter === "unread");
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
-  const queryClient = useQueryClient();
-
-  const deleteNotification = useMutation({
-    mutationFn: (id: string) =>
-      apiFetch(`/api/notifications/${id}`, { method: "DELETE" }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all });
-    },
-  });
+  const deleteNotification = useDeleteNotification();
 
   const notifications = result?.data || [];
   const unreadCount = result?.unreadCount || 0;

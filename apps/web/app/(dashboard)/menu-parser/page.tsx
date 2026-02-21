@@ -48,6 +48,7 @@ import {
   Store,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useParseMenu, useMatchIngredients } from "@/hooks/use-menu-parser";
 
 interface Ingredient {
   name: string;
@@ -140,8 +141,6 @@ type ViewMode = "parse" | "source" | "cart";
 export default function MenuParserPage() {
   const [menuText, setMenuText] = useState("");
   const [menuType, setMenuType] = useState("restaurant");
-  const [isLoading, setIsLoading] = useState(false);
-  const [isMatching, setIsMatching] = useState(false);
   const [result, setResult] = useState<ParsedResult | null>(null);
   const [matchResult, setMatchResult] = useState<MatchResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -150,6 +149,12 @@ export default function MenuParserPage() {
 
   // Shared cart
   const { addItem, updateQuantity, removeItem, getCartBySupplier, getCartTotal, cart } = useCart();
+
+  // Mutations
+  const parseMenu = useParseMenu();
+  const matchIngredients = useMatchIngredients();
+  const isLoading = parseMenu.isPending;
+  const isMatching = matchIngredients.isPending;
 
   const handleAddToCart = (match: ProductMatch) => {
     addItem({
@@ -169,24 +174,13 @@ export default function MenuParserPage() {
       return;
     }
 
-    setIsLoading(true);
     setError(null);
     setResult(null);
     setMatchResult(null);
     setViewMode("parse");
 
     try {
-      const response = await fetch("/api/ai/parse-menu", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ menuText, menuType }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to parse menu");
-      }
+      const data: any = await parseMenu.mutateAsync({ menuText, menuType });
 
       if (data.parsed && data.data) {
         setResult(data.data);
@@ -198,8 +192,6 @@ export default function MenuParserPage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -220,28 +212,14 @@ export default function MenuParserPage() {
       });
     });
 
-    setIsMatching(true);
     setError(null);
 
     try {
-      const response = await fetch("/api/ingredients/match", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ingredients: allIngredients }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to match ingredients");
-      }
-
+      const data: any = await matchIngredients.mutateAsync(allIngredients);
       setMatchResult(data.data);
       setViewMode("source");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
-      setIsMatching(false);
     }
   };
 

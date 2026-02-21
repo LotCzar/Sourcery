@@ -33,6 +33,7 @@ import {
   AlertTriangle,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useCreateOrders } from "@/hooks/use-checkout";
 
 const TAX_RATE = 0.0825;
 
@@ -41,9 +42,10 @@ export default function CheckoutPage() {
   const { cart, updateQuantity, removeItem, getCartBySupplier, getCartTotal, clearCart } = useCart();
 
   const [deliveryNotes, setDeliveryNotes] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const createOrders = useCreateOrders();
+  const isSubmitting = createOrders.isPending;
 
   const bySupplier = getCartBySupplier();
   const subtotal = getCartTotal();
@@ -51,42 +53,26 @@ export default function CheckoutPage() {
   const total = subtotal + tax;
 
   const handlePlaceOrders = async () => {
-    setIsSubmitting(true);
     setError(null);
 
+    const orderPayloads = Object.entries(bySupplier).map(
+      ([supplierId, { items }]) => ({
+        supplierId,
+        deliveryNotes: deliveryNotes[supplierId] || undefined,
+        items: items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      })
+    );
+
     try {
-      const orderPromises = Object.entries(bySupplier).map(
-        async ([supplierId, { items }]) => {
-          const response = await fetch("/api/orders", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              supplierId,
-              deliveryNotes: deliveryNotes[supplierId] || undefined,
-              items: items.map((item) => ({
-                productId: item.productId,
-                quantity: item.quantity,
-              })),
-            }),
-          });
-
-          if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || "Failed to create order");
-          }
-
-          return response.json();
-        }
-      );
-
-      await Promise.all(orderPromises);
+      await createOrders.mutateAsync(orderPayloads);
       clearCart();
       setSuccess(true);
       setTimeout(() => router.push("/orders"), 2000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to place orders");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
