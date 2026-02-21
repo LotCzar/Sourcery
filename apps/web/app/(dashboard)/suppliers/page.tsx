@@ -174,9 +174,11 @@ export default async function SuppliersPage({
                     View Profile
                   </Button>
                 </Link>
-                <Button size="sm" className="flex-1">
-                  Connect
-                </Button>
+                <Link href={`/suppliers/${supplier.id}`} className="flex-1">
+                  <Button size="sm" className="w-full">
+                    Connect
+                  </Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
