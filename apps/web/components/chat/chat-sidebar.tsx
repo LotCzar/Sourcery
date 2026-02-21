@@ -126,7 +126,7 @@ export function ChatSidebar() {
         className="flex w-full flex-col p-0 sm:max-w-md"
       >
         <SheetHeader className="border-b px-4 py-3">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pr-8">
             <SheetTitle className="text-base">FreshSheet AI</SheetTitle>
             <Button
               variant="ghost"
