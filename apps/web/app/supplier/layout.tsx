@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { redirect } from "next/navigation";
 import { auth } from "@clerk/nextjs/server";
 import { SupplierSidebar } from "@/components/supplier/sidebar";
