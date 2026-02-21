@@ -26,6 +26,7 @@ export const queryKeys = {
   },
   notifications: {
     all: ["notifications"] as const,
+    filtered: (unreadOnly: boolean) => ["notifications", { unreadOnly }] as const,
   },
   priceAlerts: {
     all: ["priceAlerts"] as const,

@@ -17,7 +17,7 @@ export function useNotifications(unreadOnly?: boolean) {
   const url = `/api/notifications${queryString ? `?${queryString}` : ""}`;
 
   return useQuery({
-    queryKey: queryKeys.notifications.all,
+    queryKey: queryKeys.notifications.filtered(!!unreadOnly),
     queryFn: () => apiFetch<NotificationsResponse>(url),
   });
 }
