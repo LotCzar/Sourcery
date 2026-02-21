@@ -17,6 +17,8 @@ export const queryKeys = {
   },
   inventory: {
     all: ["inventory"] as const,
+    filtered: (filters: Record<string, string | boolean | undefined>) =>
+      ["inventory", filters] as const,
     detail: (id: string) => ["inventory", id] as const,
     insights: ["inventory", "insights"] as const,
   },

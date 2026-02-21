@@ -29,7 +29,10 @@ export function useInventory(filters?: {
   const url = `/api/inventory${queryString ? `?${queryString}` : ""}`;
 
   return useQuery({
-    queryKey: queryKeys.inventory.all,
+    queryKey: queryKeys.inventory.filtered({
+      category: filters?.category,
+      lowStock: filters?.lowStock,
+    }),
     queryFn: () => apiFetch<InventoryResponse>(url),
   });
 }
