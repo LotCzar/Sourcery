@@ -14,22 +14,32 @@ export const metadata: Metadata = {
     "Streamline your restaurant sourcing with AI-powered supplier matching and price optimization",
 };
 
+function Providers({ children }: { children: React.ReactNode }) {
+  return (
+    <QueryProvider>
+      <CartProvider>
+        <ChatProvider>{children}</ChatProvider>
+      </CartProvider>
+    </QueryProvider>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return (
-    <ClerkProvider>
-      <html lang="en">
-        <body className={inter.className}>
-          <QueryProvider>
-            <CartProvider>
-              <ChatProvider>{children}</ChatProvider>
-            </CartProvider>
-          </QueryProvider>
-        </body>
-      </html>
-    </ClerkProvider>
+  const content = (
+    <html lang="en">
+      <body className={inter.className}>
+        <Providers>{children}</Providers>
+      </body>
+    </html>
   );
+
+  if (!process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY) {
+    return content;
+  }
+
+  return <ClerkProvider>{content}</ClerkProvider>;
 }
