@@ -48,6 +48,8 @@ import {
   Coffee,
   Trash2,
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 
@@ -140,6 +142,7 @@ export default function ProductsPage() {
   const [sortBy, setSortBy] = useState("name");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [viewMode, setViewMode] = useState<"grid" | "table" | "compare">("grid");
+  const [page, setPage] = useState(1);
 
   // Shared cart
   const { addItem, updateQuantity, removeItem, getQuantity, getCartBySupplier, getCartTotal, cart } = useCart();
@@ -148,12 +151,15 @@ export default function ProductsPage() {
     category: selectedCategory || undefined,
     search: search || undefined,
     supplierId: selectedSupplier || undefined,
+    page,
   });
 
   const products: Product[] = result?.data?.products || [];
   const priceComparisons: PriceComparison[] = result?.data?.priceComparisons || [];
   const categories: FilterOption[] = result?.data?.filters?.categories || [];
   const suppliers: SupplierOption[] = result?.data?.filters?.suppliers || [];
+  const totalCount: number = result?.data?.totalCount || 0;
+  const totalPages: number = result?.data?.totalPages || 1;
 
   const handleAddToCart = (product: Product) => {
     addItem({
@@ -178,6 +184,7 @@ export default function ProductsPage() {
     setSelectedSupplier("");
     setSortBy("name");
     setInStockOnly(false);
+    setPage(1);
   };
 
   const filteredProducts = search
@@ -339,7 +346,7 @@ export default function ProductsPage() {
               </div>
 
               {/* Category Filter */}
-              <Select value={selectedCategory || "all"} onValueChange={(value) => setSelectedCategory(value === "all" ? "" : value)}>
+              <Select value={selectedCategory || "all"} onValueChange={(value) => { setSelectedCategory(value === "all" ? "" : value); setPage(1); }}>
                 <SelectTrigger className="w-full lg:w-[180px]">
                   <SelectValue placeholder="All Categories" />
                 </SelectTrigger>
@@ -354,7 +361,7 @@ export default function ProductsPage() {
               </Select>
 
               {/* Supplier Filter */}
-              <Select value={selectedSupplier || "all"} onValueChange={(value) => setSelectedSupplier(value === "all" ? "" : value)}>
+              <Select value={selectedSupplier || "all"} onValueChange={(value) => { setSelectedSupplier(value === "all" ? "" : value); setPage(1); }}>
                 <SelectTrigger className="w-full lg:w-[200px]">
                   <SelectValue placeholder="All Suppliers" />
                 </SelectTrigger>
@@ -452,7 +459,7 @@ export default function ProductsPage() {
         <>
           {/* Results Count */}
           <p className="text-sm text-muted-foreground">
-            Showing {filteredProducts.length} products
+            Showing {products.length} of {totalCount} products
           </p>
 
           {/* Compare View */}
@@ -720,6 +727,38 @@ export default function ProductsPage() {
                 </Table>
               </CardContent>
             </Card>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && viewMode !== "compare" && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-muted-foreground">
+                Showing {products.length} of {totalCount} products
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                >
+                  <ChevronLeft className="mr-1 h-4 w-4" />
+                  Previous
+                </Button>
+                <span className="text-sm text-muted-foreground">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                >
+                  Next
+                  <ChevronRight className="ml-1 h-4 w-4" />
+                </Button>
+              </div>
+            </div>
           )}
 
           {filteredProducts.length === 0 && viewMode !== "compare" && (

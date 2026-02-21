@@ -16,6 +16,9 @@ export async function GET(request: Request) {
     const supplierId = searchParams.get("supplier") || "";
     const sortBy = searchParams.get("sort") || "name";
     const inStockOnly = searchParams.get("inStock") === "true";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
+    const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")));
+    const skip = (page - 1) * limit;
 
     // Build where clause
     const where: any = {};
@@ -50,22 +53,27 @@ export async function GET(request: Request) {
     }
 
     // Fetch products with supplier info
-    const products = await prisma.supplierProduct.findMany({
-      where,
-      orderBy,
-      include: {
-        supplier: {
-          select: {
-            id: true,
-            name: true,
-            rating: true,
-            minimumOrder: true,
-            deliveryFee: true,
-            leadTimeDays: true,
+    const [products, totalCount] = await Promise.all([
+      prisma.supplierProduct.findMany({
+        where,
+        orderBy,
+        skip,
+        take: limit,
+        include: {
+          supplier: {
+            select: {
+              id: true,
+              name: true,
+              rating: true,
+              minimumOrder: true,
+              deliveryFee: true,
+              leadTimeDays: true,
+            },
           },
         },
-      },
-    });
+      }),
+      prisma.supplierProduct.count({ where }),
+    ]);
 
     // Get all categories for filter options
     const categories = await prisma.supplierProduct.groupBy({
@@ -147,7 +155,10 @@ export async function GET(request: Request) {
           })),
         },
         priceComparisons: comparableProducts.slice(0, 10),
-        totalCount: formattedProducts.length,
+        totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error: any) {

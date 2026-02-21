@@ -8,7 +8,7 @@ export const queryKeys = {
   },
   products: {
     all: ["products"] as const,
-    filtered: (filters: Record<string, string>) =>
+    filtered: (filters: Record<string, string | number | undefined>) =>
       ["products", filters] as const,
   },
   suppliers: {

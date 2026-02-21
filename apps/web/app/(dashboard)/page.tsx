@@ -33,6 +33,28 @@ import {
   Plus,
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useAnalytics } from "@/hooks/use-analytics";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+
+const STATUS_COLORS: Record<string, string> = {
+  DRAFT: "#9CA3AF",
+  PENDING: "#EAB308",
+  CONFIRMED: "#3B82F6",
+  SHIPPED: "#6366F1",
+  DELIVERED: "#22C55E",
+  CANCELLED: "#EF4444",
+};
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   DRAFT: {
@@ -70,6 +92,10 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 export default function DashboardPage() {
   const { user } = useUser();
   const { data: result, isLoading, error } = useDashboard();
+  const { data: analyticsResult } = useAnalytics("30");
+
+  const spendOverTime: { date: string; total: number }[] =
+    analyticsResult?.data?.spendOverTime || [];
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -297,6 +323,62 @@ export default function DashboardPage() {
         </Card>
       </div>
 
+      {/* Spending Trend Chart */}
+      {spendOverTime.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Spending Trend
+            </CardTitle>
+            <CardDescription>Last 30 days</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={spendOverTime}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(value) => {
+                      const d = new Date(value);
+                      return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                    }}
+                    tick={{ fontSize: 12 }}
+                    className="text-muted-foreground"
+                  />
+                  <YAxis
+                    tickFormatter={(value) => `$${value}`}
+                    tick={{ fontSize: 12 }}
+                    className="text-muted-foreground"
+                  />
+                  <Tooltip
+                    formatter={(value) => formatCurrency(value as number)}
+                    labelFormatter={(label) => {
+                      const d = new Date(label);
+                      return d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+                    }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    stroke="#22C55E"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 6, fill: "#22C55E" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Orders */}
         <Card>
@@ -451,30 +533,70 @@ export default function DashboardPage() {
       )}
 
       {/* Order Status Overview */}
-      {Object.keys(data.ordersByStatus).length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Order Status Overview</CardTitle>
-            <CardDescription>Distribution of your orders by status</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              {Object.entries(data.ordersByStatus).map(([status, count]) => (
-                <div
-                  key={status}
-                  className="flex items-center gap-2 rounded-lg border px-4 py-2"
-                >
-                  <Badge variant="outline" className={statusConfig[status]?.color || ""}>
-                    {statusConfig[status]?.icon}
-                    <span className="ml-1">{statusConfig[status]?.label || status}</span>
-                  </Badge>
-                  <span className="font-semibold">{count}</span>
+      {Object.keys(data.ordersByStatus).length > 0 && (() => {
+        const pieData = Object.entries(data.ordersByStatus).map(
+          ([status, count]) => ({
+            name: statusConfig[status]?.label || status,
+            value: count as number,
+            status,
+          })
+        );
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Order Status Overview</CardTitle>
+              <CardDescription>Distribution of your orders by status</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col items-center gap-4 sm:flex-row">
+                <div className="h-[200px] w-[200px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        dataKey="value"
+                        nameKey="name"
+                      >
+                        {pieData.map((entry) => (
+                          <Cell
+                            key={entry.status}
+                            fill={STATUS_COLORS[entry.status] || "#9CA3AF"}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                <div className="flex flex-wrap gap-3">
+                  {Object.entries(data.ordersByStatus).map(([status, count]) => (
+                    <div
+                      key={status}
+                      className="flex items-center gap-2 rounded-lg border px-4 py-2"
+                    >
+                      <Badge variant="outline" className={statusConfig[status]?.color || ""}>
+                        {statusConfig[status]?.icon}
+                        <span className="ml-1">{statusConfig[status]?.label || status}</span>
+                      </Badge>
+                      <span className="font-semibold">{count}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
     </div>
   );
 }
