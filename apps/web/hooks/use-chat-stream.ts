@@ -115,13 +115,22 @@ export function useChatStream() {
                     );
                     // Invalidate relevant caches after tool actions
                     if (
-                      data.name === "create_draft_order"
+                      data.name === "create_draft_order" ||
+                      data.name === "reorder_item"
                     ) {
                       queryClient.invalidateQueries({
                         queryKey: queryKeys.orders.all,
                       });
                       queryClient.invalidateQueries({
                         queryKey: queryKeys.dashboard.all,
+                      });
+                    }
+                    if (data.name === "adjust_inventory") {
+                      queryClient.invalidateQueries({
+                        queryKey: queryKeys.inventory.all,
+                      });
+                      queryClient.invalidateQueries({
+                        queryKey: queryKeys.inventory.insights,
                       });
                     }
                     if (data.name === "create_price_alert") {

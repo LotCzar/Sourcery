@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
 import { useChat } from "@/lib/chat-context";
-import { useChatStream } from "@/hooks/use-chat-stream";
+import { useChatStream, type ChatMessage } from "@/hooks/use-chat-stream";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 
@@ -75,17 +75,27 @@ export function ChatSidebar() {
   }, [clearMessages, setCurrentConversationId]);
 
   const handleSelectConversation = useCallback(
-    (id: string) => {
+    async (id: string) => {
       clearMessages();
       setConversationId(id);
       setCurrentConversationId(id);
       // Load conversation messages
-      apiFetch<{ data: ConversationItem }>(`/api/ai/conversations/${id}`)
-        .catch(() => {
-          // If fetching individual conversation fails, just start fresh with the ID
-        });
+      try {
+        const result = await apiFetch<{
+          data: {
+            id: string;
+            title: string;
+            messages: ChatMessage[];
+          };
+        }>(`/api/ai/conversations/${id}`);
+        if (result.data?.messages) {
+          setMessages(result.data.messages);
+        }
+      } catch {
+        // If fetching fails, user sees empty chat but can still send new messages
+      }
     },
-    [clearMessages, setConversationId, setCurrentConversationId]
+    [clearMessages, setConversationId, setCurrentConversationId, setMessages]
   );
 
   const handleDeleteConversation = useCallback(

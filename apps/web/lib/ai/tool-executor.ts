@@ -30,6 +30,10 @@ export async function executeTool(
       return adjustInventory(input, context);
     case "get_consumption_insights":
       return getConsumptionInsights(input, context);
+    case "reorder_item":
+      return reorderItem(input, context);
+    case "get_spending_summary":
+      return getSpendingSummary(input, context);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -566,5 +570,360 @@ async function getConsumptionInsights(
       dataPointCount: i.dataPointCount,
       lastAnalyzedAt: i.lastAnalyzedAt.toISOString(),
     })),
+  };
+}
+
+async function reorderItem(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  // Search past DELIVERED orders containing matching item
+  const pastOrders = await prisma.order.findMany({
+    where: {
+      restaurantId: context.restaurantId,
+      status: "DELIVERED",
+      items: {
+        some: {
+          product: {
+            name: { contains: input.item_name, mode: "insensitive" },
+          },
+        },
+      },
+      ...(input.supplier_name
+        ? {
+            supplier: {
+              name: { contains: input.supplier_name, mode: "insensitive" },
+            },
+          }
+        : {}),
+    },
+    include: {
+      supplier: { select: { id: true, name: true, status: true, deliveryFee: true } },
+      items: {
+        include: { product: { select: { id: true, name: true, price: true, inStock: true, unit: true } } },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+
+  if (pastOrders.length === 0) {
+    return {
+      error: `No past delivered orders found matching "${input.item_name}". Try search_products to find available items.`,
+    };
+  }
+
+  // Find the most recent order with a matching item
+  let matchedOrder = null;
+  let matchedItem = null;
+
+  for (const order of pastOrders) {
+    const item = order.items.find((i) =>
+      i.product.name.toLowerCase().includes(input.item_name.toLowerCase())
+    );
+    if (item) {
+      matchedOrder = order;
+      matchedItem = item;
+      break;
+    }
+  }
+
+  if (!matchedOrder || !matchedItem) {
+    return {
+      error: `Could not find a matching item in past orders for "${input.item_name}".`,
+    };
+  }
+
+  // Verify supplier is still active
+  if (matchedOrder.supplier.status !== "VERIFIED") {
+    return {
+      error: `Supplier "${matchedOrder.supplier.name}" is no longer verified (status: ${matchedOrder.supplier.status}). Use search_products to find an alternative supplier.`,
+    };
+  }
+
+  // Verify product is still in stock
+  if (!matchedItem.product.inStock) {
+    return {
+      error: `"${matchedItem.product.name}" is currently out of stock from ${matchedOrder.supplier.name}. Use search_products to find alternatives.`,
+    };
+  }
+
+  const quantity = input.quantity || Number(matchedItem.quantity);
+  const currentPrice = Number(matchedItem.product.price);
+  const subtotal = currentPrice * quantity;
+  const tax = subtotal * 0.0825;
+  const deliveryFee = matchedOrder.supplier.deliveryFee
+    ? Number(matchedOrder.supplier.deliveryFee)
+    : 0;
+  const total = subtotal + tax + deliveryFee;
+
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  const order = await prisma.order.create({
+    data: {
+      orderNumber: `ORD-${timestamp}-${random}`,
+      status: "DRAFT",
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      restaurantId: context.restaurantId,
+      supplierId: matchedOrder.supplier.id,
+      createdById: context.userId,
+      items: {
+        create: [
+          {
+            productId: matchedItem.product.id,
+            quantity,
+            unitPrice: matchedItem.product.price,
+            subtotal,
+          },
+        ],
+      },
+    },
+    include: {
+      items: { include: { product: { select: { name: true, unit: true } } } },
+      supplier: { select: { name: true } },
+    },
+  });
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      supplier: order.supplier.name,
+      subtotal: Number(order.subtotal),
+      tax: Number(order.tax),
+      deliveryFee: Number(order.deliveryFee),
+      total: Number(order.total),
+      items: order.items.map((i) => ({
+        product: i.product.name,
+        quantity: Number(i.quantity),
+        unit: i.product.unit,
+        unitPrice: Number(i.unitPrice),
+        subtotal: Number(i.subtotal),
+      })),
+    },
+    basedOn: {
+      previousOrderNumber: matchedOrder.orderNumber,
+      previousQuantity: Number(matchedItem.quantity),
+    },
+    message:
+      "Draft order created based on your past order. Go to the Orders page to review and submit it.",
+  };
+}
+
+function getDateRange(timeRange: string): { start: Date; end: Date; prevStart: Date; prevEnd: Date } {
+  const now = new Date();
+  let start: Date;
+  let end: Date = now;
+  let periodMs: number;
+
+  switch (timeRange) {
+    case "this_week": {
+      const day = now.getDay();
+      start = new Date(now);
+      start.setDate(now.getDate() - day);
+      start.setHours(0, 0, 0, 0);
+      periodMs = end.getTime() - start.getTime();
+      break;
+    }
+    case "last_week": {
+      const day = now.getDay();
+      end = new Date(now);
+      end.setDate(now.getDate() - day);
+      end.setHours(0, 0, 0, 0);
+      start = new Date(end);
+      start.setDate(end.getDate() - 7);
+      periodMs = 7 * 24 * 60 * 60 * 1000;
+      break;
+    }
+    case "this_month": {
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodMs = end.getTime() - start.getTime();
+      break;
+    }
+    case "last_month": {
+      start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      end = new Date(now.getFullYear(), now.getMonth(), 1);
+      periodMs = end.getTime() - start.getTime();
+      break;
+    }
+    case "last_30_days": {
+      start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      periodMs = 30 * 24 * 60 * 60 * 1000;
+      break;
+    }
+    case "last_90_days": {
+      start = new Date(now);
+      start.setDate(now.getDate() - 90);
+      periodMs = 90 * 24 * 60 * 60 * 1000;
+      break;
+    }
+    case "this_year": {
+      start = new Date(now.getFullYear(), 0, 1);
+      periodMs = end.getTime() - start.getTime();
+      break;
+    }
+    default: {
+      start = new Date(now);
+      start.setDate(now.getDate() - 30);
+      periodMs = 30 * 24 * 60 * 60 * 1000;
+      break;
+    }
+  }
+
+  const prevEnd = new Date(start);
+  const prevStart = new Date(prevEnd.getTime() - periodMs);
+
+  return { start, end, prevStart, prevEnd };
+}
+
+async function getSpendingSummary(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const { start, end, prevStart, prevEnd } = getDateRange(input.time_range);
+
+  const baseWhere: any = {
+    restaurantId: context.restaurantId,
+    status: { notIn: ["CANCELLED", "DRAFT"] },
+  };
+
+  if (input.supplier_name) {
+    baseWhere.supplier = {
+      name: { contains: input.supplier_name, mode: "insensitive" },
+    };
+  }
+
+  // Current period orders
+  const currentOrders = await prisma.order.findMany({
+    where: {
+      ...baseWhere,
+      createdAt: { gte: start, lte: end },
+    },
+    include: {
+      supplier: { select: { name: true } },
+      items: {
+        include: { product: { select: { name: true, category: true } } },
+      },
+    },
+  });
+
+  // Previous period orders for comparison
+  const prevOrders = await prisma.order.findMany({
+    where: {
+      ...baseWhere,
+      createdAt: { gte: prevStart, lte: prevEnd },
+    },
+    select: {
+      total: true,
+      items: {
+        select: {
+          subtotal: true,
+          product: { select: { category: true } },
+        },
+      },
+    },
+  });
+
+  // Aggregate current period
+  const categoryBreakdown: Record<string, number> = {};
+  const supplierBreakdown: Record<string, number> = {};
+  const itemSpend: Record<string, { name: string; spend: number; quantity: number }> = {};
+  let totalSpend = 0;
+
+  for (const order of currentOrders) {
+    for (const item of order.items) {
+      const itemSubtotal = Number(item.subtotal);
+      const category = item.product.category;
+      const supplierName = order.supplier.name;
+
+      // If category filter is set, only count matching items
+      if (input.category && category !== input.category) continue;
+
+      totalSpend += itemSubtotal;
+      categoryBreakdown[category] = (categoryBreakdown[category] || 0) + itemSubtotal;
+      supplierBreakdown[supplierName] = (supplierBreakdown[supplierName] || 0) + itemSubtotal;
+
+      const key = item.product.name;
+      if (!itemSpend[key]) {
+        itemSpend[key] = { name: key, spend: 0, quantity: 0 };
+      }
+      itemSpend[key].spend += itemSubtotal;
+      itemSpend[key].quantity += Number(item.quantity);
+    }
+  }
+
+  // If no category filter, use order totals for totalSpend (more accurate with tax/fees)
+  if (!input.category) {
+    totalSpend = currentOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  }
+
+  // Previous period total
+  let prevTotalSpend = 0;
+  if (input.category) {
+    for (const order of prevOrders) {
+      for (const item of order.items) {
+        if (item.product.category === input.category) {
+          prevTotalSpend += Number(item.subtotal);
+        }
+      }
+    }
+  } else {
+    prevTotalSpend = prevOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  }
+
+  const changePercent =
+    prevTotalSpend > 0
+      ? Math.round(((totalSpend - prevTotalSpend) / prevTotalSpend) * 10000) / 100
+      : null;
+  const trend =
+    changePercent === null
+      ? "no_previous_data"
+      : changePercent > 1
+        ? "up"
+        : changePercent < -1
+          ? "down"
+          : "flat";
+
+  // Top 5 items by spend
+  const topItems = Object.values(itemSpend)
+    .sort((a, b) => b.spend - a.spend)
+    .slice(0, 5)
+    .map((i) => ({
+      name: i.name,
+      spend: Math.round(i.spend * 100) / 100,
+      quantity: i.quantity,
+    }));
+
+  // Round breakdowns
+  const roundedCategoryBreakdown: Record<string, number> = {};
+  for (const [k, v] of Object.entries(categoryBreakdown)) {
+    roundedCategoryBreakdown[k] = Math.round(v * 100) / 100;
+  }
+  const roundedSupplierBreakdown: Record<string, number> = {};
+  for (const [k, v] of Object.entries(supplierBreakdown)) {
+    roundedSupplierBreakdown[k] = Math.round(v * 100) / 100;
+  }
+
+  return {
+    timeRange: input.time_range,
+    startDate: start.toISOString().split("T")[0],
+    endDate: end.toISOString().split("T")[0],
+    totalSpend: Math.round(totalSpend * 100) / 100,
+    orderCount: currentOrders.length,
+    categoryBreakdown: roundedCategoryBreakdown,
+    supplierBreakdown: roundedSupplierBreakdown,
+    topItems,
+    comparison: {
+      previousPeriodSpend: Math.round(prevTotalSpend * 100) / 100,
+      changePercent,
+      trend,
+    },
   };
 }

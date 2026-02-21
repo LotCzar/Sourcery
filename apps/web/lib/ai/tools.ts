@@ -249,4 +249,72 @@ export const aiTools: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: "reorder_item",
+    description:
+      "Quickly reorder an item based on past order history. Creates a DRAFT order using the most recent supplier and quantity for that item.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        item_name: {
+          type: "string",
+          description: "Name of the item to reorder (fuzzy match against past orders)",
+        },
+        quantity: {
+          type: "number",
+          description: "Quantity to order. Defaults to the last ordered quantity if not specified.",
+        },
+        supplier_name: {
+          type: "string",
+          description: "Preferred supplier name. Defaults to the most recent supplier for this item.",
+        },
+      },
+      required: ["item_name"],
+    },
+  },
+  {
+    name: "get_spending_summary",
+    description:
+      "Get spending analysis with date range, category, and supplier filters. Shows total spend, breakdowns by category and supplier, top items, and period-over-period comparison.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        time_range: {
+          type: "string",
+          enum: [
+            "this_week",
+            "last_week",
+            "this_month",
+            "last_month",
+            "last_30_days",
+            "last_90_days",
+            "this_year",
+          ],
+          description: "Time period for spending analysis",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+        supplier_name: {
+          type: "string",
+          description: "Filter by supplier name (fuzzy match)",
+        },
+      },
+      required: ["time_range"],
+    },
+  },
 ];

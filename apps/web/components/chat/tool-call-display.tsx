@@ -14,6 +14,10 @@ const toolLabels: Record<string, string> = {
   compare_prices: "Comparing prices",
   get_supplier_info: "Getting supplier info",
   create_price_alert: "Setting price alert",
+  adjust_inventory: "Adjusting inventory",
+  get_consumption_insights: "Analyzing consumption",
+  reorder_item: "Reordering item",
+  get_spending_summary: "Analyzing spending",
 };
 
 interface ToolCallDisplayProps {
