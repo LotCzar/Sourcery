@@ -38,6 +38,9 @@ export const queryKeys = {
   settings: {
     all: ["settings"] as const,
   },
+  integration: {
+    pos: ["integration", "pos"] as const,
+  },
   search: {
     query: (q: string) => ["search", q] as const,
   },

@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { Send, Square } from "lucide-react";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { Send, Square, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
@@ -13,12 +14,37 @@ interface ChatInputProps {
 export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const {
+    isListening,
+    isSupported,
+    transcript,
+    startListening,
+    stopListening,
+    resetTranscript,
+  } = useSpeechRecognition();
+
+  // Append transcript to input as user speaks
+  const baseInputRef = useRef("");
+  useEffect(() => {
+    if (isListening && transcript) {
+      setInput(baseInputRef.current + transcript);
+    }
+  }, [transcript, isListening]);
+
+  // When recognition ends, keep the final text and reset transcript
+  useEffect(() => {
+    if (!isListening && transcript) {
+      baseInputRef.current = baseInputRef.current + transcript;
+      resetTranscript();
+    }
+  }, [isListening, transcript, resetTranscript]);
 
   const handleSubmit = useCallback(() => {
     const trimmed = input.trim();
     if (!trimmed || isLoading) return;
     onSend(trimmed);
     setInput("");
+    baseInputRef.current = "";
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
     }
@@ -33,10 +59,20 @@ export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
+    baseInputRef.current = e.target.value;
     // Auto-resize
     const el = e.target;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 120) + "px";
+  };
+
+  const handleMicClick = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      baseInputRef.current = input;
+      startListening();
+    }
   };
 
   return (
@@ -52,6 +88,22 @@ export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
         style={{ minHeight: "36px", maxHeight: "120px" }}
         disabled={isLoading}
       />
+      {isSupported && (
+        <Button
+          size="icon"
+          variant={isListening ? "destructive" : "ghost"}
+          onClick={handleMicClick}
+          disabled={isLoading}
+          className={`h-9 w-9 shrink-0 ${isListening ? "animate-pulse" : ""}`}
+          title={isListening ? "Stop recording" : "Start voice input"}
+        >
+          {isListening ? (
+            <MicOff className="h-4 w-4" />
+          ) : (
+            <Mic className="h-4 w-4" />
+          )}
+        </Button>
+      )}
       {isLoading ? (
         <Button
           size="icon"

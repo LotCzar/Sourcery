@@ -253,3 +253,19 @@ export function createMockPriceAlert(overrides?: Record<string, unknown>) {
     ...overrides,
   };
 }
+
+export function createMockPOSIntegration(overrides?: Record<string, unknown>) {
+  return {
+    id: "pos_1",
+    provider: "MANUAL" as const,
+    accessToken: null,
+    refreshToken: null,
+    storeId: null,
+    lastSyncAt: null,
+    isActive: true,
+    restaurantId: "rest_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}

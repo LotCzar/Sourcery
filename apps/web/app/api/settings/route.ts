@@ -14,13 +14,17 @@ export async function GET() {
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
       include: {
-        restaurant: true,
+        restaurant: {
+          include: { posIntegration: true },
+        },
       },
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
+
+    const posIntegration = user.restaurant?.posIntegration;
 
     return NextResponse.json({
       success: true,
@@ -45,6 +49,16 @@ export async function GET() {
               website: user.restaurant.website,
               cuisineType: user.restaurant.cuisineType,
               createdAt: user.restaurant.createdAt,
+            }
+          : null,
+        integration: posIntegration
+          ? {
+              id: posIntegration.id,
+              provider: posIntegration.provider,
+              storeId: posIntegration.storeId,
+              lastSyncAt: posIntegration.lastSyncAt,
+              isActive: posIntegration.isActive,
+              createdAt: posIntegration.createdAt,
             }
           : null,
         preferences: {

@@ -30,4 +30,11 @@ export type FreshSheetEvents = {
   "inventory/analysis.scheduled": {
     data: Record<string, never>;
   };
+  "pos/sync.requested": {
+    data: {
+      integrationId: string;
+      restaurantId: string;
+      provider: string;
+    };
+  };
 };

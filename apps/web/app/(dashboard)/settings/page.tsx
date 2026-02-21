@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useUser } from "@clerk/nextjs";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import {
+  useIntegration,
+  useConnectIntegration,
+  useDisconnectIntegration,
+  useSyncMenuItems,
+} from "@/hooks/use-integration";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -49,6 +55,10 @@ import {
   Wrench,
   Database,
   Trash2,
+  RefreshCw,
+  Unplug,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 
 const cuisineTypes = [
@@ -89,6 +99,10 @@ export default function SettingsPage() {
   const { user: clerkUser } = useUser();
   const { data: settingsData, isLoading } = useSettings();
   const updateSettings = useUpdateSettings();
+  const { data: integrationData, isLoading: integrationLoading } = useIntegration();
+  const connectIntegration = useConnectIntegration();
+  const disconnectIntegration = useDisconnectIntegration();
+  const syncMenuItems = useSyncMenuItems();
   const { toast } = useToast();
 
   const userSettings = settingsData?.data?.user ?? null;
@@ -114,6 +128,7 @@ export default function SettingsPage() {
   });
 
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [disconnectDialog, setDisconnectDialog] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [seedResult, setSeedResult] = useState<any>(null);
@@ -739,65 +754,112 @@ export default function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gray-100">
-                        <span className="font-bold text-gray-600">S</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Square</p>
-                        <p className="text-sm text-muted-foreground">
-                          Sync your menu items automatically
-                        </p>
-                      </div>
+                  {integrationLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
                     </div>
-                    <Button variant="outline">Connect</Button>
-                  </div>
+                  ) : (
+                    <>
+                      {[
+                        { key: "SQUARE", name: "Square", letter: "S", bg: "bg-gray-100", text: "text-gray-600", desc: "Sync your menu items automatically" },
+                        { key: "TOAST", name: "Toast", letter: "T", bg: "bg-orange-100", text: "text-orange-600", desc: "Import products and track inventory" },
+                        { key: "CLOVER", name: "Clover", letter: "C", bg: "bg-green-100", text: "text-green-600", desc: "Manage orders and inventory" },
+                        { key: "LIGHTSPEED", name: "Lightspeed", letter: "L", bg: "bg-blue-100", text: "text-blue-600", desc: "Full POS integration for restaurants" },
+                        { key: "MANUAL", name: "Manual", letter: "M", bg: "bg-purple-100", text: "text-purple-600", desc: "Track integration status manually" },
+                      ].map((provider) => {
+                        const currentIntegration = integrationData?.data;
+                        const isConnected = currentIntegration?.provider === provider.key && currentIntegration?.isActive;
+                        const hasOtherConnection = currentIntegration && currentIntegration.provider !== provider.key && currentIntegration.isActive;
 
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
-                        <span className="font-bold text-orange-600">T</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Toast</p>
-                        <p className="text-sm text-muted-foreground">
-                          Import products and track inventory
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline">Connect</Button>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                        <span className="font-bold text-green-600">C</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Clover</p>
-                        <p className="text-sm text-muted-foreground">
-                          Manage orders and inventory
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline">Connect</Button>
-                  </div>
-
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                        <span className="font-bold text-blue-600">L</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Lightspeed</p>
-                        <p className="text-sm text-muted-foreground">
-                          Full POS integration for restaurants
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline">Connect</Button>
-                  </div>
+                        return (
+                          <div
+                            key={provider.key}
+                            className={`flex items-center justify-between rounded-lg border p-4 ${isConnected ? "border-green-200 bg-green-50/50" : ""}`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${provider.bg}`}>
+                                <span className={`font-bold ${provider.text}`}>{provider.letter}</span>
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium">{provider.name}</p>
+                                  {isConnected && (
+                                    <Badge variant="outline" className="border-green-300 text-green-700 text-xs">
+                                      <CheckCircle2 className="mr-1 h-3 w-3" />
+                                      Connected
+                                    </Badge>
+                                  )}
+                                </div>
+                                <p className="text-sm text-muted-foreground">
+                                  {provider.desc}
+                                </p>
+                                {isConnected && currentIntegration?.lastSyncAt && (
+                                  <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+                                    <Clock className="h-3 w-3" />
+                                    Last synced: {formatDate(currentIntegration.lastSyncAt)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {isConnected ? (
+                                <>
+                                  {provider.key !== "MANUAL" && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        syncMenuItems.mutate(undefined, {
+                                          onSuccess: () => toast({ title: "Menu sync initiated" }),
+                                          onError: (err) => toast({ title: "Sync failed", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
+                                        });
+                                      }}
+                                      disabled={syncMenuItems.isPending}
+                                    >
+                                      {syncMenuItems.isPending ? (
+                                        <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      ) : (
+                                        <RefreshCw className="mr-1 h-3 w-3" />
+                                      )}
+                                      Sync
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setDisconnectDialog(true)}
+                                    disabled={disconnectIntegration.isPending}
+                                  >
+                                    <Unplug className="mr-1 h-3 w-3" />
+                                    Disconnect
+                                  </Button>
+                                </>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  onClick={() => {
+                                    connectIntegration.mutate(
+                                      { provider: provider.key },
+                                      {
+                                        onSuccess: () => toast({ title: `${provider.name} connected` }),
+                                        onError: (err) => toast({ title: "Connection failed", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
+                                      }
+                                    );
+                                  }}
+                                  disabled={!!hasOtherConnection || connectIntegration.isPending}
+                                >
+                                  {connectIntegration.isPending ? (
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  ) : null}
+                                  Connect
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </>
+                  )}
                 </CardContent>
               </Card>
 
@@ -821,7 +883,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline">Connect</Button>
+                    <Button variant="outline" disabled>Coming Soon</Button>
                   </div>
 
                   <div className="flex items-center justify-between rounded-lg border p-4">
@@ -836,7 +898,7 @@ export default function SettingsPage() {
                         </p>
                       </div>
                     </div>
-                    <Button variant="outline">Connect</Button>
+                    <Button variant="outline" disabled>Coming Soon</Button>
                   </div>
                 </CardContent>
               </Card>
@@ -1014,6 +1076,51 @@ export default function SettingsPage() {
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleteDialog(false)}>
               Cancel
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Disconnect Integration Dialog */}
+      <Dialog open={disconnectDialog} onOpenChange={setDisconnectDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Unplug className="h-5 w-5" />
+              Disconnect Integration
+            </DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disconnect your {integrationData?.data?.provider?.toLowerCase()} integration?
+              You can reconnect at any time.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDisconnectDialog(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={disconnectIntegration.isPending}
+              onClick={() => {
+                disconnectIntegration.mutate(undefined, {
+                  onSuccess: () => {
+                    setDisconnectDialog(false);
+                    toast({ title: "Integration disconnected" });
+                  },
+                  onError: (err) => {
+                    toast({
+                      title: "Failed to disconnect",
+                      description: err instanceof Error ? err.message : undefined,
+                      variant: "destructive",
+                    });
+                  },
+                });
+              }}
+            >
+              {disconnectIntegration.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : null}
+              Disconnect
             </Button>
           </DialogFooter>
         </DialogContent>

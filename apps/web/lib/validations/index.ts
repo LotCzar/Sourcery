@@ -145,6 +145,20 @@ export const CreateNotificationSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
+// POS Integration
+export const POSProviderSchema = z.enum([
+  "SQUARE",
+  "TOAST",
+  "CLOVER",
+  "LIGHTSPEED",
+  "MANUAL",
+]);
+
+export const ConnectIntegrationSchema = z.object({
+  provider: POSProviderSchema,
+  storeId: z.string().optional(),
+});
+
 // AI Parse Menu
 export const ParseMenuSchema = z.object({
   menuText: z.string().min(1, "Menu text is required"),
