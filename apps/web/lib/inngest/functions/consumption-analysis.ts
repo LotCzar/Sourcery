@@ -152,7 +152,11 @@ export const consumptionAnalysis = inngest.createFunction(
               title: "Weekly Consumption Report",
               message: `${criticalItems.length} item(s) at risk of running out soon: ${criticalItems.join(", ")}`,
               userId: ownerUser.id,
-              metadata: { criticalItems },
+              metadata: {
+                criticalItems,
+                action: "view_inventory",
+                actionUrl: "/inventory",
+              },
             },
           });
         }

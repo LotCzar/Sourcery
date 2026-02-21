@@ -81,6 +81,8 @@ export const priceMonitor = inngest.createFunction(
               alertId: alert.id,
               productId: alert.product.id,
               currentPrice,
+              action: "view_alerts",
+              actionUrl: "/price-alerts",
             },
           },
         });

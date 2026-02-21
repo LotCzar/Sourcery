@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Loader2, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { Search, Loader2, X, Sparkles } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import { apiFetch } from "@/lib/api";
 
@@ -38,6 +38,22 @@ export function GlobalSearch() {
   });
 
   const results = searchData?.data || null;
+
+  // AI search fallback
+  const aiSearch = useMutation({
+    mutationFn: (q: string) =>
+      apiFetch<{ success: boolean; data: { results: any[]; redirectUrl: string | null } }>(
+        "/api/ai/search",
+        { method: "POST", body: JSON.stringify({ query: q }) }
+      ),
+    onSuccess: (data) => {
+      if (data.data?.redirectUrl) {
+        router.push(data.data.redirectUrl);
+        setIsOpen(false);
+        setQuery("");
+      }
+    },
+  });
 
   // Click outside to close
   useEffect(() => {
@@ -104,8 +120,45 @@ export function GlobalSearch() {
           )}
 
           {!isLoading && !hasResults && (
-            <div className="p-4 text-center text-gray-500">
-              No results found for &quot;{query}&quot;
+            <div className="p-4 text-center">
+              <p className="text-gray-500 mb-3">
+                No results found for &quot;{query}&quot;
+              </p>
+              {query.length >= 3 && (
+                <button
+                  onClick={() => aiSearch.mutate(query)}
+                  disabled={aiSearch.isPending}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-primary bg-primary/10 rounded-md hover:bg-primary/20 transition-colors disabled:opacity-50"
+                >
+                  {aiSearch.isPending ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                  Try AI-powered search
+                </button>
+              )}
+              {aiSearch.data?.data?.results && aiSearch.data.data.results.length > 0 && (
+                <div className="mt-3 text-left">
+                  <div className="px-3 py-2 text-xs font-semibold text-gray-500 bg-gray-50 border-b">
+                    AI Results ({aiSearch.data.data.results.length})
+                  </div>
+                  {aiSearch.data.data.results.map((result: any) => (
+                    <button
+                      key={result.id}
+                      onClick={() => {
+                        router.push(aiSearch.data.data.redirectUrl || `/${result.type}s`);
+                        setIsOpen(false);
+                        setQuery("");
+                      }}
+                      className="w-full px-3 py-2 text-left hover:bg-gray-50 border-b border-gray-100 last:border-0"
+                    >
+                      <div className="font-medium text-gray-900">{result.title}</div>
+                      <div className="text-sm text-gray-500">{result.subtitle}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 

@@ -55,6 +55,8 @@ import {
   Trash2,
   Calendar,
   Building2,
+  Camera,
+  Upload,
 } from "lucide-react";
 
 interface Invoice {
@@ -131,6 +133,13 @@ export default function InvoicesPage() {
   // View invoice dialog
   const [viewInvoice, setViewInvoice] = useState<Invoice | null>(null);
 
+  // Scan receipt dialog
+  const [isScanOpen, setIsScanOpen] = useState(false);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+
   const invoices = (result?.data || []) as Invoice[];
   const summary = (result as any)?.summary as Summary | undefined;
 
@@ -205,6 +214,66 @@ export default function InvoicesPage() {
     deleteInvoiceMutation.mutate(invoiceId);
   };
 
+  const handleScanFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setScanFile(file);
+      setScanResult(null);
+      const reader = new FileReader();
+      reader.onloadend = () => setScanPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleScanReceipt = async () => {
+    if (!scanFile) return;
+    setIsScanning(true);
+    setScanResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", scanFile);
+      const res = await fetch("/api/ai/parse-receipt", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setScanResult(data.data.parsed);
+      } else {
+        toast({ title: "Scan failed", description: data.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Scan failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleCreateFromScan = () => {
+    if (!scanResult) return;
+    // Find matching supplier
+    const matchedSupplier = suppliers.find(
+      (s) =>
+        scanResult.supplierName &&
+        s.name.toLowerCase().includes(scanResult.supplierName.toLowerCase())
+    );
+    setNewInvoice({
+      invoiceNumber: scanResult.invoiceNumber || "",
+      supplierId: matchedSupplier?.id || "",
+      subtotal: scanResult.subtotal?.toString() || "",
+      tax: scanResult.tax?.toString() || "",
+      dueDate: "",
+      notes: scanResult.lineItems
+        ?.map((li: any) => `${li.name}: ${li.quantity} x $${li.unitPrice?.toFixed(2)}`)
+        .join("\n") || "",
+    });
+    setIsScanOpen(false);
+    setIsCreateOpen(true);
+    setScanFile(null);
+    setScanPreview(null);
+    setScanResult(null);
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -256,6 +325,75 @@ export default function InvoicesPage() {
             Track and manage supplier invoices
           </p>
         </div>
+        <div className="flex gap-2">
+          <Dialog open={isScanOpen} onOpenChange={(open) => { setIsScanOpen(open); if (!open) { setScanFile(null); setScanPreview(null); setScanResult(null); } }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Camera className="h-4 w-4" />
+                Scan Receipt
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Scan Receipt / Invoice</DialogTitle>
+                <DialogDescription>
+                  Upload a receipt or invoice image and AI will extract the details
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6">
+                  {scanPreview ? (
+                    <img src={scanPreview} alt="Receipt preview" className="max-h-48 rounded-lg mb-3" />
+                  ) : (
+                    <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleScanFileChange}
+                    className="text-sm"
+                  />
+                </div>
+                {scanResult && (
+                  <div className="space-y-2 p-4 bg-muted rounded-lg text-sm">
+                    <p className="font-medium">Extracted Data:</p>
+                    {scanResult.supplierName && (
+                      <p>Supplier: <span className="font-medium">{scanResult.supplierName}</span></p>
+                    )}
+                    {scanResult.invoiceNumber && (
+                      <p>Invoice #: <span className="font-medium">{scanResult.invoiceNumber}</span></p>
+                    )}
+                    {scanResult.lineItems?.length > 0 && (
+                      <div>
+                        <p className="font-medium mt-2">Items:</p>
+                        {scanResult.lineItems.map((li: any, idx: number) => (
+                          <p key={idx} className="text-muted-foreground">
+                            {li.name} — {li.quantity} x ${li.unitPrice?.toFixed(2)} = ${li.total?.toFixed(2)}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {scanResult.total != null && (
+                      <p className="font-medium pt-2 border-t mt-2">Total: {formatCurrency(scanResult.total)}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsScanOpen(false)}>Cancel</Button>
+                {!scanResult ? (
+                  <Button onClick={handleScanReceipt} disabled={!scanFile || isScanning}>
+                    {isScanning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {isScanning ? "Scanning..." : "Scan"}
+                  </Button>
+                ) : (
+                  <Button onClick={handleCreateFromScan}>
+                    Create Invoice from Scan
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -400,6 +538,7 @@ export default function InvoicesPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Summary Cards */}

@@ -22,7 +22,15 @@ export interface DashboardStats {
   activeSuppliers: number;
 }
 
+export interface DashboardBriefing {
+  summary: string | null;
+  lowStockCount: number;
+  overdueInvoiceCount: number;
+  criticalItems: string[];
+}
+
 export interface DashboardData {
+  briefing: DashboardBriefing;
   stats: DashboardStats;
   ordersByStatus: Record<string, number>;
   recentOrders: {

@@ -317,4 +317,154 @@ export const aiTools: Anthropic.Tool[] = [
       required: ["time_range"],
     },
   },
+  {
+    name: "generate_restock_list",
+    description:
+      "Generate a smart restock list showing items that need reordering, grouped by supplier. Can optionally auto-create draft orders.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+        include_all: {
+          type: "boolean",
+          description:
+            "Include all items, not just those below par level (default: false)",
+        },
+        auto_create_orders: {
+          type: "boolean",
+          description:
+            "Automatically create draft orders grouped by supplier (default: false)",
+        },
+      },
+    },
+  },
+  {
+    name: "check_invoice",
+    description:
+      "Check an invoice for discrepancies by comparing it against its linked order. Flags price changes, total mismatches, and overcharges.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        invoice_id: {
+          type: "string",
+          description: "Invoice ID to check",
+        },
+        invoice_number: {
+          type: "string",
+          description: "Invoice number to search for (fuzzy match)",
+        },
+      },
+    },
+  },
+  {
+    name: "calculate_menu_cost",
+    description:
+      "Calculate the cost of a dish based on its ingredients and suggest a menu price based on target food cost percentage.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        dish_name: {
+          type: "string",
+          description: "Name of the dish",
+        },
+        ingredients: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Ingredient name" },
+              quantity: { type: "number", description: "Amount needed" },
+              unit: { type: "string", description: "Unit of measurement" },
+            },
+            required: ["name", "quantity"],
+          },
+          description: "List of ingredients with quantities",
+        },
+        target_food_cost_percent: {
+          type: "number",
+          description:
+            "Target food cost percentage for pricing (default: 30)",
+        },
+      },
+      required: ["dish_name", "ingredients"],
+    },
+  },
+  {
+    name: "recommend_supplier",
+    description:
+      "Get supplier recommendations ranked by a composite score based on price, rating, lead time, and order history.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_name: {
+          type: "string",
+          description: "Product name to find suppliers for",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Product category to search",
+        },
+      },
+    },
+  },
+  {
+    name: "analyze_waste",
+    description:
+      "Analyze waste patterns over a time period. Shows which items have the most waste by dollar loss, waste percentages, and suggests par level reductions for high-waste items.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        days: {
+          type: "number",
+          description: "Number of days to analyze (default: 30)",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+      },
+    },
+  },
 ];

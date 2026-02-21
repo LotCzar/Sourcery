@@ -116,13 +116,17 @@ export function useChatStream() {
                     // Invalidate relevant caches after tool actions
                     if (
                       data.name === "create_draft_order" ||
-                      data.name === "reorder_item"
+                      data.name === "reorder_item" ||
+                      data.name === "generate_restock_list"
                     ) {
                       queryClient.invalidateQueries({
                         queryKey: queryKeys.orders.all,
                       });
                       queryClient.invalidateQueries({
                         queryKey: queryKeys.dashboard.all,
+                      });
+                      queryClient.invalidateQueries({
+                        queryKey: queryKeys.inventory.all,
                       });
                     }
                     if (data.name === "adjust_inventory") {

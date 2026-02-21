@@ -115,7 +115,14 @@ export const autoReorder = inngest.createFunction(
         title: "Auto-Reorder Created",
         message: `Draft order ${orderNumber} created for ${reorderQuantity} ${item.unit} of ${itemName} from ${supplier.name}. Please review and submit.`,
         userId: ownerUser.id,
-        metadata: { orderId: order.id },
+        metadata: {
+          orderId: order.id,
+          action: "review_order",
+          actionUrl: "/orders",
+          estimatedCost: Math.round(total * 100) / 100,
+          reorderQuantity,
+          supplierName: supplier.name,
+        },
       },
     });
 

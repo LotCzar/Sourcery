@@ -31,6 +31,7 @@ import {
   TrendingDown as SavingsIcon,
   BarChart3,
   Plus,
+  Sparkles,
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -173,6 +174,46 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* AI Briefing */}
+      {data.briefing?.summary && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-primary mb-1">Daily Briefing</p>
+                <p className="text-sm text-foreground">{data.briefing.summary}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {data.briefing.lowStockCount > 0 && (
+                    <Link href="/inventory">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">
+                        {data.briefing.lowStockCount} low stock
+                      </Badge>
+                    </Link>
+                  )}
+                  {data.briefing.overdueInvoiceCount > 0 && (
+                    <Link href="/invoices">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-red-100 text-red-700 border-red-200">
+                        {data.briefing.overdueInvoiceCount} overdue
+                      </Badge>
+                    </Link>
+                  )}
+                  {data.briefing.criticalItems?.length > 0 && (
+                    <Link href="/inventory">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-orange-100 text-orange-700 border-orange-200">
+                        {data.briefing.criticalItems.length} critical
+                      </Badge>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -254,6 +254,43 @@ export function createMockPriceAlert(overrides?: Record<string, unknown>) {
   };
 }
 
+export function createMockConsumptionInsight(overrides?: Record<string, unknown>) {
+  return {
+    id: "insight_1",
+    avgDailyUsage: new Decimal("5.000"),
+    avgWeeklyUsage: new Decimal("35.000"),
+    trendDirection: "STABLE" as const,
+    daysUntilStockout: new Decimal("10.0"),
+    suggestedParLevel: new Decimal("30.000"),
+    dataPointCount: 15,
+    periodDays: 30,
+    lastAnalyzedAt: new Date("2024-01-15"),
+    metadata: null,
+    restaurantId: "rest_1",
+    inventoryItemId: "inv_item_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-15"),
+    ...overrides,
+  };
+}
+
+export function createMockInventoryLog(overrides?: Record<string, unknown>) {
+  return {
+    id: "log_1",
+    changeType: "USED" as const,
+    quantity: new Decimal("5.000"),
+    previousQuantity: new Decimal("55.000"),
+    newQuantity: new Decimal("50.000"),
+    notes: null,
+    reference: null,
+    inventoryItemId: "inv_item_1",
+    createdById: "user_1",
+    createdAt: new Date("2024-01-10"),
+    updatedAt: new Date("2024-01-10"),
+    ...overrides,
+  };
+}
+
 export function createMockPOSIntegration(overrides?: Record<string, unknown>) {
   return {
     id: "pos_1",

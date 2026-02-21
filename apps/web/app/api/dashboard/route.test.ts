@@ -14,6 +14,9 @@ function setupDashboardMocks({
   pendingOrders = 0,
   suppliers = [],
   priceComparisons = [],
+  overdueInvoiceCount = 0,
+  inventoryItems = [],
+  criticalInsights = [],
 }: {
   allOrders?: any[];
   thisMonthOrders?: any[];
@@ -22,8 +25,11 @@ function setupDashboardMocks({
   pendingOrders?: number;
   suppliers?: any[];
   priceComparisons?: any[];
+  overdueInvoiceCount?: number;
+  inventoryItems?: any[];
+  criticalInsights?: any[];
 } = {}) {
-  // The route uses Promise.all with 7 parallel queries.
+  // The route uses Promise.all with 10 parallel queries.
   // These are resolved in order via sequential mockResolvedValueOnce calls.
   prismaMock.order.findMany
     .mockResolvedValueOnce(allOrders as any)       // allOrders
@@ -33,6 +39,11 @@ function setupDashboardMocks({
   prismaMock.order.count.mockResolvedValueOnce(pendingOrders as any);
   prismaMock.order.groupBy.mockResolvedValueOnce(suppliers as any);
   prismaMock.supplierProduct.groupBy.mockResolvedValueOnce(priceComparisons as any);
+
+  // New briefing queries
+  prismaMock.invoice.count.mockResolvedValueOnce(overdueInvoiceCount as any);
+  prismaMock.inventoryItem.findMany.mockResolvedValueOnce(inventoryItems as any);
+  prismaMock.consumptionInsight.findMany.mockResolvedValueOnce(criticalInsights as any);
 
   // supplierDetails follow-up query
   prismaMock.supplier.findMany.mockResolvedValueOnce(

@@ -40,6 +40,9 @@ export async function GET() {
       pendingOrders,
       suppliers,
       priceComparisons,
+      overdueInvoiceCount,
+      allInventoryItems,
+      criticalInsights,
     ] = await Promise.all([
       // All orders for the restaurant
       prisma.order.findMany({
@@ -118,6 +121,32 @@ export async function GET() {
         orderBy: { _count: { name: "desc" } },
         take: 5,
       }),
+
+      // Overdue invoices
+      prisma.invoice.count({
+        where: {
+          restaurantId,
+          status: "PENDING",
+          dueDate: { lt: new Date() },
+        },
+      }),
+
+      // All inventory items (for low stock check — compare columns in JS)
+      prisma.inventoryItem.findMany({
+        where: { restaurantId },
+        select: { id: true, name: true, currentQuantity: true, parLevel: true },
+      }),
+
+      // Critical consumption insights (< 3 days until stockout)
+      prisma.consumptionInsight.findMany({
+        where: {
+          restaurantId,
+          daysUntilStockout: { lt: 3 },
+        },
+        include: {
+          inventoryItem: { select: { name: true } },
+        },
+      }),
     ]);
 
     // Calculate stats
@@ -176,9 +205,46 @@ export async function GET() {
       potentialSavings: Number(p._max.price) - Number(p._min.price),
     }));
 
+    // Build AI briefing
+    const lowStockItems = allInventoryItems.filter(
+      (item) =>
+        item.parLevel && Number(item.currentQuantity) <= Number(item.parLevel)
+    );
+    const criticalItemNames = criticalInsights.map(
+      (ci) => ci.inventoryItem.name
+    );
+
+    const briefingParts: string[] = [];
+    if (lowStockItems.length > 0) {
+      briefingParts.push(`${lowStockItems.length} item${lowStockItems.length !== 1 ? "s" : ""} below par level`);
+    }
+    if (overdueInvoiceCount > 0) {
+      briefingParts.push(`${overdueInvoiceCount} overdue invoice${overdueInvoiceCount !== 1 ? "s" : ""}`);
+    }
+    if (spendChange !== 0 && lastMonthSpend > 0) {
+      briefingParts.push(
+        `Spending is ${spendChange > 0 ? "up" : "down"} ${Math.abs(spendChange).toFixed(1)}% vs last month`
+      );
+    }
+    if (criticalItemNames.length > 0) {
+      briefingParts.push(
+        `${criticalItemNames.join(", ")} running out within 3 days`
+      );
+    }
+
+    const briefing = {
+      summary: briefingParts.length > 0
+        ? briefingParts.join(". ") + "."
+        : null,
+      lowStockCount: lowStockItems.length,
+      overdueInvoiceCount,
+      criticalItems: criticalItemNames,
+    };
+
     return NextResponse.json({
       success: true,
       data: {
+        briefing,
         stats: {
           thisMonthSpend,
           lastMonthSpend,

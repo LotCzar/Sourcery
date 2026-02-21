@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -22,6 +23,7 @@ import {
   Info,
   Trash2,
   RefreshCw,
+  ArrowRight,
 } from "lucide-react";
 import {
   useNotifications,
@@ -58,7 +60,15 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   },
 };
 
+const ACTION_LABELS: Record<string, string> = {
+  review_order: "Review Order",
+  view_inventory: "View Inventory",
+  view_alerts: "View Alerts",
+  view_orders: "View Orders",
+};
+
 export default function NotificationsPage() {
+  const router = useRouter();
   const [filter, setFilter] = useState<"all" | "unread">("all");
   const { data: result, isLoading, refetch } = useNotifications(filter === "unread");
   const markRead = useMarkNotificationRead();
@@ -221,6 +231,16 @@ export default function NotificationsPage() {
                       </div>
 
                       <div className="flex items-center gap-2 mt-3">
+                        {notification.metadata?.actionUrl && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => router.push(notification.metadata.actionUrl)}
+                          >
+                            {ACTION_LABELS[notification.metadata?.action] || "View"}
+                            <ArrowRight className="h-4 w-4 ml-1" />
+                          </Button>
+                        )}
                         {!notification.isRead && (
                           <Button
                             variant="ghost"
