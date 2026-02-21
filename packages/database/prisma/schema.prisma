@@ -85,6 +85,12 @@ enum UnitType {
   BUNCH
 }
 
+enum TrendDirection {
+  UP
+  DOWN
+  STABLE
+}
+
 // ============================================
 // USER & AUTH MODELS
 // ============================================
@@ -145,6 +151,7 @@ model Restaurant {
   orders        Order[]
   invoices      Invoice[]
   inventoryItems InventoryItem[]
+  consumptionInsights ConsumptionInsight[]
   posIntegration POSIntegration?
   supplierRelationships RestaurantSupplier[]
 
@@ -442,6 +449,7 @@ model InventoryItem {
   supplierProduct   SupplierProduct? @relation("InventorySupplierProduct", fields: [supplierProductId], references: [id])
 
   logs            InventoryLog[]
+  consumptionInsights ConsumptionInsight[]
 
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
@@ -470,6 +478,36 @@ model InventoryLog {
 
   @@index([inventoryItemId])
   @@index([createdAt])
+}
+
+// ============================================
+// CONSUMPTION INSIGHT MODEL
+// ============================================
+
+model ConsumptionInsight {
+  id                String         @id @default(cuid())
+  avgDailyUsage     Decimal        @db.Decimal(10, 3)
+  avgWeeklyUsage    Decimal        @db.Decimal(10, 3)
+  trendDirection    TrendDirection @default(STABLE)
+  daysUntilStockout Decimal?       @db.Decimal(10, 1)
+  suggestedParLevel Decimal?       @db.Decimal(10, 3)
+  dataPointCount    Int            @default(0)
+  periodDays        Int            @default(30)
+  lastAnalyzedAt    DateTime       @default(now())
+  metadata          Json?
+
+  restaurantId      String
+  restaurant        Restaurant     @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+
+  inventoryItemId   String
+  inventoryItem     InventoryItem  @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  @@unique([restaurantId, inventoryItemId])
+  @@index([restaurantId])
+  @@index([inventoryItemId])
 }
 
 // ============================================

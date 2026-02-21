@@ -5,9 +5,10 @@ import {
   priceMonitor,
   supplierFollowup,
   invoiceGenerator,
+  consumptionAnalysis,
 } from "@/lib/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator],
+  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis],
 });

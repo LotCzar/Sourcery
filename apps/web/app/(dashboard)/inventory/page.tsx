@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useInventory, useCreateInventory, useUpdateInventory } from "@/hooks/use-inventory";
+import { useConsumptionInsights } from "@/hooks/use-consumption-insights";
+import type { ConsumptionInsight } from "@/hooks/use-consumption-insights";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
@@ -58,6 +60,8 @@ import {
   Edit,
   PackageMinus,
   PackagePlus,
+  Brain,
+  ArrowRight,
 } from "lucide-react";
 
 interface InventoryItem {
@@ -170,6 +174,7 @@ export default function InventoryPage() {
     category: categoryFilter !== "all" ? categoryFilter : undefined,
     lowStock: showLowStock || undefined,
   });
+  const { data: insightsResult } = useConsumptionInsights();
   const createInventory = useCreateInventory();
   const updateInventory = useUpdateInventory();
   const queryClient = useQueryClient();
@@ -466,6 +471,103 @@ export default function InventoryPage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* AI Consumption Insights */}
+      {insightsResult?.data && insightsResult.data.length > 0 && (
+        <Card className="border-purple-200 bg-purple-50/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Brain className="h-5 w-5 text-purple-600" />
+              <CardTitle className="text-lg">AI Consumption Insights</CardTitle>
+            </div>
+            <CardDescription>
+              Based on {insightsResult.summary.totalInsights} items analyzed
+              {insightsResult.summary.criticalItemCount > 0 && (
+                <Badge variant="destructive" className="ml-2">
+                  {insightsResult.summary.criticalItemCount} critical
+                </Badge>
+              )}
+              {insightsResult.summary.parMismatchCount > 0 && (
+                <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-700">
+                  {insightsResult.summary.parMismatchCount} par adjustments
+                </Badge>
+              )}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {/* Critical items - low runway */}
+              {insightsResult.data
+                .filter(
+                  (i: ConsumptionInsight) =>
+                    i.daysUntilStockout !== null && i.daysUntilStockout < 3
+                )
+                .slice(0, 5)
+                .map((insight: ConsumptionInsight) => (
+                  <div
+                    key={insight.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-red-200 bg-red-50/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge variant="destructive" className="text-xs">
+                        {insight.daysUntilStockout !== null
+                          ? `${Math.round(insight.daysUntilStockout * 10) / 10}d left`
+                          : "Low"}
+                      </Badge>
+                      <div>
+                        <p className="font-medium text-sm">{insight.itemName}</p>
+                        <p className="text-xs text-muted-foreground">
+                          Using ~{insight.avgDailyUsage.toFixed(1)}/{unitLabels[insight.unit] || insight.unit.toLowerCase()}/day
+                          {insight.trendDirection === "UP" && " (trending up)"}
+                          {insight.trendDirection === "DOWN" && " (trending down)"}
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm font-medium">
+                      {insight.currentQuantity.toFixed(1)} {unitLabels[insight.unit] || insight.unit.toLowerCase()} left
+                    </p>
+                  </div>
+                ))}
+
+              {/* Par level suggestions */}
+              {insightsResult.data
+                .filter(
+                  (i: ConsumptionInsight) =>
+                    i.suggestedParLevel !== null &&
+                    i.currentParLevel !== null &&
+                    Math.abs(i.suggestedParLevel - i.currentParLevel) >
+                      i.currentParLevel * 0.2
+                )
+                .slice(0, 5)
+                .map((insight: ConsumptionInsight) => (
+                  <div
+                    key={`par-${insight.id}`}
+                    className="flex items-center justify-between p-3 rounded-lg border border-yellow-200 bg-yellow-50/50"
+                  >
+                    <div className="flex items-center gap-3">
+                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700">
+                        Par
+                      </Badge>
+                      <p className="font-medium text-sm">{insight.itemName}</p>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">
+                        {insight.currentParLevel?.toFixed(1)}
+                      </span>
+                      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                      <span className="font-medium text-yellow-700">
+                        {insight.suggestedParLevel?.toFixed(1)}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {unitLabels[insight.unit] || insight.unit.toLowerCase()}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Filters */}

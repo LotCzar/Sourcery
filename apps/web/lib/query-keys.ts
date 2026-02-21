@@ -18,6 +18,7 @@ export const queryKeys = {
   inventory: {
     all: ["inventory"] as const,
     detail: (id: string) => ["inventory", id] as const,
+    insights: ["inventory", "insights"] as const,
   },
   analytics: {
     all: ["analytics"] as const,

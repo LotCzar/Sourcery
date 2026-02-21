@@ -188,4 +188,35 @@ export const aiTools: Anthropic.Tool[] = [
       required: ["product_id", "alert_type", "target_price"],
     },
   },
+  {
+    name: "get_consumption_insights",
+    description:
+      "Get AI-powered consumption forecasting data for inventory items. Shows average usage rates, trend direction, days until stockout, and suggested par levels based on historical usage patterns.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter insights by product category",
+        },
+        item_name: {
+          type: "string",
+          description: "Filter by item name (partial match)",
+        },
+      },
+    },
+  },
 ];

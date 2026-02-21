@@ -27,4 +27,7 @@ export type HeardEvents = {
   "price/check.scheduled": {
     data: Record<string, never>;
   };
+  "inventory/analysis.scheduled": {
+    data: Record<string, never>;
+  };
 };

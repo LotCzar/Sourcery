@@ -25,6 +25,8 @@ export async function executeTool(
       return getSupplierInfo(input);
     case "create_price_alert":
       return createPriceAlert(input, context);
+    case "get_consumption_insights":
+      return getConsumptionInsights(input, context);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -392,5 +394,75 @@ async function createPriceAlert(
       supplier: product.supplier.name,
     },
     message: `Price alert created for ${product.name}. You'll be notified when the price ${input.alert_type === "PRICE_DROP" ? "drops below" : input.alert_type === "PRICE_INCREASE" ? "rises above" : "crosses"} $${input.target_price}.`,
+  };
+}
+
+async function getConsumptionInsights(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const where: any = { restaurantId: context.restaurantId };
+
+  if (input.category) {
+    where.inventoryItem = { category: input.category };
+  }
+  if (input.item_name) {
+    where.inventoryItem = {
+      ...where.inventoryItem,
+      name: { contains: input.item_name, mode: "insensitive" },
+    };
+  }
+
+  const insights = await prisma.consumptionInsight.findMany({
+    where,
+    include: {
+      inventoryItem: {
+        select: {
+          name: true,
+          category: true,
+          currentQuantity: true,
+          unit: true,
+          parLevel: true,
+        },
+      },
+    },
+    orderBy: { daysUntilStockout: "asc" },
+    take: 20,
+  });
+
+  if (insights.length === 0) {
+    return {
+      message:
+        "No consumption insights available yet. Insights are generated weekly from usage data (USED/WASTE inventory logs). Keep tracking inventory usage and insights will appear after the next analysis run.",
+    };
+  }
+
+  const criticalItems = insights.filter(
+    (i) => i.daysUntilStockout && Number(i.daysUntilStockout) < 3
+  );
+
+  return {
+    count: insights.length,
+    criticalCount: criticalItems.length,
+    insights: insights.map((i) => ({
+      itemName: i.inventoryItem.name,
+      category: i.inventoryItem.category,
+      unit: i.inventoryItem.unit,
+      currentQuantity: Number(i.inventoryItem.currentQuantity),
+      currentParLevel: i.inventoryItem.parLevel
+        ? Number(i.inventoryItem.parLevel)
+        : null,
+      avgDailyUsage: Number(i.avgDailyUsage),
+      avgWeeklyUsage: Number(i.avgWeeklyUsage),
+      trendDirection: i.trendDirection,
+      daysUntilStockout: i.daysUntilStockout
+        ? Number(i.daysUntilStockout)
+        : null,
+      suggestedParLevel: i.suggestedParLevel
+        ? Number(i.suggestedParLevel)
+        : null,
+      dataPointCount: i.dataPointCount,
+      lastAnalyzedAt: i.lastAnalyzedAt.toISOString(),
+    })),
   };
 }

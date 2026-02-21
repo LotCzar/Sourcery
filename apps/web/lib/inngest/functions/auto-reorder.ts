@@ -45,7 +45,30 @@ export const autoReorder = inngest.createFunction(
     }
 
     const supplier = item.supplierProduct.supplier;
-    const reorderQuantity = parLevel - currentQuantity;
+
+    // Check for consumption insights to calculate smarter reorder quantity
+    const insight = await prisma.consumptionInsight.findUnique({
+      where: {
+        restaurantId_inventoryItemId: {
+          restaurantId,
+          inventoryItemId,
+        },
+      },
+    });
+
+    let reorderQuantity: number;
+    if (insight) {
+      const avgWeeklyUsage = Number(insight.avgWeeklyUsage);
+      const insightParLevel = insight.suggestedParLevel
+        ? Number(insight.suggestedParLevel)
+        : parLevel;
+      reorderQuantity = Math.max(
+        avgWeeklyUsage * 2 - currentQuantity,
+        insightParLevel - currentQuantity
+      );
+    } else {
+      reorderQuantity = parLevel - currentQuantity;
+    }
     const unitPrice = Number(item.supplierProduct.price);
     const subtotal = reorderQuantity * unitPrice;
     const taxRate = 0.0825;
