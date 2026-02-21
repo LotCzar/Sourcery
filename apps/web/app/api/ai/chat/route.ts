@@ -133,7 +133,7 @@ export async function POST(request: Request) {
         };
 
         try {
-          let messages = [...history];
+          const messages = [...history];
           let continueLoop = true;
 
           while (continueLoop) {
