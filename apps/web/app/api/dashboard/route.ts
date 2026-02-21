@@ -122,20 +122,20 @@ export async function GET() {
         take: 5,
       }),
 
-      // Overdue invoices
+      // Overdue invoices (fail gracefully)
       prisma.invoice.count({
         where: {
           restaurantId,
           status: "PENDING",
           dueDate: { lt: new Date() },
         },
-      }),
+      }).catch(() => 0),
 
       // All inventory items (for low stock check — compare columns in JS)
       prisma.inventoryItem.findMany({
         where: { restaurantId },
         select: { id: true, name: true, currentQuantity: true, parLevel: true },
-      }),
+      }).catch(() => []),
 
       // Critical consumption insights (< 3 days until stockout)
       prisma.consumptionInsight.findMany({
@@ -146,7 +146,7 @@ export async function GET() {
         include: {
           inventoryItem: { select: { name: true } },
         },
-      }),
+      }).catch(() => []),
     ]);
 
     // Calculate stats
