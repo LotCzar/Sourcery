@@ -1,6 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  transpilePackages: ["@sourcery/database", "@sourcery/shared", "@sourcery/ui"],
+  transpilePackages: ["@heard/database", "@heard/shared", "@heard/ui"],
   images: {
     remotePatterns: [
       {

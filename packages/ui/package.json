@@ -1,5 +1,5 @@
 {
-  "name": "@sourcery/ui",
+  "name": "@heard/ui",
   "version": "0.1.0",
   "main": "./src/index.tsx",
   "types": "./src/index.tsx",

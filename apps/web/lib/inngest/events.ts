@@ -1,4 +1,4 @@
-export type SourceryEvents = {
+export type HeardEvents = {
   "order/status.changed": {
     data: {
       orderId: string;

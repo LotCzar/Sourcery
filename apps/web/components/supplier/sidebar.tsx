@@ -30,10 +30,10 @@ export function SupplierSidebar() {
       <div className="flex h-16 items-center border-b px-6">
         <Link href="/supplier" className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">S</span>
+            <span className="text-lg font-bold text-primary-foreground">H</span>
           </div>
           <div className="flex flex-col">
-            <span className="text-xl font-bold text-foreground">Sourcery</span>
+            <span className="text-xl font-bold text-foreground">Heard</span>
             <span className="text-xs text-muted-foreground">Supplier Portal</span>
           </div>
         </Link>

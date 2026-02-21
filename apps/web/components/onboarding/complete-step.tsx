@@ -55,7 +55,7 @@ export function CompleteStep({ onFinish }: CompleteStepProps) {
         </div>
         <CardTitle className="text-3xl">You&apos;re All Set!</CardTitle>
         <CardDescription className="text-lg">
-          Your restaurant is ready to use Sourcery
+          Your restaurant is ready to use Heard
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4 text-center">

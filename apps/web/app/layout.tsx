@@ -9,7 +9,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Sourcery - AI-Powered Restaurant Sourcing",
+  title: "Heard - AI-Powered Restaurant Sourcing",
   description:
     "Streamline your restaurant sourcing with AI-powered supplier matching and price optimization",
 };

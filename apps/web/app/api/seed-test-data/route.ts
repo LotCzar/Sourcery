@@ -295,7 +295,7 @@ export async function POST() {
       },
       {
         type: "SYSTEM",
-        title: "Welcome to Sourcery!",
+        title: "Welcome to Heard!",
         message: "Thanks for joining. Start by exploring suppliers or parsing your menu.",
       },
       {

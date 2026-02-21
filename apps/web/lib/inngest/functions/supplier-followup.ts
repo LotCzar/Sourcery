@@ -43,9 +43,9 @@ export const supplierFollowup = inngest.createFunction(
                 <p style="margin: 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
                 <p style="margin: 8px 0 0;"><strong>Total:</strong> $${Number(order.total).toFixed(2)}</p>
               </div>
-              <p>Please log in to your Sourcery dashboard to confirm or update this order.</p>
+              <p>Please log in to your Heard dashboard to confirm or update this order.</p>
               <p style="color: #666; font-size: 14px; margin-top: 24px;">
-                This email was sent by Sourcery. Please do not reply to this email.
+                This email was sent by Heard. Please do not reply to this email.
               </p>
             </div>
           `,

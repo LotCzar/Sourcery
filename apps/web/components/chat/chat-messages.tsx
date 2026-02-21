@@ -35,7 +35,7 @@ export function ChatMessages({ messages, activeToolCalls }: ChatMessagesProps) {
             />
           </svg>
         </div>
-        <h3 className="font-semibold">Sourcery AI</h3>
+        <h3 className="font-semibold">Heard AI</h3>
         <p className="text-sm text-muted-foreground">
           Ask me about products, orders, inventory, or suppliers.
         </p>

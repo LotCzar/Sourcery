@@ -28,7 +28,7 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 
   try {
     const result = await client.emails.send({
-      from: process.env.EMAIL_FROM || 'Sourcery <noreply@sourcery.app>',
+      from: process.env.EMAIL_FROM || 'Heard <noreply@heard.app>',
       to,
       subject,
       html,
@@ -51,9 +51,9 @@ export const emailTemplates = {
           <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
           <p style="margin: 8px 0 0;"><strong>Total:</strong> $${total.toFixed(2)}</p>
         </div>
-        <p>Log in to your Sourcery dashboard to view and confirm this order.</p>
+        <p>Log in to your Heard dashboard to view and confirm this order.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
-          This email was sent by Sourcery. Please do not reply to this email.
+          This email was sent by Heard. Please do not reply to this email.
         </p>
       </div>
     `,
@@ -70,7 +70,7 @@ export const emailTemplates = {
         </div>
         <p>Your order is being prepared and will be shipped soon.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
-          This email was sent by Sourcery. Please do not reply to this email.
+          This email was sent by Heard. Please do not reply to this email.
         </p>
       </div>
     `,
@@ -85,9 +85,9 @@ export const emailTemplates = {
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
         </div>
-        <p>Track your order status in your Sourcery dashboard.</p>
+        <p>Track your order status in your Heard dashboard.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
-          This email was sent by Sourcery. Please do not reply to this email.
+          This email was sent by Heard. Please do not reply to this email.
         </p>
       </div>
     `,
@@ -106,7 +106,7 @@ export const emailTemplates = {
         </div>
         <p>An invoice has been created and is available in your dashboard. Payment is due within 30 days.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
-          This email was sent by Sourcery. Please do not reply to this email.
+          This email was sent by Heard. Please do not reply to this email.
         </p>
       </div>
     `,

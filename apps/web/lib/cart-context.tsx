@@ -53,7 +53,7 @@ export function cartReducer(state: CartItem[], action: CartAction): CartItem[] {
   }
 }
 
-const STORAGE_KEY = "sourcery-cart";
+const STORAGE_KEY = "heard-cart";
 
 interface CartContextValue {
   cart: CartItem[];

@@ -57,12 +57,12 @@ export function SupplierMobileNav() {
               >
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
                   <span className="text-lg font-bold text-primary-foreground">
-                    S
+                    H
                   </span>
                 </div>
                 <div className="flex flex-col">
                   <span className="text-xl font-bold text-foreground">
-                    Sourcery
+                    Heard
                   </span>
                   <span className="text-xs text-muted-foreground">Supplier Portal</span>
                 </div>
