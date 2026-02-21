@@ -2,8 +2,8 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 
 export const consumptionAnalysis = inngest.createFunction(
-  { id: "consumption-analysis", name: "Weekly Consumption Analysis" },
-  { cron: "0 7 * * 0" }, // Sunday 7 AM
+  { id: "consumption-analysis", name: "Daily Consumption Analysis" },
+  { cron: "0 6 * * *" }, // Daily 6 AM
   async () => {
     const restaurants = await prisma.restaurant.findMany({
       select: { id: true, name: true },
