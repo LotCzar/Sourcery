@@ -276,7 +276,7 @@ export default function AnalyticsPage() {
                         }
                         labelLine={false}
                       >
-                        {data.spendBySupplier.map((entry, index) => (
+                        {data.spendBySupplier.map((entry: { name: string; value: number }, index: number) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={COLORS[index % COLORS.length]}
@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
                         formatter={(value) => formatCurrency(value as number)}
                       />
                       <Bar dataKey="total" radius={[0, 4, 4, 0]}>
-                        {data.spendByCategory.map((entry, index) => (
+                        {data.spendByCategory.map((entry: { category: string; total: number }, index: number) => (
                           <Cell
                             key={`cell-${index}`}
                             fill={categoryColors[entry.category] || "#6B7280"}
@@ -342,7 +342,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.topProducts.slice(0, 5).map((product, index) => (
+                  {data.topProducts.slice(0, 5).map((product: { name: string; quantity: number; total: number }, index: number) => (
                     <div key={index} className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div
@@ -393,7 +393,7 @@ export default function AnalyticsPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {data.recentOrders.map((order) => (
+                    {data.recentOrders.map((order: { id: string; orderNumber: string; date: string; supplier: string; itemCount: number; total: number; status: string }) => (
                       <TableRow key={order.id}>
                         <TableCell>
                           <div>
@@ -438,7 +438,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {data.ordersByStatus.map((item) => (
+                  {data.ordersByStatus.map((item: { status: string; count: number }) => (
                     <div key={item.status} className="flex items-center justify-between">
                       <Badge
                         variant="outline"
@@ -477,7 +477,7 @@ export default function AnalyticsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {data.spendBySupplier.map((supplier, index) => {
+                  {data.spendBySupplier.map((supplier: { name: string; total: number; orders: number }, index: number) => {
                     const share = data.overview.totalSpend > 0
                       ? (supplier.total / data.overview.totalSpend) * 100
                       : 0;

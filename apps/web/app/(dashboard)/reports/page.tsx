@@ -356,7 +356,7 @@ export default function ReportsPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={data.spendByCategory.map((item) => ({
+                      data={data.spendByCategory.map((item: { category: string; total: number }) => ({
                         ...item,
                         name: categoryLabels[item.category] || item.category,
                       }))}
@@ -370,7 +370,7 @@ export default function ReportsPage() {
                       label={({ name, percent }) => `${name || ""} (${((percent || 0) * 100).toFixed(0)}%)`}
                       labelLine={false}
                     >
-                      {data.spendByCategory.map((_, index) => (
+                      {data.spendByCategory.map((_: unknown, index: number) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>
@@ -444,7 +444,7 @@ export default function ReportsPage() {
           <CardContent>
             <div className="space-y-4">
               {data.topProducts.length > 0 ? (
-                data.topProducts.slice(0, 8).map((product, index) => (
+                data.topProducts.slice(0, 8).map((product: { name: string; quantity: number; total: number }, index: number) => (
                   <div key={index} className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-medium">
@@ -478,7 +478,7 @@ export default function ReportsPage() {
           <CardContent>
             <div className="space-y-4">
               {data.ordersByStatus.length > 0 ? (
-                data.ordersByStatus.map((item, index) => {
+                data.ordersByStatus.map((item: { status: string; count: number }, index: number) => {
                   const config = statusConfig[item.status] || { label: item.status, color: "bg-gray-100 text-gray-700" };
                   const percentage = (item.count / data.overview.totalOrders) * 100;
                   return (
@@ -534,7 +534,7 @@ export default function ReportsPage() {
               </thead>
               <tbody>
                 {data.recentOrders.length > 0 ? (
-                  data.recentOrders.map((order) => {
+                  data.recentOrders.map((order: { id: string; orderNumber: string; date: string; supplier: string; itemCount: number; total: number; status: string }) => {
                     const config = statusConfig[order.status] || { label: order.status, color: "bg-gray-100 text-gray-700" };
                     return (
                       <tr key={order.id} className="border-b last:border-0">
