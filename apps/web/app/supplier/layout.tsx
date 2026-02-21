@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { SupplierSidebar } from "@/components/supplier/sidebar";
 import { SupplierHeader } from "@/components/supplier/header";
 import { SupplierMobileNav } from "@/components/supplier/mobile-nav";
+import { Toaster } from "@/components/ui/toaster";
 import prisma from "@/lib/prisma";
 
 async function checkSupplierAccess(userId: string) {
@@ -53,6 +54,7 @@ export default async function SupplierLayout({
           {children}
         </main>
       </div>
+      <Toaster />
     </div>
   );
 }

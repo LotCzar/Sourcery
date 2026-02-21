@@ -8,6 +8,7 @@ import { MobileNav } from "@/components/dashboard/mobile-nav";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { RealtimeProvider } from "@/components/realtime-provider";
+import { Toaster } from "@/components/ui/toaster";
 import prisma from "@/lib/prisma";
 
 async function checkOnboarding(userId: string) {
@@ -59,6 +60,7 @@ export default async function DashboardLayout({
 
       <ChatSidebar />
       <RealtimeProvider />
+      <Toaster />
     </div>
   );
 }

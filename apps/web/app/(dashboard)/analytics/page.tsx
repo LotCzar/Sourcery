@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import {
   Card,
   CardContent,
@@ -6,6 +7,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -76,7 +84,8 @@ const statusColors: Record<string, string> = {
 };
 
 export default function AnalyticsPage() {
-  const { data: result, isLoading, error } = useAnalytics();
+  const [timeRange, setTimeRange] = useState("30");
+  const { data: result, isLoading, error } = useAnalytics(timeRange);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -134,11 +143,23 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
-        <p className="mt-1 text-muted-foreground">
-          Track your spending and ordering patterns
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Analytics</h1>
+          <p className="mt-1 text-muted-foreground">
+            Track your spending and ordering patterns
+          </p>
+        </div>
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select time range" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7">Last 7 days</SelectItem>
+            <SelectItem value="30">Last 30 days</SelectItem>
+            <SelectItem value="90">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Overview Cards */}
@@ -210,7 +231,7 @@ export default function AnalyticsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Spending Over Time</CardTitle>
-                <CardDescription>Daily spend for the last 30 days</CardDescription>
+                <CardDescription>Daily spend for the last {timeRange} days</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="h-[300px]">
