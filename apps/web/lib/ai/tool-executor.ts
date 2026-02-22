@@ -46,6 +46,12 @@ export async function executeTool(
       return optimizeParLevels(input, context);
     case "analyze_waste":
       return analyzeWaste(input, context);
+    case "consolidate_orders":
+      return consolidateOrders(input, context);
+    case "get_supplier_performance":
+      return getSupplierPerformance(input, context);
+    case "get_budget_forecast":
+      return getBudgetForecast(input, context);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -1686,5 +1692,399 @@ async function optimizeParLevels(
     message: applied
       ? `Applied ${suggestions.length} par level adjustment(s): ${increases} increased, ${decreases} decreased.`
       : `Found ${suggestions.length} par level adjustment(s): ${increases} to increase, ${decreases} to decrease. Use apply: true to apply changes.`,
+  };
+}
+
+async function consolidateOrders(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const orderIds: string[] = input.order_ids;
+  if (!orderIds || orderIds.length < 2) {
+    return { error: "At least 2 order IDs are required to consolidate." };
+  }
+
+  const orders = await prisma.order.findMany({
+    where: {
+      id: { in: orderIds },
+      restaurantId: context.restaurantId,
+    },
+    include: {
+      supplier: { select: { id: true, name: true, deliveryFee: true } },
+      items: {
+        include: { product: { select: { id: true, name: true, price: true, unit: true } } },
+      },
+    },
+  });
+
+  if (orders.length !== orderIds.length) {
+    return { error: "One or more orders not found or do not belong to your restaurant." };
+  }
+
+  // Verify all are DRAFT
+  const nonDrafts = orders.filter((o) => o.status !== "DRAFT");
+  if (nonDrafts.length > 0) {
+    return {
+      error: `All orders must be DRAFT status. Orders ${nonDrafts.map((o) => o.orderNumber).join(", ")} are not drafts.`,
+    };
+  }
+
+  // Verify all same supplier
+  const supplierIds = new Set(orders.map((o) => o.supplierId));
+  if (supplierIds.size > 1) {
+    return { error: "All orders must be from the same supplier to consolidate." };
+  }
+
+  const supplier = orders[0].supplier;
+
+  // Merge items by productId (sum quantities, use current price)
+  const mergedItems: Record<string, { productId: string; name: string; quantity: number; unitPrice: number; unit: string }> = {};
+
+  for (const order of orders) {
+    for (const item of order.items) {
+      const pid = item.productId;
+      if (!mergedItems[pid]) {
+        mergedItems[pid] = {
+          productId: pid,
+          name: item.product.name,
+          quantity: 0,
+          unitPrice: Number(item.product.price),
+          unit: item.product.unit,
+        };
+      }
+      mergedItems[pid].quantity += Number(item.quantity);
+    }
+  }
+
+  const itemEntries = Object.values(mergedItems);
+  let subtotal = 0;
+  const orderItemsData = itemEntries.map((item) => {
+    const itemSubtotal = item.unitPrice * item.quantity;
+    subtotal += itemSubtotal;
+    return {
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      subtotal: itemSubtotal,
+    };
+  });
+
+  const tax = subtotal * 0.0825;
+  const deliveryFee = supplier.deliveryFee ? Number(supplier.deliveryFee) : 0;
+  const total = subtotal + tax + deliveryFee;
+
+  const timestamp = Date.now().toString(36).toUpperCase();
+  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+
+  const consolidatedOrder = await prisma.order.create({
+    data: {
+      orderNumber: `ORD-${timestamp}-${random}`,
+      status: "DRAFT",
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      deliveryNotes: `Consolidated from orders: ${orders.map((o) => o.orderNumber).join(", ")}`,
+      restaurantId: context.restaurantId,
+      supplierId: supplier.id,
+      createdById: context.userId,
+      items: { create: orderItemsData },
+    },
+    include: {
+      items: { include: { product: { select: { name: true, unit: true } } } },
+      supplier: { select: { name: true } },
+    },
+  });
+
+  // Delete old orders (cascade deletes items)
+  await prisma.order.deleteMany({
+    where: { id: { in: orderIds } },
+  });
+
+  const originalDeliveryFees = deliveryFee * orders.length;
+  const deliveryFeeSavings = originalDeliveryFees - deliveryFee;
+
+  return {
+    success: true,
+    consolidatedOrder: {
+      id: consolidatedOrder.id,
+      orderNumber: consolidatedOrder.orderNumber,
+      status: consolidatedOrder.status,
+      supplier: consolidatedOrder.supplier.name,
+      subtotal: Math.round(subtotal * 100) / 100,
+      tax: Math.round(tax * 100) / 100,
+      deliveryFee: Math.round(deliveryFee * 100) / 100,
+      total: Math.round(total * 100) / 100,
+      items: consolidatedOrder.items.map((i) => ({
+        product: i.product.name,
+        quantity: Number(i.quantity),
+        unit: i.product.unit,
+        unitPrice: Number(i.unitPrice),
+        subtotal: Number(i.subtotal),
+      })),
+    },
+    mergedOrderNumbers: orders.map((o) => o.orderNumber),
+    deliveryFeeSavings: Math.round(deliveryFeeSavings * 100) / 100,
+    message: `Consolidated ${orders.length} orders into ${consolidatedOrder.orderNumber}. Saved $${deliveryFeeSavings.toFixed(2)} in delivery fees. Review and submit on the Orders page.`,
+  };
+}
+
+async function getSupplierPerformance(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  let supplier;
+
+  if (input.supplier_id) {
+    supplier = await prisma.supplier.findUnique({
+      where: { id: input.supplier_id },
+    });
+  } else if (input.supplier_name) {
+    supplier = await prisma.supplier.findFirst({
+      where: { name: { contains: input.supplier_name, mode: "insensitive" } },
+    });
+  } else {
+    return { error: "Please provide a supplier_name or supplier_id." };
+  }
+
+  if (!supplier) return { error: "Supplier not found." };
+
+  const ninetyDaysAgo = new Date();
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+  const deliveredOrders = await prisma.order.findMany({
+    where: {
+      restaurantId: context.restaurantId,
+      supplierId: supplier.id,
+      status: "DELIVERED",
+      deliveredAt: { gte: ninetyDaysAgo },
+    },
+    include: {
+      invoice: { select: { total: true } },
+    },
+  });
+
+  if (deliveredOrders.length < 5) {
+    return {
+      supplier: supplier.name,
+      message: `Only ${deliveredOrders.length} delivered orders in the last 90 days. Need at least 5 for scoring.`,
+    };
+  }
+
+  // On-time %: deliveredAt <= deliveryDate + 1 day grace
+  let onTimeCount = 0;
+  let hasDeliveryDateCount = 0;
+  for (const order of deliveredOrders) {
+    if (!order.deliveryDate || !order.deliveredAt) continue;
+    hasDeliveryDateCount++;
+    const grace = new Date(order.deliveryDate);
+    grace.setDate(grace.getDate() + 1);
+    if (order.deliveredAt <= grace) {
+      onTimeCount++;
+    }
+  }
+  const onTimePercent = hasDeliveryDateCount > 0
+    ? Math.round((onTimeCount / hasDeliveryDateCount) * 10000) / 100
+    : 100;
+
+  // Accuracy %: |invoice.total - order.total| <= 1% of order total
+  let accurateCount = 0;
+  let hasInvoiceCount = 0;
+  for (const order of deliveredOrders) {
+    if (!order.invoice) continue;
+    hasInvoiceCount++;
+    const orderTotal = Number(order.total);
+    const invoiceTotal = Number(order.invoice.total);
+    if (Math.abs(invoiceTotal - orderTotal) <= orderTotal * 0.01) {
+      accurateCount++;
+    }
+  }
+  const accuracyPercent = hasInvoiceCount > 0
+    ? Math.round((accurateCount / hasInvoiceCount) * 10000) / 100
+    : 100;
+
+  // Price stability: coefficient of variation per product
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const recentItems = await prisma.orderItem.findMany({
+    where: {
+      order: {
+        restaurantId: context.restaurantId,
+        supplierId: supplier.id,
+        status: "DELIVERED",
+        deliveredAt: { gte: thirtyDaysAgo },
+      },
+    },
+    select: { productId: true, unitPrice: true },
+  });
+
+  const productPrices: Record<string, number[]> = {};
+  for (const item of recentItems) {
+    if (!productPrices[item.productId]) productPrices[item.productId] = [];
+    productPrices[item.productId].push(Number(item.unitPrice));
+  }
+
+  let totalCV = 0;
+  let cvCount = 0;
+  for (const prices of Object.values(productPrices)) {
+    if (prices.length < 2) continue;
+    const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+    if (mean === 0) continue;
+    const variance = prices.reduce((sum, p) => sum + (p - mean) ** 2, 0) / prices.length;
+    const cv = Math.sqrt(variance) / mean;
+    totalCV += cv;
+    cvCount++;
+  }
+
+  const avgCV = cvCount > 0 ? totalCV / cvCount : 0;
+  const priceStabilityPercent = Math.round(Math.max(0, 1 - avgCV * 10) * 10000) / 100;
+
+  // Composite score
+  const composite = Math.round(
+    (onTimePercent * 0.4 + accuracyPercent * 0.3 + priceStabilityPercent * 0.3) * 100
+  ) / 100;
+
+  const rating = composite >= 90 ? "Excellent" : composite >= 75 ? "Good" : composite >= 60 ? "Fair" : "Poor";
+
+  return {
+    supplier: supplier.name,
+    supplierId: supplier.id,
+    ordersAnalyzed: deliveredOrders.length,
+    scores: {
+      onTimeDelivery: onTimePercent,
+      invoiceAccuracy: accuracyPercent,
+      priceStability: priceStabilityPercent,
+      composite,
+    },
+    rating,
+    details: {
+      onTimeOrders: onTimeCount,
+      totalWithDeliveryDate: hasDeliveryDateCount,
+      accurateInvoices: accurateCount,
+      totalWithInvoice: hasInvoiceCount,
+      productsTracked: cvCount,
+    },
+  };
+}
+
+async function getBudgetForecast(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const daysElapsed = Math.floor((now.getTime() - monthStart.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (daysElapsed < 3) {
+    return { message: "Not enough data yet this month. Check back after a few days." };
+  }
+
+  // MTD spend
+  const mtdOrders = await prisma.order.findMany({
+    where: {
+      restaurantId: context.restaurantId,
+      status: { notIn: ["CANCELLED", "DRAFT"] },
+      createdAt: { gte: monthStart },
+    },
+    include: {
+      items: {
+        include: { product: { select: { category: true } } },
+      },
+    },
+  });
+
+  const mtdSpend = mtdOrders.reduce((sum, o) => sum + Number(o.total), 0);
+  const dailyRunRate = mtdSpend / daysElapsed;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const projectedMonthEnd = dailyRunRate * daysInMonth;
+
+  // Category breakdown for MTD
+  const categoryBreakdown: Record<string, number> = {};
+  for (const order of mtdOrders) {
+    for (const item of order.items) {
+      const cat = item.product.category;
+      categoryBreakdown[cat] = (categoryBreakdown[cat] || 0) + Number(item.subtotal);
+    }
+  }
+
+  // Historical baseline: last 3 months
+  const historicalMonths: Array<{ month: string; spend: number }> = [];
+  let historicalTotal = 0;
+
+  for (let i = 1; i <= 3; i++) {
+    const start = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const end = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+
+    const monthOrders = await prisma.order.findMany({
+      where: {
+        restaurantId: context.restaurantId,
+        status: { notIn: ["CANCELLED", "DRAFT"] },
+        createdAt: { gte: start, lt: end },
+      },
+      select: { total: true },
+    });
+
+    const spend = monthOrders.reduce((sum, o) => sum + Number(o.total), 0);
+    historicalMonths.push({
+      month: start.toLocaleString("default", { month: "long", year: "numeric" }),
+      spend: Math.round(spend * 100) / 100,
+    });
+    historicalTotal += spend;
+  }
+
+  const validMonths = historicalMonths.filter((m) => m.spend > 0);
+  const avgMonthlySpend = validMonths.length > 0
+    ? historicalTotal / validMonths.length
+    : 0;
+
+  const projectionPercent = avgMonthlySpend > 0
+    ? Math.round((projectedMonthEnd / avgMonthlySpend) * 10000) / 100
+    : null;
+
+  let status: string;
+  if (projectionPercent === null) {
+    status = "no_historical_data";
+  } else if (projectionPercent > 130) {
+    status = "critical";
+  } else if (projectionPercent > 110) {
+    status = "warning";
+  } else {
+    status = "on_track";
+  }
+
+  // Supplier breakdown for MTD
+  const supplierBreakdown: Record<string, number> = {};
+  for (const order of mtdOrders) {
+    const sid = order.supplierId;
+    supplierBreakdown[sid] = (supplierBreakdown[sid] || 0) + Number(order.total);
+  }
+
+  // Round breakdowns
+  const roundedCategoryBreakdown: Record<string, number> = {};
+  for (const [k, v] of Object.entries(categoryBreakdown)) {
+    roundedCategoryBreakdown[k] = Math.round(v * 100) / 100;
+  }
+
+  return {
+    currentMonth: now.toLocaleString("default", { month: "long", year: "numeric" }),
+    daysElapsed,
+    daysInMonth,
+    mtdSpend: Math.round(mtdSpend * 100) / 100,
+    dailyRunRate: Math.round(dailyRunRate * 100) / 100,
+    projectedMonthEnd: Math.round(projectedMonthEnd * 100) / 100,
+    avgMonthlySpend: Math.round(avgMonthlySpend * 100) / 100,
+    projectionPercent,
+    status,
+    categoryBreakdown: roundedCategoryBreakdown,
+    historicalMonths,
+    message:
+      status === "critical"
+        ? `Projected spending ($${projectedMonthEnd.toFixed(2)}) is significantly above your average ($${avgMonthlySpend.toFixed(2)}) — ${projectionPercent}% of typical monthly spend.`
+        : status === "warning"
+          ? `Projected spending ($${projectedMonthEnd.toFixed(2)}) is above your average ($${avgMonthlySpend.toFixed(2)}) — ${projectionPercent}% of typical monthly spend.`
+          : status === "no_historical_data"
+            ? `Month-to-date spend: $${mtdSpend.toFixed(2)}. No historical data to compare against yet.`
+            : `On track. Projected spending ($${projectedMonthEnd.toFixed(2)}) is within normal range of your average ($${avgMonthlySpend.toFixed(2)}).`,
   };
 }

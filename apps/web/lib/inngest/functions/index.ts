@@ -8,3 +8,7 @@ export { orderAnomaly } from "./order-anomaly";
 export { proactiveOrdering } from "./proactive-ordering";
 export { invoiceReminders } from "./invoice-reminders";
 export { weeklyDigest } from "./weekly-digest";
+export { inventoryReconciliation } from "./inventory-reconciliation";
+export { deliveryScheduling } from "./delivery-scheduling";
+export { supplierPerformance } from "./supplier-performance";
+export { budgetAlerts } from "./budget-alerts";

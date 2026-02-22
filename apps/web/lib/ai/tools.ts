@@ -499,4 +499,47 @@ export const aiTools: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: "consolidate_orders",
+    description:
+      "Merge multiple DRAFT orders from the same supplier into one consolidated order, saving delivery fees.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of DRAFT order IDs to consolidate (minimum 2)",
+        },
+      },
+      required: ["order_ids"],
+    },
+  },
+  {
+    name: "get_supplier_performance",
+    description:
+      "Get on-time delivery rate, invoice accuracy, and price stability scoring for a supplier.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        supplier_name: {
+          type: "string",
+          description: "Supplier name to search for (fuzzy match)",
+        },
+        supplier_id: {
+          type: "string",
+          description: "Supplier ID",
+        },
+      },
+    },
+  },
+  {
+    name: "get_budget_forecast",
+    description:
+      "Get projected monthly spending with category breakdown vs. historical average.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];

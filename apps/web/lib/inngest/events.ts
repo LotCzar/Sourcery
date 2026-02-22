@@ -40,4 +40,7 @@ export type FreshSheetEvents = {
   "ordering/autopilot.scheduled": { data: Record<string, never> };
   "invoice/reminders.scheduled": { data: Record<string, never> };
   "digest/weekly.scheduled": { data: Record<string, never> };
+  "delivery/scheduling.scheduled": { data: Record<string, never> };
+  "supplier/performance.scheduled": { data: Record<string, never> };
+  "budget/alerts.scheduled": { data: Record<string, never> };
 };
