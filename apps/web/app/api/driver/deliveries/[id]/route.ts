@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { inngest } from "@/lib/inngest/client";
 
-// GET - Get single order details
+// GET - Get delivery detail
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,23 +17,21 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's supplier
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
-      include: { supplier: true },
     });
 
-    if (!user?.supplier) {
+    if (!user || user.role !== "DRIVER") {
       return NextResponse.json(
-        { error: "Supplier not found" },
-        { status: 404 }
+        { error: "Driver access required" },
+        { status: 403 }
       );
     }
 
     const order = await prisma.order.findFirst({
       where: {
-        id: id,
-        supplierId: user.supplier.id,
+        id,
+        driverId: user.id,
       },
       include: {
         restaurant: {
@@ -48,6 +46,9 @@ export async function GET(
             email: true,
           },
         },
+        supplier: {
+          select: { id: true, name: true },
+        },
         items: {
           include: {
             product: {
@@ -56,23 +57,18 @@ export async function GET(
                 name: true,
                 category: true,
                 unit: true,
-                price: true,
               },
             },
-          },
-        },
-        createdBy: {
-          select: {
-            firstName: true,
-            lastName: true,
-            email: true,
           },
         },
       },
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json(
+        { error: "Delivery not found" },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({
@@ -89,23 +85,19 @@ export async function GET(
           quantity: Number(item.quantity),
           unitPrice: Number(item.unitPrice),
           subtotal: Number(item.subtotal),
-          product: {
-            ...item.product,
-            price: Number(item.product.price),
-          },
         })),
       },
     });
   } catch (error: any) {
-    console.error("Get order error:", error);
+    console.error("Get delivery detail error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch order", details: error?.message },
+      { error: "Failed to fetch delivery", details: error?.message },
       { status: 500 }
     );
   }
 }
 
-// PATCH - Update order status (supplier actions)
+// PATCH - Driver updates delivery status
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -118,139 +110,49 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Get user's supplier
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
       include: { supplier: true },
     });
 
-    if (!user?.supplier) {
+    if (!user || user.role !== "DRIVER") {
       return NextResponse.json(
-        { error: "Supplier not found" },
+        { error: "Driver access required" },
+        { status: 403 }
+      );
+    }
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id,
+        driverId: user.id,
+      },
+      include: {
+        restaurant: {
+          select: { name: true, email: true },
+        },
+        supplier: {
+          select: { id: true, name: true },
+        },
+      },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: "Delivery not found" },
         { status: 404 }
       );
     }
 
     const body = await request.json();
     const { action } = body;
-
-    // Get the order with restaurant info
-    const order = await prisma.order.findFirst({
-      where: {
-        id: id,
-        supplierId: user.supplier.id,
-      },
-      include: {
-        restaurant: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
-    }
-
     let updatedOrder;
 
     switch (action) {
-      case "confirm":
-        // Supplier confirms the order (PENDING → CONFIRMED)
-        if (order.status !== "PENDING") {
-          return NextResponse.json(
-            { error: "Can only confirm pending orders" },
-            { status: 400 }
-          );
-        }
-
-        updatedOrder = await prisma.order.update({
-          where: { id: id },
-          data: { status: "CONFIRMED" },
-        });
-
-        // Send email to restaurant
-        if (order.restaurant.email) {
-          const template = emailTemplates.orderConfirmed(
-            order.orderNumber,
-            user.supplier.name,
-            order.restaurant.email
-          );
-          sendEmail({
-            to: order.restaurant.email,
-            subject: template.subject,
-            html: template.html,
-          });
-        }
-        break;
-
-      case "ship": {
-        // Mark order as shipped (CONFIRMED → SHIPPED)
-        if (order.status !== "CONFIRMED") {
-          return NextResponse.json(
-            { error: "Can only ship confirmed orders" },
-            { status: 400 }
-          );
-        }
-
-        const shipData: any = {
-          status: "SHIPPED",
-          shippedAt: new Date(),
-        };
-        if (body.estimatedDeliveryAt) {
-          shipData.estimatedDeliveryAt = new Date(body.estimatedDeliveryAt);
-        }
-        if (body.trackingNotes) {
-          shipData.trackingNotes = body.trackingNotes;
-        }
-        if (body.driverId) {
-          shipData.driverId = body.driverId;
-        }
-
-        updatedOrder = await prisma.order.update({
-          where: { id: id },
-          data: shipData,
-        });
-
-        // Create delivery notification for restaurant
-        const shipRestaurantUser = await prisma.user.findFirst({
-          where: { restaurantId: order.restaurantId },
-        });
-        if (shipRestaurantUser) {
-          await prisma.notification.create({
-            data: {
-              type: "DELIVERY_UPDATE",
-              title: "Order Shipped",
-              message: `Your order ${order.orderNumber} from ${user.supplier.name} has been shipped.${body.estimatedDeliveryAt ? ` ETA: ${new Date(body.estimatedDeliveryAt).toLocaleString()}.` : ""}`,
-              userId: shipRestaurantUser.id,
-              metadata: { orderId: id },
-            },
-          });
-        }
-
-        // Send email to restaurant
-        if (order.restaurant.email) {
-          const template = emailTemplates.orderShipped(
-            order.orderNumber,
-            user.supplier.name,
-            body.estimatedDeliveryAt ? new Date(body.estimatedDeliveryAt) : undefined
-          );
-          sendEmail({
-            to: order.restaurant.email,
-            subject: template.subject,
-            html: template.html,
-          });
-        }
-        break;
-      }
-
       case "out_for_delivery": {
-        // Mark order as in transit (SHIPPED → IN_TRANSIT)
         if (order.status !== "SHIPPED") {
           return NextResponse.json(
-            { error: "Can only mark shipped orders as out for delivery" },
+            { error: "Can only start delivery for shipped orders" },
             { status: 400 }
           );
         }
@@ -267,31 +169,30 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: id },
+          where: { id },
           data: transitData,
         });
 
-        // Create notification for restaurant
-        const transitRestaurantUser = await prisma.user.findFirst({
+        // Notify restaurant
+        const transitUser = await prisma.user.findFirst({
           where: { restaurantId: order.restaurantId },
         });
-        if (transitRestaurantUser) {
+        if (transitUser) {
           await prisma.notification.create({
             data: {
               type: "DELIVERY_UPDATE",
               title: "Order Out for Delivery",
               message: `Your order ${order.orderNumber} is out for delivery!${body.estimatedDeliveryAt ? ` ETA: ${new Date(body.estimatedDeliveryAt).toLocaleString()}.` : ""}`,
-              userId: transitRestaurantUser.id,
+              userId: transitUser.id,
               metadata: { orderId: id },
             },
           });
         }
 
-        // Send email
         if (order.restaurant.email) {
           const template = emailTemplates.orderOutForDelivery(
             order.orderNumber,
-            user.supplier.name,
+            order.supplier.name,
             body.estimatedDeliveryAt ? new Date(body.estimatedDeliveryAt) : undefined
           );
           sendEmail({
@@ -304,7 +205,6 @@ export async function PATCH(
       }
 
       case "update_eta": {
-        // Update ETA without changing status (SHIPPED or IN_TRANSIT)
         if (order.status !== "SHIPPED" && order.status !== "IN_TRANSIT") {
           return NextResponse.json(
             { error: "Can only update ETA for shipped or in-transit orders" },
@@ -327,31 +227,29 @@ export async function PATCH(
         }
 
         updatedOrder = await prisma.order.update({
-          where: { id: id },
+          where: { id },
           data: etaData,
         });
 
-        // Create notification for restaurant
-        const etaRestaurantUser = await prisma.user.findFirst({
+        const etaUser = await prisma.user.findFirst({
           where: { restaurantId: order.restaurantId },
         });
-        if (etaRestaurantUser) {
+        if (etaUser) {
           await prisma.notification.create({
             data: {
               type: "DELIVERY_UPDATE",
               title: "Delivery ETA Updated",
               message: `The ETA for order ${order.orderNumber} has been updated to ${new Date(body.estimatedDeliveryAt).toLocaleString()}.`,
-              userId: etaRestaurantUser.id,
+              userId: etaUser.id,
               metadata: { orderId: id },
             },
           });
         }
 
-        // Send email
         if (order.restaurant.email) {
           const template = emailTemplates.deliveryEtaUpdated(
             order.orderNumber,
-            user.supplier.name,
+            order.supplier.name,
             new Date(body.estimatedDeliveryAt)
           );
           sendEmail({
@@ -364,25 +262,22 @@ export async function PATCH(
       }
 
       case "deliver": {
-        // Mark order as delivered (SHIPPED or IN_TRANSIT → DELIVERED) and auto-generate invoice
         if (order.status !== "SHIPPED" && order.status !== "IN_TRANSIT") {
           return NextResponse.json(
-            { error: "Can only mark shipped or in-transit orders as delivered" },
+            { error: "Can only deliver shipped or in-transit orders" },
             { status: 400 }
           );
         }
 
         const deliverResult = await prisma.$transaction(async (tx) => {
-          // 1. Update order to DELIVERED
           const deliveredOrder = await tx.order.update({
-            where: { id: id },
+            where: { id },
             data: {
               status: "DELIVERED",
               deliveredAt: new Date(),
             },
           });
 
-          // 2. Check for existing invoice (idempotency)
           const existingInvoice = await tx.invoice.findUnique({
             where: { orderId: id },
           });
@@ -390,28 +285,25 @@ export async function PATCH(
             return { order: deliveredOrder, invoice: existingInvoice };
           }
 
-          // 3. Generate invoice number
           const invoiceCount = await tx.invoice.count({
-            where: { supplierId: user.supplier!.id },
+            where: { supplierId: order.supplierId },
           });
-          const invoiceNumber = `INV-${user.supplier!.id.slice(-4).toUpperCase()}-${String(invoiceCount + 1).padStart(5, "0")}`;
+          const invoiceNumber = `INV-${order.supplierId.slice(-4).toUpperCase()}-${String(invoiceCount + 1).padStart(5, "0")}`;
 
-          // 4. Create invoice
           const invoice = await tx.invoice.create({
             data: {
               invoiceNumber,
-              supplierId: user.supplier!.id,
+              supplierId: order.supplierId,
               restaurantId: deliveredOrder.restaurantId,
               orderId: deliveredOrder.id,
               subtotal: deliveredOrder.subtotal,
               tax: deliveredOrder.tax,
               total: deliveredOrder.total,
-              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+              dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
               status: "PENDING",
             },
           });
 
-          // 5. Create notification for restaurant
           const restaurantUser = await tx.user.findFirst({
             where: { restaurantId: deliveredOrder.restaurantId },
           });
@@ -427,12 +319,11 @@ export async function PATCH(
             });
           }
 
-          return { order: deliveredOrder, invoice, restaurantUser };
+          return { order: deliveredOrder, invoice };
         });
 
         updatedOrder = deliverResult.order;
 
-        // Send email to restaurant
         if (order.restaurant.email && deliverResult.invoice) {
           const template = emailTemplates.orderDelivered(
             order.orderNumber,
@@ -448,21 +339,6 @@ export async function PATCH(
         break;
       }
 
-      case "reject":
-        // Supplier rejects the order (PENDING → CANCELLED)
-        if (order.status !== "PENDING") {
-          return NextResponse.json(
-            { error: "Can only reject pending orders" },
-            { status: 400 }
-          );
-        }
-
-        updatedOrder = await prisma.order.update({
-          where: { id: id },
-          data: { status: "CANCELLED" },
-        });
-        break;
-
       default:
         return NextResponse.json({ error: "Invalid action" }, { status: 400 });
     }
@@ -476,7 +352,7 @@ export async function PATCH(
           previousStatus: order.status,
           newStatus: updatedOrder.status,
           restaurantId: order.restaurantId,
-          supplierId: user.supplier.id,
+          supplierId: order.supplierId,
         },
       })
       .catch(() => {});
@@ -488,7 +364,7 @@ export async function PATCH(
           data: {
             orderId: id,
             restaurantId: order.restaurantId,
-            supplierId: user.supplier.id,
+            supplierId: order.supplierId,
           },
         })
         .catch(() => {});
@@ -506,9 +382,9 @@ export async function PATCH(
       },
     });
   } catch (error: any) {
-    console.error("Update order error:", error);
+    console.error("Update delivery error:", error);
     return NextResponse.json(
-      { error: "Failed to update order", details: error?.message },
+      { error: "Failed to update delivery", details: error?.message },
       { status: 500 }
     );
   }

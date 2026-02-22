@@ -76,6 +76,14 @@ export async function GET(request: Request) {
             },
           },
         },
+        driver: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            phone: true,
+          },
+        },
         _count: {
           select: { items: true },
         },

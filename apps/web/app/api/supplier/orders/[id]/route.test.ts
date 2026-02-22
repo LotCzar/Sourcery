@@ -184,6 +184,8 @@ describe("PATCH /api/supplier/orders/[id]", () => {
 
     const updated = createMockOrder({ status: "SHIPPED" });
     prismaMock.order.update.mockResolvedValueOnce(updated as any);
+    prismaMock.user.findFirst.mockResolvedValueOnce({ id: "user_1" } as any);
+    prismaMock.notification.create.mockResolvedValueOnce({} as any);
 
     const response = await PATCH(
       createJsonRequest("http://localhost/api/supplier/orders/order_1", { action: "ship" }, "PATCH"),
@@ -194,7 +196,7 @@ describe("PATCH /api/supplier/orders/[id]", () => {
     expect(status).toBe(200);
     expect(prismaMock.order.update).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: { status: "SHIPPED" },
+        data: expect.objectContaining({ status: "SHIPPED" }),
       })
     );
   });

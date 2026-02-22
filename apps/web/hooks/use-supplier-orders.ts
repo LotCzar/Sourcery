@@ -26,10 +26,22 @@ export function useUpdateSupplierOrder() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, action }: { id: string; action: string }) =>
+    mutationFn: ({
+      id,
+      action,
+      estimatedDeliveryAt,
+      trackingNotes,
+      driverId,
+    }: {
+      id: string;
+      action: string;
+      estimatedDeliveryAt?: string;
+      trackingNotes?: string;
+      driverId?: string;
+    }) =>
       apiFetch(`/api/supplier/orders/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, estimatedDeliveryAt, trackingNotes, driverId }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.supplier.orders.all });

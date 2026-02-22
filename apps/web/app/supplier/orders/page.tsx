@@ -27,6 +27,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   ShoppingCart,
   Search,
@@ -41,9 +42,11 @@ import {
   MapPin,
   Phone,
   Mail,
+  User,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupplierOrders, useUpdateSupplierOrder } from "@/hooks/use-supplier-orders";
+import { useSupplierDrivers } from "@/hooks/use-supplier-drivers";
 
 interface OrderItem {
   id: string;
@@ -110,6 +113,11 @@ const statusConfig: Record<
     color: "bg-indigo-100 text-indigo-700",
     icon: <Truck className="h-3 w-3" />,
   },
+  IN_TRANSIT: {
+    label: "In Transit",
+    color: "bg-emerald-100 text-emerald-700",
+    icon: <Truck className="h-3 w-3" />,
+  },
   DELIVERED: {
     label: "Delivered",
     color: "bg-green-100 text-green-700",
@@ -131,7 +139,11 @@ const statusActions: Record<string, { action: string; label: string; color: stri
     { action: "ship", label: "Mark as Shipped", color: "bg-indigo-600 hover:bg-indigo-700" },
   ],
   SHIPPED: [
-    { action: "deliver", label: "Mark as Delivered", color: "bg-green-600 hover:bg-green-700" },
+    { action: "out_for_delivery", label: "Out for Delivery", color: "bg-emerald-600 hover:bg-emerald-700" },
+    { action: "deliver", label: "Mark Delivered", color: "bg-green-600 hover:bg-green-700" },
+  ],
+  IN_TRANSIT: [
+    { action: "deliver", label: "Mark Delivered", color: "bg-green-600 hover:bg-green-700" },
   ],
 };
 
@@ -143,22 +155,60 @@ export default function SupplierOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState(initialStatus);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [shipDialog, setShipDialog] = useState<{ orderId: string; action: string } | null>(null);
+  const [shipEta, setShipEta] = useState("");
+  const [shipNotes, setShipNotes] = useState("");
+  const [shipDriverId, setShipDriverId] = useState("");
 
   const { data: result, isLoading, error } = useSupplierOrders(selectedStatus);
+  const { data: driversResult } = useSupplierDrivers();
   const updateOrder = useUpdateSupplierOrder();
 
   const orders: Order[] = result?.data ?? [];
+  const drivers = driversResult?.data ?? [];
 
   const handleAction = async (orderId: string, action: string) => {
+    // For ship action, open the ship dialog instead
+    if (action === "ship") {
+      setShipDialog({ orderId, action });
+      setShipEta("");
+      setShipNotes("");
+      setShipDriverId("");
+      return;
+    }
+
     updateOrder.mutate(
       { id: orderId, action },
       {
         onSuccess: () => {
           setSelectedOrder(null);
-          toast({ title: `Order ${action}ed successfully` });
+          toast({ title: `Order ${action === "out_for_delivery" ? "marked out for delivery" : action + "ed"} successfully` });
         },
         onError: (err) => {
           toast({ title: "Failed to update order", description: err.message, variant: "destructive" });
+        },
+      }
+    );
+  };
+
+  const handleShipSubmit = () => {
+    if (!shipDialog) return;
+    updateOrder.mutate(
+      {
+        id: shipDialog.orderId,
+        action: shipDialog.action,
+        estimatedDeliveryAt: shipEta ? new Date(shipEta).toISOString() : undefined,
+        trackingNotes: shipNotes || undefined,
+        driverId: shipDriverId || undefined,
+      },
+      {
+        onSuccess: () => {
+          setShipDialog(null);
+          setSelectedOrder(null);
+          toast({ title: "Order shipped successfully" });
+        },
+        onError: (err) => {
+          toast({ title: "Failed to ship order", description: err.message, variant: "destructive" });
         },
       }
     );
@@ -240,6 +290,7 @@ export default function SupplierOrdersPage() {
                 <SelectItem value="PENDING">Pending</SelectItem>
                 <SelectItem value="CONFIRMED">Confirmed</SelectItem>
                 <SelectItem value="SHIPPED">Shipped</SelectItem>
+                <SelectItem value="IN_TRANSIT">In Transit</SelectItem>
                 <SelectItem value="DELIVERED">Delivered</SelectItem>
                 <SelectItem value="CANCELLED">Cancelled</SelectItem>
               </SelectContent>
@@ -299,9 +350,19 @@ export default function SupplierOrdersPage() {
                       <p className="text-lg font-bold">
                         {formatCurrency(order.total)}
                       </p>
-                      {order.deliveryDate && (
+                      {(order as any).estimatedDeliveryAt ? (
+                        <p className="text-xs text-muted-foreground">
+                          ETA: {new Date((order as any).estimatedDeliveryAt).toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}
+                        </p>
+                      ) : order.deliveryDate ? (
                         <p className="text-xs text-muted-foreground">
                           Deliver by: {new Date(order.deliveryDate).toLocaleDateString()}
+                        </p>
+                      ) : null}
+                      {(order as any).driver && (
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 justify-end">
+                          <User className="h-3 w-3" />
+                          {(order as any).driver.firstName} {(order as any).driver.lastName}
                         </p>
                       )}
                     </div>
@@ -476,6 +537,74 @@ export default function SupplierOrdersPage() {
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Ship Dialog with ETA and Driver */}
+      <Dialog open={!!shipDialog} onOpenChange={() => setShipDialog(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Ship Order</DialogTitle>
+            <DialogDescription>
+              Set an estimated delivery time and optionally assign a driver.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="ship-eta">Estimated Delivery Time</Label>
+              <Input
+                id="ship-eta"
+                type="datetime-local"
+                value={shipEta}
+                onChange={(e) => setShipEta(e.target.value)}
+              />
+            </div>
+            {drivers.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="ship-driver">Assign Driver (optional)</Label>
+                <Select value={shipDriverId} onValueChange={setShipDriverId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a driver..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">No driver</SelectItem>
+                    {drivers.map((driver: any) => (
+                      <SelectItem key={driver.id} value={driver.id}>
+                        {driver.firstName} {driver.lastName || ""}
+                        {driver.phone && ` (${driver.phone})`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="ship-notes">Tracking Notes (optional)</Label>
+              <Input
+                id="ship-notes"
+                placeholder="e.g., Refrigerated truck #12"
+                value={shipNotes}
+                onChange={(e) => setShipNotes(e.target.value)}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShipDialog(null)}>
+              Cancel
+            </Button>
+            <Button
+              className="bg-indigo-600 hover:bg-indigo-700"
+              onClick={handleShipSubmit}
+              disabled={updateOrder.isPending}
+            >
+              {updateOrder.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Truck className="mr-2 h-4 w-4" />
+              )}
+              Ship Order
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

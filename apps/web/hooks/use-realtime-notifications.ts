@@ -8,7 +8,7 @@ import { useRealtime } from "./use-realtime";
 
 const notificationVariantMap: Record<string, "default" | "destructive" | "success" | "warning"> = {
   PRICE_ALERT: "destructive",
-  DELIVERY_UPDATE: "default",
+  DELIVERY_UPDATE: "success",
   ORDER_UPDATE: "success",
   SYSTEM: "warning",
   PROMOTION: "default",

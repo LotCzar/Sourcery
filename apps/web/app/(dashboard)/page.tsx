@@ -35,6 +35,7 @@ import {
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { PendingApprovals } from "@/components/dashboard/pending-approvals";
+import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries";
 import { useAnalytics } from "@/hooks/use-analytics";
 import {
   LineChart,
@@ -55,6 +56,7 @@ const STATUS_COLORS: Record<string, string> = {
   PENDING: "#EAB308",
   CONFIRMED: "#3B82F6",
   SHIPPED: "#6366F1",
+  IN_TRANSIT: "#10B981",
   DELIVERED: "#22C55E",
   CANCELLED: "#EF4444",
 };
@@ -83,6 +85,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   SHIPPED: {
     label: "Shipped",
     color: "bg-indigo-100 text-indigo-700",
+    icon: <Truck className="h-3 w-3" />,
+  },
+  IN_TRANSIT: {
+    label: "In Transit",
+    color: "bg-emerald-100 text-emerald-700",
     icon: <Truck className="h-3 w-3" />,
   },
   DELIVERED: {
@@ -223,6 +230,11 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* Upcoming Deliveries */}
+      {data.upcomingDeliveries?.length > 0 && (
+        <UpcomingDeliveries deliveries={data.upcomingDeliveries} />
       )}
 
       {/* Quick Actions */}

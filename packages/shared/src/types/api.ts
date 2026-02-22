@@ -56,6 +56,21 @@ export interface DashboardData {
     highestPrice: number;
     potentialSavings: number;
   }[];
+  upcomingDeliveries: {
+    id: string;
+    orderNumber: string;
+    status: string;
+    total: number;
+    deliveryDate: string | null;
+    estimatedDeliveryAt: string | null;
+    shippedAt: string | null;
+    inTransitAt: string | null;
+    trackingNotes: string | null;
+    supplier: { id: string; name: string };
+    driver: { id: string; firstName: string | null; phone: string | null } | null;
+    itemCount: number;
+    createdAt: string;
+  }[];
   restaurant: {
     name: string;
     cuisineType: string | null;

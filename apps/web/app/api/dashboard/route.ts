@@ -43,6 +43,7 @@ export async function GET() {
       overdueInvoiceCount,
       allInventoryItems,
       criticalInsights,
+      upcomingDeliveries,
     ] = await Promise.all([
       // All orders for the restaurant
       prisma.order.findMany({
@@ -145,6 +146,24 @@ export async function GET() {
         },
         include: {
           inventoryItem: { select: { name: true } },
+        },
+      }).catch(() => []),
+
+      // Upcoming deliveries (orders in transit or confirmed/shipped)
+      prisma.order.findMany({
+        where: {
+          restaurantId,
+          status: { in: ["CONFIRMED", "SHIPPED", "IN_TRANSIT"] },
+        },
+        orderBy: [
+          { estimatedDeliveryAt: "asc" },
+          { deliveryDate: "asc" },
+        ],
+        take: 10,
+        include: {
+          supplier: { select: { id: true, name: true } },
+          driver: { select: { id: true, firstName: true, phone: true } },
+          _count: { select: { items: true } },
         },
       }).catch(() => []),
     ]);
@@ -257,6 +276,21 @@ export async function GET() {
         recentOrders: formattedRecentOrders,
         topSuppliers,
         savingsOpportunities,
+        upcomingDeliveries: (upcomingDeliveries as any[]).map((order: any) => ({
+          id: order.id,
+          orderNumber: order.orderNumber,
+          status: order.status,
+          total: Number(order.total),
+          deliveryDate: order.deliveryDate,
+          estimatedDeliveryAt: order.estimatedDeliveryAt,
+          shippedAt: order.shippedAt,
+          inTransitAt: order.inTransitAt,
+          trackingNotes: order.trackingNotes,
+          supplier: order.supplier,
+          driver: order.driver,
+          itemCount: order._count.items,
+          createdAt: order.createdAt,
+        })),
         restaurant: {
           name: user.restaurant.name,
           cuisineType: user.restaurant.cuisineType,

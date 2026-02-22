@@ -114,11 +114,17 @@ const statusConfig: Record<
     icon: <Truck className="h-4 w-4" />,
     step: 3,
   },
+  IN_TRANSIT: {
+    label: "In Transit",
+    color: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    icon: <Truck className="h-4 w-4" />,
+    step: 4,
+  },
   DELIVERED: {
     label: "Delivered",
     color: "bg-green-100 text-green-700 border-green-300",
     icon: <CheckCircle className="h-4 w-4" />,
-    step: 4,
+    step: 5,
   },
   CANCELLED: {
     label: "Cancelled",
@@ -128,7 +134,7 @@ const statusConfig: Record<
   },
 };
 
-const statusSteps = ["DRAFT", "PENDING", "CONFIRMED", "SHIPPED", "DELIVERED"];
+const statusSteps = ["DRAFT", "PENDING", "CONFIRMED", "SHIPPED", "IN_TRANSIT", "DELIVERED"];
 
 export default function OrdersPage() {
   const { data: result, isLoading, error } = useOrders();

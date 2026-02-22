@@ -76,7 +76,7 @@ export const emailTemplates = {
     `,
   }),
 
-  orderShipped: (orderNumber: string, supplierName: string) => ({
+  orderShipped: (orderNumber: string, supplierName: string, eta?: Date) => ({
     subject: `Order Shipped: ${orderNumber}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
@@ -84,6 +84,43 @@ export const emailTemplates = {
         <p>Your order from <strong>${supplierName}</strong> is on the way!</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
           <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          ${eta ? `<p style="margin: 8px 0 0;"><strong>Estimated Delivery:</strong> ${eta.toLocaleString()}</p>` : ''}
+        </div>
+        <p>Track your order status in your FreshSheet dashboard.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  orderOutForDelivery: (orderNumber: string, supplierName: string, eta?: Date) => ({
+    subject: `Out for Delivery: ${orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Out for Delivery</h1>
+        <p>Your order from <strong>${supplierName}</strong> is out for delivery!</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          ${eta ? `<p style="margin: 8px 0 0;"><strong>Estimated Arrival:</strong> ${eta.toLocaleString()}</p>` : ''}
+        </div>
+        <p>Your delivery driver is on the way. Track updates in your FreshSheet dashboard.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  deliveryEtaUpdated: (orderNumber: string, supplierName: string, eta: Date) => ({
+    subject: `ETA Updated: ${orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Delivery ETA Updated</h1>
+        <p>The estimated delivery time for your order from <strong>${supplierName}</strong> has been updated.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 8px 0 0;"><strong>New ETA:</strong> ${eta.toLocaleString()}</p>
         </div>
         <p>Track your order status in your FreshSheet dashboard.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">

@@ -18,6 +18,7 @@ enum UserRole {
   ORG_ADMIN
   SUPPLIER_ADMIN
   SUPPLIER_REP
+  DRIVER
 }
 
 enum OrderStatus {
@@ -158,6 +159,7 @@ model User {
   approvalRequests OrderApproval[] @relation("ApprovalRequests")
   approvalReviews  OrderApproval[] @relation("ApprovalReviews")
   sentMessages     OrderMessage[]
+  driverDeliveries Order[]        @relation("DriverDeliveries")
 
   // Guided tour
   tourCompletedAt   DateTime?
@@ -422,9 +424,13 @@ model Order {
   total         Decimal     @db.Decimal(10, 2)
 
   // Delivery
-  deliveryDate  DateTime?
-  deliveryNotes String?
-  deliveredAt   DateTime?
+  deliveryDate         DateTime?
+  deliveryNotes        String?
+  deliveredAt          DateTime?
+  estimatedDeliveryAt  DateTime?
+  shippedAt            DateTime?
+  inTransitAt          DateTime?
+  trackingNotes        String?
 
   // Relations
   restaurantId  String
@@ -435,6 +441,9 @@ model Order {
 
   createdById   String
   createdBy     User        @relation(fields: [createdById], references: [id])
+
+  driverId      String?
+  driver        User?       @relation("DriverDeliveries", fields: [driverId], references: [id])
 
   items         OrderItem[]
   invoice       Invoice?
@@ -448,6 +457,7 @@ model Order {
   @@index([supplierId])
   @@index([status])
   @@index([orderNumber])
+  @@index([driverId])
 }
 
 model OrderItem {

@@ -72,6 +72,12 @@ export const queryKeys = {
     settings: ["supplier", "settings"] as const,
     analytics: (period?: string) => ["supplier", "analytics", period] as const,
     customers: ["supplier", "customers"] as const,
+    drivers: ["supplier", "drivers"] as const,
+  },
+  driver: {
+    deliveries: ["driver", "deliveries"] as const,
+    delivery: (id: string) => ["driver", "deliveries", id] as const,
+    stats: ["driver", "stats"] as const,
   },
   approvals: {
     rules: ["approvals", "rules"] as const,

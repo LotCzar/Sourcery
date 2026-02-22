@@ -14,6 +14,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Loader2,
   AlertCircle,
   Building,
@@ -22,9 +30,13 @@ import {
   Save,
   HelpCircle,
   RotateCcw,
+  Users,
+  Plus,
+  Trash2,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupplierSettings, useUpdateSupplierSettings } from "@/hooks/use-supplier-settings";
+import { useSupplierDrivers, useAddDriver, useRemoveDriver } from "@/hooks/use-supplier-drivers";
 import { useTour } from "@/lib/tour-context";
 
 const supplierStatusConfig: Record<string, { label: string; color: string }> = {
@@ -321,6 +333,9 @@ export default function SupplierSettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Drivers */}
+      <DriversSection />
+
       {/* Guided Tour */}
       <GuidedTourCard />
 
@@ -341,6 +356,197 @@ export default function SupplierSettingsPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+function DriversSection() {
+  const { toast } = useToast();
+  const { data: driversResult, isLoading } = useSupplierDrivers();
+  const addDriver = useAddDriver();
+  const removeDriver = useRemoveDriver();
+
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newDriver, setNewDriver] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+  });
+
+  const drivers = driversResult?.data ?? [];
+
+  const handleAdd = () => {
+    if (!newDriver.firstName || !newDriver.email) {
+      toast({
+        title: "First name and email are required",
+        variant: "destructive",
+      });
+      return;
+    }
+    addDriver.mutate(newDriver, {
+      onSuccess: () => {
+        setShowAddDialog(false);
+        setNewDriver({ firstName: "", lastName: "", email: "", phone: "" });
+        toast({ title: "Driver added successfully" });
+      },
+      onError: (err) => {
+        toast({
+          title: "Failed to add driver",
+          description: err.message,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handleRemove = (id: string, name: string) => {
+    removeDriver.mutate(id, {
+      onSuccess: () => toast({ title: `${name} removed` }),
+      onError: (err) => {
+        toast({
+          title: "Failed to remove driver",
+          description: err.message,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5" />
+                Drivers
+              </CardTitle>
+              <CardDescription>
+                Manage your delivery drivers
+              </CardDescription>
+            </div>
+            <Button size="sm" onClick={() => setShowAddDialog(true)}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Driver
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          ) : drivers.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No drivers added yet. Add drivers to assign them to deliveries.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {drivers.map((driver: any) => (
+                <div
+                  key={driver.id}
+                  className="flex items-center justify-between rounded-lg border p-3"
+                >
+                  <div>
+                    <p className="font-medium">
+                      {driver.firstName} {driver.lastName || ""}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {driver.email}
+                      {driver.phone && ` - ${driver.phone}`}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {driver.deliveryCount} deliveries completed
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() =>
+                      handleRemove(driver.id, driver.firstName || "Driver")
+                    }
+                    disabled={removeDriver.isPending}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Driver</DialogTitle>
+            <DialogDescription>
+              Add a new delivery driver to your team.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="driver-first">First Name *</Label>
+                <Input
+                  id="driver-first"
+                  value={newDriver.firstName}
+                  onChange={(e) =>
+                    setNewDriver({ ...newDriver, firstName: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="driver-last">Last Name</Label>
+                <Input
+                  id="driver-last"
+                  value={newDriver.lastName}
+                  onChange={(e) =>
+                    setNewDriver({ ...newDriver, lastName: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="driver-email">Email *</Label>
+              <Input
+                id="driver-email"
+                type="email"
+                value={newDriver.email}
+                onChange={(e) =>
+                  setNewDriver({ ...newDriver, email: e.target.value })
+                }
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="driver-phone">Phone</Label>
+              <Input
+                id="driver-phone"
+                value={newDriver.phone}
+                onChange={(e) =>
+                  setNewDriver({ ...newDriver, phone: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAdd} disabled={addDriver.isPending}>
+              {addDriver.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Plus className="mr-2 h-4 w-4" />
+              )}
+              Add Driver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 

@@ -45,6 +45,9 @@ function setupDashboardMocks({
   prismaMock.inventoryItem.findMany.mockResolvedValueOnce(inventoryItems as any);
   prismaMock.consumptionInsight.findMany.mockResolvedValueOnce(criticalInsights as any);
 
+  // Upcoming deliveries query (5th order.findMany)
+  prismaMock.order.findMany.mockResolvedValueOnce([] as any);
+
   // supplierDetails follow-up query
   prismaMock.supplier.findMany.mockResolvedValueOnce(
     suppliers.map((s: any) => ({ id: s.supplierId, name: `Supplier ${s.supplierId}` })) as any
