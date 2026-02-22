@@ -19,7 +19,9 @@ import {
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { useOrg } from "@/lib/org-context";
+import { useUnreadCount } from "@/hooks/use-messages";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -38,6 +40,8 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const { isOrgAdmin } = useOrg();
+  const { data: unreadResult } = useUnreadCount();
+  const unreadCount = unreadResult?.data?.unreadCount || 0;
 
   const orgNavItem = {
     name: "Organization",
@@ -76,6 +80,11 @@ export function Sidebar() {
               >
                 <item.icon className="h-5 w-5" />
                 {item.name}
+                {item.name === "Orders" && unreadCount > 0 && (
+                  <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 text-xs">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </Badge>
+                )}
               </Button>
             </Link>
           );

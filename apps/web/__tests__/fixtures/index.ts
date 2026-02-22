@@ -328,3 +328,62 @@ export function createMockOrgAdmin(overrides?: Record<string, unknown>) {
     ...overrides,
   });
 }
+
+export function createMockApprovalRule(overrides?: Record<string, unknown>) {
+  return {
+    id: "rule_1",
+    minAmount: new Decimal("500.00"),
+    maxAmount: null,
+    requiredRole: "MANAGER" as const,
+    isActive: true,
+    restaurantId: "rest_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockOrderApproval(overrides?: Record<string, unknown>) {
+  return {
+    id: "approval_1",
+    status: "PENDING" as const,
+    notes: null,
+    orderId: "order_1",
+    requestedById: "user_1",
+    reviewedById: null,
+    reviewedAt: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockOrderMessage(overrides?: Record<string, unknown>) {
+  return {
+    id: "omsg_1",
+    content: "When can we expect delivery?",
+    orderId: "order_1",
+    senderId: "user_1",
+    isInternal: false,
+    readAt: null,
+    createdAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockAccountingIntegration(overrides?: Record<string, unknown>) {
+  return {
+    id: "acct_1",
+    provider: "QUICKBOOKS" as const,
+    accessToken: "qb_access_token",
+    refreshToken: "qb_refresh_token",
+    realmId: "realm_123",
+    tenantId: null,
+    isActive: true,
+    lastSyncAt: null,
+    restaurantId: "rest_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}

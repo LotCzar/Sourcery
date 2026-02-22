@@ -90,6 +90,12 @@ const statusConfig: Record<
     icon: <FileText className="h-4 w-4" />,
     step: 0,
   },
+  AWAITING_APPROVAL: {
+    label: "Awaiting Approval",
+    color: "bg-orange-100 text-orange-700 border-orange-300",
+    icon: <Clock className="h-4 w-4" />,
+    step: 0,
+  },
   PENDING: {
     label: "Pending",
     color: "bg-yellow-100 text-yellow-700 border-yellow-300",

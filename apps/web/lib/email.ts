@@ -150,6 +150,59 @@ export const emailTemplates = {
     `,
   }),
 
+  approvalRequested: (orderNumber: string, requesterName: string, total: number) => ({
+    subject: `Approval Required: Order ${orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Order Requires Your Approval</h1>
+        <p><strong>${requesterName}</strong> has submitted an order that requires your approval.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 8px 0 0;"><strong>Total:</strong> $${total.toFixed(2)}</p>
+        </div>
+        <p>Log in to your FreshSheet dashboard to review and approve or reject this order.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  approvalDecision: (orderNumber: string, status: string, reviewerName: string, notes?: string) => ({
+    subject: `Order ${status === 'APPROVED' ? 'Approved' : 'Rejected'}: ${orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: ${status === 'APPROVED' ? '#16a34a' : '#dc2626'};">Order ${status === 'APPROVED' ? 'Approved' : 'Rejected'}</h1>
+        <p>Your order has been <strong>${status === 'APPROVED' ? 'approved' : 'rejected'}</strong> by <strong>${reviewerName}</strong>.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          ${notes ? `<p style="margin: 8px 0 0;"><strong>Notes:</strong> ${notes}</p>` : ''}
+        </div>
+        <p>${status === 'APPROVED' ? 'Your order has been submitted to the supplier.' : 'Please review and resubmit the order.'}</p>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  orderMessage: (orderNumber: string, senderName: string, messagePreview: string) => ({
+    subject: `New Message on Order ${orderNumber}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">New Message on Order</h1>
+        <p><strong>${senderName}</strong> sent a message on order <strong>${orderNumber}</strong>.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0; color: #333;">"${messagePreview.length > 200 ? messagePreview.slice(0, 200) + '...' : messagePreview}"</p>
+        </div>
+        <p>Log in to your FreshSheet dashboard to view and reply.</p>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   weeklyDigest: (restaurantName: string, aiSummary: string, metrics: { totalSpend: number; orderCount: number; lowStockCount: number; priceAlerts: number; wastePercent: number; overdueInvoices: number }) => ({
     subject: `Weekly Digest: ${restaurantName}`,
     html: `

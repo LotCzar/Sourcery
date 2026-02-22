@@ -28,6 +28,7 @@ describe("PATCH /api/orders/[id]", () => {
         supplier: createMockSupplier(),
       };
       prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+      prismaMock.approvalRule.findMany.mockResolvedValueOnce([]);
 
       const updatedOrder = createMockOrder({
         status: "PENDING",
@@ -134,6 +135,7 @@ describe("PATCH /api/orders/[id]", () => {
         supplier: createMockSupplier({ minimumOrder: new Decimal("50.00") }),
       };
       prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+      prismaMock.approvalRule.findMany.mockResolvedValueOnce([]);
 
       const updatedOrder = createMockOrder({ status: "PENDING" });
       prismaMock.order.update.mockResolvedValueOnce(updatedOrder as any);
@@ -156,6 +158,7 @@ describe("PATCH /api/orders/[id]", () => {
         supplier: createMockSupplier({ minimumOrder: null }),
       };
       prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+      prismaMock.approvalRule.findMany.mockResolvedValueOnce([]);
 
       const updatedOrder = createMockOrder({ status: "PENDING" });
       prismaMock.order.update.mockResolvedValueOnce(updatedOrder as any);
@@ -179,6 +182,7 @@ describe("PATCH /api/orders/[id]", () => {
         supplier,
       };
       prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
+      prismaMock.approvalRule.findMany.mockResolvedValueOnce([]);
 
       const updatedOrder = createMockOrder({ status: "PENDING" });
       prismaMock.order.update.mockResolvedValueOnce(updatedOrder as any);
@@ -259,7 +263,7 @@ describe("PATCH /api/orders/[id]", () => {
       const { status, data } = await parseResponse(response);
 
       expect(status).toBe(400);
-      expect(data.error).toBe("Can only cancel draft or pending orders");
+      expect(data.error).toBe("Can only cancel draft, awaiting approval, or pending orders");
     });
   });
 

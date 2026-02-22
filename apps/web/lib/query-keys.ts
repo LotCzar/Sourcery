@@ -70,5 +70,19 @@ export const queryKeys = {
       detail: (id: string) => ["supplier", "invoices", id] as const,
     },
     settings: ["supplier", "settings"] as const,
+    analytics: (period?: string) => ["supplier", "analytics", period] as const,
+    customers: ["supplier", "customers"] as const,
+  },
+  approvals: {
+    rules: ["approvals", "rules"] as const,
+    pending: ["approvals", "pending"] as const,
+  },
+  messages: {
+    byOrder: (orderId: string) => ["messages", "order", orderId] as const,
+    unread: ["messages", "unread"] as const,
+  },
+  accounting: {
+    integration: ["accounting", "integration"] as const,
+    mappings: ["accounting", "mappings"] as const,
   },
 };

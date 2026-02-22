@@ -24,6 +24,8 @@ import {
   XCircle,
   AlertCircle,
   Plus,
+  BarChart3,
+  Users,
 } from "lucide-react";
 import { useSupplierDashboard } from "@/hooks/use-supplier-dashboard";
 
@@ -140,6 +142,12 @@ export default function SupplierDashboardPage() {
             <Link href="/supplier/orders">
               <ShoppingCart className="mr-2 h-4 w-4" />
               View Orders
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/supplier/products?mode=bulk">
+              <BarChart3 className="mr-2 h-4 w-4" />
+              Bulk Update
             </Link>
           </Button>
           <Button asChild>

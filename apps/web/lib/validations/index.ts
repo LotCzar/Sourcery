@@ -6,6 +6,7 @@ import { z } from "zod";
 
 export const OrderStatusSchema = z.enum([
   "DRAFT",
+  "AWAITING_APPROVAL",
   "PENDING",
   "CONFIRMED",
   "PROCESSING",
@@ -157,6 +158,43 @@ export const POSProviderSchema = z.enum([
 export const ConnectIntegrationSchema = z.object({
   provider: POSProviderSchema,
   storeId: z.string().optional(),
+});
+
+// Approval Workflows
+export const UserRoleSchema = z.enum([
+  "OWNER",
+  "MANAGER",
+  "STAFF",
+  "ORG_ADMIN",
+  "SUPPLIER_ADMIN",
+  "SUPPLIER_REP",
+]);
+
+export const ApprovalRuleSchema = z.object({
+  minAmount: z.number().positive("Minimum amount must be positive"),
+  maxAmount: z.number().positive().optional(),
+  requiredRole: UserRoleSchema.default("MANAGER"),
+  isActive: z.boolean().optional(),
+});
+
+export const ReviewApprovalSchema = z.object({
+  status: z.enum(["APPROVED", "REJECTED"]),
+  notes: z.string().optional(),
+});
+
+// Messaging
+export const OrderMessageSchema = z.object({
+  content: z.string().min(1, "Message cannot be empty").max(5000, "Message too long"),
+  isInternal: z.boolean().optional(),
+});
+
+// Accounting
+export const AccountingProviderSchema = z.enum(["QUICKBOOKS", "XERO"]);
+
+export const AccountingMappingSchema = z.object({
+  productCategory: ProductCategorySchema,
+  accountingCode: z.string().min(1),
+  accountingName: z.string().optional(),
 });
 
 // AI Parse Menu

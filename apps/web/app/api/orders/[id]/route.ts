@@ -186,6 +186,67 @@ export async function PATCH(
           }
         }
 
+        // Check approval rules
+        const orderTotal = Number(order.total);
+        const approvalRules = await prisma.approvalRule.findMany({
+          where: {
+            restaurantId: user.restaurant.id,
+            isActive: true,
+          },
+        });
+
+        const matchingRule = approvalRules.find((rule) => {
+          const min = Number(rule.minAmount);
+          const max = rule.maxAmount ? Number(rule.maxAmount) : Infinity;
+          return orderTotal >= min && orderTotal <= max;
+        });
+
+        // Role hierarchy for approval bypass
+        const roleHierarchy: Record<string, number> = {
+          STAFF: 0,
+          MANAGER: 1,
+          OWNER: 2,
+          ORG_ADMIN: 2,
+        };
+
+        if (
+          matchingRule &&
+          (roleHierarchy[user.role] ?? 0) < (roleHierarchy[matchingRule.requiredRole] ?? 0)
+        ) {
+          // User needs approval — transition to AWAITING_APPROVAL
+          updatedOrder = await prisma.order.update({
+            where: { id },
+            data: { status: "AWAITING_APPROVAL" },
+          });
+
+          await prisma.orderApproval.create({
+            data: {
+              orderId: id,
+              requestedById: user.id,
+              status: "PENDING",
+            },
+          });
+
+          // Emit Inngest event for approval notification
+          inngest
+            .send({
+              name: "order/approval.requested",
+              data: {
+                orderId: id,
+                orderNumber: order.orderNumber,
+                requestedById: user.id,
+                requesterName: `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email,
+                total: orderTotal,
+                restaurantId: user.restaurant.id,
+                requiredRole: matchingRule.requiredRole,
+              },
+            })
+            .catch(() => {});
+
+          break;
+        }
+
+        // No approval needed — go directly to PENDING
         // Calculate expected delivery date based on supplier lead time
         const deliveryDate = new Date();
         deliveryDate.setDate(
@@ -217,10 +278,10 @@ export async function PATCH(
       }
 
       case "cancel":
-        // Can only cancel DRAFT or PENDING orders
-        if (!["DRAFT", "PENDING"].includes(order.status)) {
+        // Can only cancel DRAFT, AWAITING_APPROVAL, or PENDING orders
+        if (!["DRAFT", "AWAITING_APPROVAL", "PENDING"].includes(order.status)) {
           return NextResponse.json(
-            { error: "Can only cancel draft or pending orders" },
+            { error: "Can only cancel draft, awaiting approval, or pending orders" },
             { status: 400 }
           );
         }

@@ -31,6 +31,18 @@ export const mockEmailTemplates = {
     subject: "Weekly Digest: Test Restaurant",
     html: "<p>Test weekly digest email</p>",
   }),
+  approvalRequested: vi.fn().mockReturnValue({
+    subject: "Approval Required: ORD-TEST",
+    html: "<p>Test approval requested email</p>",
+  }),
+  approvalDecision: vi.fn().mockReturnValue({
+    subject: "Order Approved: ORD-TEST",
+    html: "<p>Test approval decision email</p>",
+  }),
+  orderMessage: vi.fn().mockReturnValue({
+    subject: "New Message on Order ORD-TEST",
+    html: "<p>Test order message email</p>",
+  }),
 };
 
 vi.mock("@/lib/email", () => ({

@@ -59,7 +59,11 @@ import {
   Unplug,
   CheckCircle2,
   Clock,
+  Plus,
+  DollarSign,
 } from "lucide-react";
+import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
+import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
 
 const cuisineTypes = [
   "American",
@@ -863,45 +867,9 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Accounting</CardTitle>
-                  <CardDescription>
-                    Connect your accounting software for expense tracking
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                        <span className="font-bold text-green-600">QB</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">QuickBooks</p>
-                        <p className="text-sm text-muted-foreground">
-                          Sync expenses and invoices
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline" disabled>Coming Soon</Button>
-                  </div>
+              <ApprovalRulesSection />
 
-                  <div className="flex items-center justify-between rounded-lg border p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                        <span className="font-bold text-blue-600">X</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Xero</p>
-                        <p className="text-sm text-muted-foreground">
-                          Automated bookkeeping integration
-                        </p>
-                      </div>
-                    </div>
-                    <Button variant="outline" disabled>Coming Soon</Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <AccountingSection />
             </TabsContent>
 
             {/* Developer Tab */}
@@ -1126,5 +1094,250 @@ export default function SettingsPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function ApprovalRulesSection() {
+  const { data: rulesResult, isLoading } = useApprovalRules();
+  const createRule = useCreateApprovalRule();
+  const deleteRule = useDeleteApprovalRule();
+  const [showForm, setShowForm] = useState(false);
+  const [minAmount, setMinAmount] = useState("");
+  const [maxAmount, setMaxAmount] = useState("");
+  const [requiredRole, setRequiredRole] = useState("MANAGER");
+  const { toast } = useToast();
+
+  const rules = rulesResult?.data || [];
+
+  const handleCreate = async () => {
+    try {
+      await createRule.mutateAsync({
+        minAmount: parseFloat(minAmount),
+        maxAmount: maxAmount ? parseFloat(maxAmount) : undefined,
+        requiredRole,
+      });
+      setShowForm(false);
+      setMinAmount("");
+      setMaxAmount("");
+      setRequiredRole("MANAGER");
+      toast({ title: "Approval rule created" });
+    } catch (err: any) {
+      toast({ title: "Failed to create rule", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          Order Approval Rules
+        </CardTitle>
+        <CardDescription>
+          Configure spending thresholds that require manager or owner approval before orders are submitted
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : rules.length === 0 && !showForm ? (
+          <p className="text-sm text-muted-foreground">
+            No approval rules configured. All orders will be submitted directly to suppliers.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {rules.map((rule: any) => (
+              <div key={rule.id} className="flex items-center justify-between rounded-lg border p-3">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">
+                    Orders ${rule.minAmount.toFixed(2)}
+                    {rule.maxAmount ? ` - $${rule.maxAmount.toFixed(2)}` : "+"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Requires {rule.requiredRole.toLowerCase()} approval
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => deleteRule.mutate(rule.id)}
+                  disabled={deleteRule.isPending}
+                >
+                  <Trash2 className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="minAmount">Min Amount ($)</Label>
+                <Input
+                  id="minAmount"
+                  type="number"
+                  placeholder="500"
+                  value={minAmount}
+                  onChange={(e) => setMinAmount(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="maxAmount">Max Amount ($, optional)</Label>
+                <Input
+                  id="maxAmount"
+                  type="number"
+                  placeholder="No limit"
+                  value={maxAmount}
+                  onChange={(e) => setMaxAmount(e.target.value)}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="requiredRole">Required Role</Label>
+              <Select value={requiredRole} onValueChange={setRequiredRole}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MANAGER">Manager</SelectItem>
+                  <SelectItem value="OWNER">Owner</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-2">
+              <Button size="sm" onClick={handleCreate} disabled={!minAmount || createRule.isPending}>
+                {createRule.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Rule
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {!showForm && (
+          <Button variant="outline" size="sm" onClick={() => setShowForm(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Rule
+          </Button>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function AccountingSection() {
+  const { data: integrationResult, isLoading } = useAccountingIntegration();
+  const syncInvoices = useSyncInvoices();
+  const { toast } = useToast();
+
+  const integration = integrationResult?.data;
+
+  const handleConnect = (provider: "QUICKBOOKS" | "XERO") => {
+    window.location.href = `/api/accounting/connect?provider=${provider.toLowerCase()}`;
+  };
+
+  const handleSync = async () => {
+    try {
+      const result = await syncInvoices.mutateAsync({});
+      toast({ title: `Synced ${result?.data?.syncedCount || 0} invoices` });
+    } catch (err: any) {
+      toast({ title: "Sync failed", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-5 w-5" />
+          Accounting
+        </CardTitle>
+        <CardDescription>
+          Connect your accounting software for expense tracking
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : integration ? (
+          <div className="rounded-lg border p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${integration.provider === "QUICKBOOKS" ? "bg-green-100" : "bg-blue-100"}`}>
+                  <span className={`font-bold ${integration.provider === "QUICKBOOKS" ? "text-green-600" : "text-blue-600"}`}>
+                    {integration.provider === "QUICKBOOKS" ? "QB" : "X"}
+                  </span>
+                </div>
+                <div>
+                  <p className="font-medium">{integration.provider === "QUICKBOOKS" ? "QuickBooks" : "Xero"}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {integration.lastSyncAt
+                      ? `Last synced: ${new Date(integration.lastSyncAt).toLocaleDateString()}`
+                      : "Never synced"}
+                  </p>
+                </div>
+              </div>
+              <Badge variant="outline" className="text-green-600">Connected</Badge>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSync}
+                disabled={syncInvoices.isPending}
+              >
+                {syncInvoices.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Sync Now
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
+                  <span className="font-bold text-green-600">QB</span>
+                </div>
+                <div>
+                  <p className="font-medium">QuickBooks</p>
+                  <p className="text-sm text-muted-foreground">
+                    Sync expenses and invoices
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => handleConnect("QUICKBOOKS")}>
+                Connect
+              </Button>
+            </div>
+
+            <div className="flex items-center justify-between rounded-lg border p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
+                  <span className="font-bold text-blue-600">X</span>
+                </div>
+                <div>
+                  <p className="font-medium">Xero</p>
+                  <p className="text-sm text-muted-foreground">
+                    Automated bookkeeping integration
+                  </p>
+                </div>
+              </div>
+              <Button variant="outline" onClick={() => handleConnect("XERO")}>
+                Connect
+              </Button>
+            </div>
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 }

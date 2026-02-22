@@ -34,6 +34,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { PendingApprovals } from "@/components/dashboard/pending-approvals";
 import { useAnalytics } from "@/hooks/use-analytics";
 import {
   LineChart,
@@ -50,6 +51,7 @@ import {
 
 const STATUS_COLORS: Record<string, string> = {
   DRAFT: "#9CA3AF",
+  AWAITING_APPROVAL: "#F97316",
   PENDING: "#EAB308",
   CONFIRMED: "#3B82F6",
   SHIPPED: "#6366F1",
@@ -62,6 +64,11 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
     label: "Draft",
     color: "bg-gray-100 text-gray-700",
     icon: <FileText className="h-3 w-3" />,
+  },
+  AWAITING_APPROVAL: {
+    label: "Awaiting Approval",
+    color: "bg-orange-100 text-orange-700",
+    icon: <Clock className="h-3 w-3" />,
   },
   PENDING: {
     label: "Pending",
@@ -174,6 +181,9 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+      {/* Pending Approvals */}
+      <PendingApprovals />
 
       {/* AI Briefing */}
       {data.briefing?.summary && (

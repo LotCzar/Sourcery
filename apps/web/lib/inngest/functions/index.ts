@@ -14,3 +14,6 @@ export { supplierPerformance } from "./supplier-performance";
 export { budgetAlerts } from "./budget-alerts";
 export { substitutionSuggestions } from "./substitution-suggestions";
 export { contractPriceAlerts } from "./contract-price-alerts";
+export { approvalNotification } from "./approval-notification";
+export { messageNotification } from "./message-notification";
+export { accountingInvoiceSync, accountingBatchSync } from "./accounting-sync";

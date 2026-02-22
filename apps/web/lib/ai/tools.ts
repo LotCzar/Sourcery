@@ -74,6 +74,7 @@ export const aiTools: Anthropic.Tool[] = [
           type: "string",
           enum: [
             "DRAFT",
+            "AWAITING_APPROVAL",
             "PENDING",
             "CONFIRMED",
             "PROCESSING",
@@ -695,6 +696,30 @@ export const aiTools: Anthropic.Tool[] = [
           description: "Supplier ID",
         },
       },
+    },
+  },
+  {
+    name: "send_order_message",
+    description:
+      "Send a message on an order to the supplier or as an internal note. Use this when the user wants to communicate about an order.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The order ID to send the message on",
+        },
+        message: {
+          type: "string",
+          description: "The message content to send",
+        },
+        is_internal: {
+          type: "boolean",
+          description:
+            "If true, the message is an internal note not visible to the supplier. Defaults to false.",
+        },
+      },
+      required: ["order_id", "message"],
     },
   },
 ];

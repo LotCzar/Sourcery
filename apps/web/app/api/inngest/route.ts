@@ -17,9 +17,13 @@ import {
   budgetAlerts,
   substitutionSuggestions,
   contractPriceAlerts,
+  approvalNotification,
+  messageNotification,
+  accountingInvoiceSync,
+  accountingBatchSync,
 } from "@/lib/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts],
+  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts, approvalNotification, messageNotification, accountingInvoiceSync, accountingBatchSync],
 });

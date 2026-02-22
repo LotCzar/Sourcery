@@ -22,6 +22,7 @@ enum UserRole {
 
 enum OrderStatus {
   DRAFT
+  AWAITING_APPROVAL
   PENDING
   CONFIRMED
   PROCESSING
@@ -30,6 +31,24 @@ enum OrderStatus {
   DELIVERED
   CANCELLED
   RETURNED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AccountingProvider {
+  QUICKBOOKS
+  XERO
+}
+
+enum InvoiceSyncStatus {
+  NOT_SYNCED
+  SYNCED
+  FAILED
+  PENDING
 }
 
 enum SupplierStatus {
@@ -136,6 +155,9 @@ model User {
   priceAlerts   PriceAlert[]
   inventoryLogs InventoryLog[]
   conversations Conversation[]
+  approvalRequests OrderApproval[] @relation("ApprovalRequests")
+  approvalReviews  OrderApproval[] @relation("ApprovalReviews")
+  sentMessages     OrderMessage[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -177,6 +199,8 @@ model Restaurant {
   consumptionInsights ConsumptionInsight[]
   posIntegration POSIntegration?
   supplierRelationships RestaurantSupplier[]
+  approvalRules  ApprovalRule[]
+  accountingIntegration AccountingIntegration?
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -410,6 +434,8 @@ model Order {
 
   items         OrderItem[]
   invoice       Invoice?
+  approvals     OrderApproval[]
+  messages      OrderMessage[]
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -580,6 +606,11 @@ model Invoice {
   notes           String?
   fileUrl         String?
 
+  // Accounting sync
+  syncStatus      InvoiceSyncStatus @default(NOT_SYNCED)
+  externalId      String?
+  lastSyncError   String?
+
   // Relations
   restaurantId    String
   restaurant      Restaurant    @relation(fields: [restaurantId], references: [id])
@@ -689,4 +720,95 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+// ============================================
+// APPROVAL WORKFLOW MODELS
+// ============================================
+
+model ApprovalRule {
+  id              String    @id @default(cuid())
+  minAmount       Decimal   @db.Decimal(10, 2)
+  maxAmount       Decimal?  @db.Decimal(10, 2)
+  requiredRole    UserRole  @default(MANAGER)
+  isActive        Boolean   @default(true)
+  restaurantId    String
+  restaurant      Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([restaurantId])
+}
+
+model OrderApproval {
+  id            String         @id @default(cuid())
+  status        ApprovalStatus @default(PENDING)
+  notes         String?
+  orderId       String
+  order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  requestedById String
+  requestedBy   User           @relation("ApprovalRequests", fields: [requestedById], references: [id])
+  reviewedById  String?
+  reviewedBy    User?          @relation("ApprovalReviews", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  @@index([orderId])
+  @@index([requestedById])
+  @@index([status])
+}
+
+// ============================================
+// ORDER MESSAGING MODEL
+// ============================================
+
+model OrderMessage {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  orderId     String
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  senderId    String
+  sender      User     @relation(fields: [senderId], references: [id])
+  isInternal  Boolean  @default(false)
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([senderId])
+  @@index([createdAt])
+}
+
+// ============================================
+// ACCOUNTING INTEGRATION MODELS
+// ============================================
+
+model AccountingIntegration {
+  id            String             @id @default(cuid())
+  provider      AccountingProvider
+  accessToken   String?
+  refreshToken  String?
+  realmId       String?
+  tenantId      String?
+  isActive      Boolean            @default(true)
+  lastSyncAt    DateTime?
+  restaurantId  String             @unique
+  restaurant    Restaurant         @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  categoryMappings AccountingCategoryMapping[]
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+}
+
+model AccountingCategoryMapping {
+  id              String                @id @default(cuid())
+  productCategory ProductCategory
+  accountingCode  String
+  accountingName  String?
+  integrationId   String
+  integration     AccountingIntegration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  @@unique([integrationId, productCategory])
+  @@index([integrationId])
 }

@@ -70,6 +70,8 @@ export async function executeTool(
       return compareRestaurants(input, context);
     case "org_summary":
       return orgSummary(input, context);
+    case "send_order_message":
+      return sendOrderMessage(input, context);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -3198,5 +3200,77 @@ async function orgSummary(
     overdueInvoices: overdueCount,
     topSuppliers,
     perRestaurant,
+  };
+}
+
+async function sendOrderMessage(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const { order_id, message, is_internal } = input;
+
+  if (!order_id || !message) {
+    return { error: "order_id and message are required" };
+  }
+
+  // Verify order belongs to user's restaurant
+  const order = await prisma.order.findFirst({
+    where: {
+      id: order_id,
+      restaurantId: context.restaurantId,
+    },
+    select: { id: true, orderNumber: true, supplierId: true },
+  });
+
+  if (!order) {
+    return { error: "Order not found or does not belong to your restaurant" };
+  }
+
+  // Create the message
+  const orderMessage = await prisma.orderMessage.create({
+    data: {
+      content: message,
+      orderId: order_id,
+      senderId: context.userId,
+      isInternal: is_internal || false,
+    },
+  });
+
+  // Emit Inngest event for notification (only for non-internal messages)
+  if (!is_internal) {
+    const user = await prisma.user.findUnique({
+      where: { id: context.userId },
+      select: { firstName: true, lastName: true, email: true },
+    });
+    const senderName = user
+      ? `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email
+      : "Unknown";
+
+    inngest
+      .send({
+        name: "order/message.sent",
+        data: {
+          orderId: order_id,
+          orderNumber: order.orderNumber,
+          messageId: orderMessage.id,
+          senderId: context.userId,
+          senderName,
+          messagePreview: message.slice(0, 200),
+          isSupplierSender: false,
+          restaurantId: context.restaurantId,
+          supplierId: order.supplierId,
+        },
+      })
+      .catch(() => {});
+  }
+
+  return {
+    success: true,
+    messageId: orderMessage.id,
+    orderNumber: order.orderNumber,
+    isInternal: is_internal || false,
+    confirmation: is_internal
+      ? `Internal note added to order ${order.orderNumber}`
+      : `Message sent on order ${order.orderNumber} to the supplier`,
   };
 }
