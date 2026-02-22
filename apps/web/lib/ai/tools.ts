@@ -437,6 +437,38 @@ export const aiTools: Anthropic.Tool[] = [
     },
   },
   {
+    name: "optimize_par_levels",
+    description:
+      "Analyze and optimize par levels based on 30+ days of consumption data. Shows which items have par levels that are too high or too low relative to actual usage patterns, lead times, and trends. Can optionally apply the suggested changes.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        apply: {
+          type: "boolean",
+          description:
+            "If true, apply the suggested par level changes. Default: false (preview only).",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+      },
+    },
+  },
+  {
     name: "analyze_waste",
     description:
       "Analyze waste patterns over a time period. Shows which items have the most waste by dollar loss, waste percentages, and suggests par level reductions for high-waste items.",

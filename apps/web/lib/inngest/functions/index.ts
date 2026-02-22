@@ -5,3 +5,6 @@ export { invoiceGenerator } from "./invoice-generator";
 export { consumptionAnalysis } from "./consumption-analysis";
 export { menuSync } from "./menu-sync";
 export { orderAnomaly } from "./order-anomaly";
+export { proactiveOrdering } from "./proactive-ordering";
+export { invoiceReminders } from "./invoice-reminders";
+export { weeklyDigest } from "./weekly-digest";

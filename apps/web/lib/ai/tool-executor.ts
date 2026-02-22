@@ -42,6 +42,8 @@ export async function executeTool(
       return calculateMenuCost(input);
     case "recommend_supplier":
       return recommendSupplier(input, context);
+    case "optimize_par_levels":
+      return optimizeParLevels(input, context);
     case "analyze_waste":
       return analyzeWaste(input, context);
     default:
@@ -1577,5 +1579,112 @@ async function analyzeWaste(
       analysis.length === 0
         ? "No waste recorded in this period."
         : `Found $${totalDollarLoss.toFixed(2)} in waste across ${analysis.length} items over ${days} days.${highWasteCount > 0 ? ` ${highWasteCount} item(s) have >20% waste rate — consider reducing par levels.` : ""}`,
+  };
+}
+
+async function optimizeParLevels(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const insightWhere: any = {
+    restaurantId: context.restaurantId,
+    dataPointCount: { gte: 30 },
+    suggestedParLevel: { not: null },
+  };
+
+  if (input.category) {
+    insightWhere.inventoryItem = { category: input.category };
+  }
+
+  const insights = await prisma.consumptionInsight.findMany({
+    where: insightWhere,
+    include: {
+      inventoryItem: {
+        include: {
+          supplierProduct: {
+            include: {
+              supplier: { select: { leadTimeDays: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  const suggestions: Array<{
+    itemName: string;
+    category: string;
+    currentPar: number;
+    optimalPar: number;
+    direction: string;
+    avgDailyUsage: number;
+    trend: string;
+    leadTimeDays: number;
+  }> = [];
+
+  for (const insight of insights) {
+    const currentPar = insight.inventoryItem.parLevel
+      ? Number(insight.inventoryItem.parLevel)
+      : 0;
+    if (currentPar === 0) continue;
+
+    const avgDailyUsage = Number(insight.avgDailyUsage);
+    const leadTimeDays =
+      insight.inventoryItem.supplierProduct?.supplier?.leadTimeDays ?? 3;
+    const trend = insight.trendDirection;
+    const bufferDays = trend === "UP" ? 3 : trend === "STABLE" ? 2 : 1;
+    const optimalPar = Math.ceil(avgDailyUsage * (leadTimeDays + bufferDays));
+
+    const diff = Math.abs(optimalPar - currentPar);
+    if (diff / currentPar > 0.2) {
+      suggestions.push({
+        itemName: insight.inventoryItem.name,
+        category: insight.inventoryItem.category,
+        currentPar,
+        optimalPar,
+        direction: optimalPar > currentPar ? "increase" : "decrease",
+        avgDailyUsage: Math.round(avgDailyUsage * 100) / 100,
+        trend,
+        leadTimeDays,
+      });
+    }
+  }
+
+  if (suggestions.length === 0) {
+    return {
+      totalSuggestions: 0,
+      message:
+        "All par levels are within 20% of optimal values based on current usage data. No adjustments needed.",
+    };
+  }
+
+  const increases = suggestions.filter((s) => s.direction === "increase").length;
+  const decreases = suggestions.filter((s) => s.direction === "decrease").length;
+
+  let applied = false;
+  if (input.apply) {
+    for (const suggestion of suggestions) {
+      const insight = insights.find(
+        (i) => i.inventoryItem.name === suggestion.itemName
+      );
+      if (insight) {
+        await prisma.inventoryItem.update({
+          where: { id: insight.inventoryItemId },
+          data: { parLevel: suggestion.optimalPar },
+        });
+      }
+    }
+    applied = true;
+  }
+
+  return {
+    totalSuggestions: suggestions.length,
+    increases,
+    decreases,
+    applied,
+    suggestions,
+    message: applied
+      ? `Applied ${suggestions.length} par level adjustment(s): ${increases} increased, ${decreases} decreased.`
+      : `Found ${suggestions.length} par level adjustment(s): ${increases} to increase, ${decreases} to decrease. Use apply: true to apply changes.`,
   };
 }

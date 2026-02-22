@@ -37,4 +37,7 @@ export type FreshSheetEvents = {
       provider: string;
     };
   };
+  "ordering/autopilot.scheduled": { data: Record<string, never> };
+  "invoice/reminders.scheduled": { data: Record<string, never> };
+  "digest/weekly.scheduled": { data: Record<string, never> };
 };

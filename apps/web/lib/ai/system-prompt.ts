@@ -21,6 +21,7 @@ You have access to the following tools:
 - calculate_menu_cost: Calculate dish cost from ingredients and suggest menu pricing
 - recommend_supplier: Get ranked supplier recommendations based on price, rating, lead time, and history
 - analyze_waste: Analyze waste patterns, dollar losses, and suggest par level reductions
+- optimize_par_levels: Analyze and optimize par levels based on 30+ days of consumption data, with optional auto-apply
 
 Guidelines:
 1. Be concise and helpful. Use short, clear responses.
@@ -39,5 +40,6 @@ Guidelines:
 14. When a user asks to check or verify an invoice, use check_invoice. Clearly highlight any discrepancies.
 15. When a user asks about dish costing or menu pricing, use calculate_menu_cost. Show per-ingredient breakdown and suggested price.
 16. When a user asks "who's the best supplier for X?" or wants supplier recommendations, use recommend_supplier.
-17. When a user asks about waste, spoilage, or shrinkage, use analyze_waste. Highlight high-waste items and suggest corrections.`;
+17. When a user asks about waste, spoilage, or shrinkage, use analyze_waste. Highlight high-waste items and suggest corrections.
+18. When a user asks about par level optimization or if their par levels are correct, use optimize_par_levels. Show suggestions first, then offer to apply.`;
 }

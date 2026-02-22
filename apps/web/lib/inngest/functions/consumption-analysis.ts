@@ -161,6 +161,92 @@ export const consumptionAnalysis = inngest.createFunction(
           });
         }
       }
+
+      // Par level optimization check
+      const matureInsights = await prisma.consumptionInsight.findMany({
+        where: {
+          restaurantId: restaurant.id,
+          dataPointCount: { gte: 30 },
+          suggestedParLevel: { not: null },
+        },
+        include: {
+          inventoryItem: {
+            include: {
+              supplierProduct: {
+                include: {
+                  supplier: { select: { leadTimeDays: true } },
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const adjustments: Array<{
+        itemName: string;
+        currentPar: number;
+        optimalPar: number;
+        direction: string;
+      }> = [];
+
+      for (const insight of matureInsights) {
+        const currentPar = insight.inventoryItem.parLevel
+          ? Number(insight.inventoryItem.parLevel)
+          : 0;
+        if (currentPar === 0) continue;
+
+        const avgDailyUsage = Number(insight.avgDailyUsage);
+        const leadTimeDays =
+          insight.inventoryItem.supplierProduct?.supplier?.leadTimeDays ?? 3;
+        const trend = insight.trendDirection;
+        const bufferDays = trend === "UP" ? 3 : trend === "STABLE" ? 2 : 1;
+        const optimalPar = Math.ceil(
+          avgDailyUsage * (leadTimeDays + bufferDays)
+        );
+
+        const diff = Math.abs(optimalPar - currentPar);
+        if (diff / currentPar > 0.2) {
+          adjustments.push({
+            itemName: insight.inventoryItem.name,
+            currentPar,
+            optimalPar,
+            direction: optimalPar > currentPar ? "increase" : "decrease",
+          });
+        }
+      }
+
+      if (adjustments.length > 0) {
+        const parOwner = await prisma.user.findFirst({
+          where: { restaurantId: restaurant.id, role: "OWNER" },
+        });
+
+        if (parOwner) {
+          const increases = adjustments.filter(
+            (a) => a.direction === "increase"
+          ).length;
+          const decreases = adjustments.filter(
+            (a) => a.direction === "decrease"
+          ).length;
+
+          const parts: string[] = [];
+          if (increases > 0) parts.push(`${increases} should increase`);
+          if (decreases > 0) parts.push(`${decreases} should decrease`);
+
+          await prisma.notification.create({
+            data: {
+              type: "SYSTEM",
+              title: "Par Level Review Suggested",
+              message: `Based on 30+ days of data: ${parts.join(", ")}. Ask the AI to 'optimize par levels' for details.`,
+              userId: parOwner.id,
+              metadata: {
+                adjustments,
+                action: "optimize_par_levels",
+                actionUrl: "/inventory",
+              },
+            },
+          });
+        }
+      }
     }
 
     return {
