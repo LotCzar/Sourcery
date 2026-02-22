@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -345,6 +346,12 @@ export default function SupplierSettingsPage() {
 
 function GuidedTourCard() {
   const { resetTour } = useTour();
+  const router = useRouter();
+
+  const handleRestart = () => {
+    resetTour();
+    router.push("/supplier");
+  };
 
   return (
     <Card>
@@ -365,7 +372,7 @@ function GuidedTourCard() {
               Walk through all the key features again
             </p>
           </div>
-          <Button variant="outline" onClick={resetTour}>
+          <Button variant="outline" onClick={handleRestart}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Restart Tour
           </Button>

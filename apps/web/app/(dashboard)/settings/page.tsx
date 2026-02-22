@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
 import {
@@ -1350,6 +1351,12 @@ function AccountingSection() {
 
 function GuidedTourCard() {
   const { resetTour } = useTour();
+  const router = useRouter();
+
+  const handleRestart = () => {
+    resetTour();
+    router.push("/");
+  };
 
   return (
     <Card>
@@ -1370,7 +1377,7 @@ function GuidedTourCard() {
               Walk through all the key features again
             </p>
           </div>
-          <Button variant="outline" onClick={resetTour}>
+          <Button variant="outline" onClick={handleRestart}>
             <RotateCcw className="mr-2 h-4 w-4" />
             Restart Tour
           </Button>
