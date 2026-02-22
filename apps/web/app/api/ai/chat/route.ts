@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     });
 
     // Build message history for Claude
-    const history: Anthropic.MessageParam[] = conversation.messages.map(
+    const rawHistory: Anthropic.MessageParam[] = conversation.messages.map(
       (msg) => {
         if (msg.role === "USER") {
           return { role: "user" as const, content: msg.content };
@@ -130,7 +130,34 @@ export async function POST(request: Request) {
     );
 
     // Add current user message
-    history.push({ role: "user", content: message });
+    rawHistory.push({ role: "user", content: message });
+
+    // Ensure no consecutive same-role messages (Claude API requirement).
+    // This can happen if a previous request saved the user message but
+    // failed before saving the assistant response.
+    const history: Anthropic.MessageParam[] = [];
+    for (const msg of rawHistory) {
+      const prev = history[history.length - 1];
+      if (prev && prev.role === msg.role) {
+        // Merge consecutive same-role messages
+        const prevText = typeof prev.content === "string" ? prev.content : "";
+        const currText = typeof msg.content === "string" ? msg.content : "";
+        if (prevText && currText) {
+          prev.content = `${prevText}\n\n${currText}`;
+        }
+        // If either is array content (tool_use/tool_result), keep the later one
+        if (!prevText || !currText) {
+          history[history.length - 1] = msg;
+        }
+      } else {
+        history.push(msg);
+      }
+    }
+
+    // Ensure history starts with a user message
+    while (history.length > 0 && history[0].role !== "user") {
+      history.shift();
+    }
 
     // Build system prompt with optional org context
     const orgContext =
