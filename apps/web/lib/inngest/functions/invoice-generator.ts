@@ -60,6 +60,47 @@ export const invoiceGenerator = inngest.createFunction(
       },
     });
 
+    // Auto-dispute detection: recalculate expected total from order items
+    let disputed = false;
+    const expectedSubtotal = order.items.reduce(
+      (sum, item) => sum + Number(item.quantity) * Number(item.product.price),
+      0
+    );
+    const expectedTotal = expectedSubtotal * 1.0825; // Add tax
+    const invoiceTotal = Number(order.total);
+
+    if (invoiceTotal > expectedTotal * 1.05) {
+      // Invoice exceeds expected total by more than 5%
+      disputed = true;
+      const discrepancyPercent = Math.round(
+        ((invoiceTotal - expectedTotal) / expectedTotal) * 10000
+      ) / 100;
+
+      await prisma.invoice.update({
+        where: { id: invoice.id },
+        data: { status: "DISPUTED" },
+      });
+
+      if (ownerUser) {
+        await prisma.notification.create({
+          data: {
+            type: "SYSTEM",
+            title: "Invoice Auto-Disputed",
+            message: `Invoice ${invoiceNumber} ($${invoiceTotal.toFixed(2)}) is ${discrepancyPercent}% higher than the expected total ($${expectedTotal.toFixed(2)}) based on current catalog prices.`,
+            userId: ownerUser.id,
+            metadata: {
+              invoiceId: invoice.id,
+              orderId: order.id,
+              invoiceTotal,
+              expectedTotal: Math.round(expectedTotal * 100) / 100,
+              discrepancyPercent,
+              actionUrl: "/invoices",
+            },
+          },
+        });
+      }
+    }
+
     // Notify restaurant owner
     if (ownerUser) {
       await prisma.notification.create({
@@ -91,6 +132,7 @@ export const invoiceGenerator = inngest.createFunction(
       action: "invoice_created",
       invoiceId: invoice.id,
       invoiceNumber,
+      disputed,
     };
   }
 );

@@ -52,6 +52,14 @@ export async function executeTool(
       return getSupplierPerformance(input, context);
     case "get_budget_forecast":
       return getBudgetForecast(input, context);
+    case "get_disputed_invoices":
+      return getDisputedInvoices(input, context);
+    case "get_seasonal_forecast":
+      return getSeasonalForecast(input, context);
+    case "find_substitutes":
+      return findSubstitutes(input, context);
+    case "get_price_trends":
+      return getPriceTrends(input, context);
     default:
       return { error: `Unknown tool: ${name}` };
   }
@@ -2086,5 +2094,288 @@ async function getBudgetForecast(
           : status === "no_historical_data"
             ? `Month-to-date spend: $${mtdSpend.toFixed(2)}. No historical data to compare against yet.`
             : `On track. Projected spending ($${projectedMonthEnd.toFixed(2)}) is within normal range of your average ($${avgMonthlySpend.toFixed(2)}).`,
+  };
+}
+
+async function getDisputedInvoices(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      restaurantId: context.restaurantId,
+      status: "DISPUTED",
+    },
+    include: {
+      order: {
+        include: {
+          items: {
+            include: { product: { select: { name: true, price: true, unit: true } } },
+          },
+        },
+      },
+      supplier: { select: { name: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  if (invoices.length === 0) {
+    return { message: "No disputed invoices found. All invoices are in good standing." };
+  }
+
+  return {
+    count: invoices.length,
+    invoices: invoices.map((inv) => {
+      const invoiceTotal = Number(inv.total);
+      let expectedTotal = null;
+      let discrepancyAmount = null;
+      let discrepancyPercent = null;
+
+      if (inv.order) {
+        const expectedSubtotal = inv.order.items.reduce(
+          (sum, item) => sum + Number(item.quantity) * Number(item.product.price),
+          0
+        );
+        expectedTotal = Math.round(expectedSubtotal * 1.0825 * 100) / 100;
+        discrepancyAmount = Math.round((invoiceTotal - expectedTotal) * 100) / 100;
+        discrepancyPercent = Math.round(
+          ((invoiceTotal - expectedTotal) / expectedTotal) * 10000
+        ) / 100;
+      }
+
+      return {
+        invoiceId: inv.id,
+        invoiceNumber: inv.invoiceNumber,
+        supplier: inv.supplier.name,
+        invoiceTotal,
+        expectedTotal,
+        discrepancyAmount,
+        discrepancyPercent,
+        orderNumber: inv.order?.orderNumber || null,
+        itemCount: inv.order?.items.length || 0,
+        dueDate: inv.dueDate.toISOString().split("T")[0],
+      };
+    }),
+  };
+}
+
+async function getSeasonalForecast(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const where: any = {
+    restaurantId: context.restaurantId,
+    metadata: { not: null },
+  };
+
+  if (input.category) {
+    where.inventoryItem = { category: input.category };
+  }
+  if (input.item_name) {
+    where.inventoryItem = {
+      ...where.inventoryItem,
+      name: { contains: input.item_name, mode: "insensitive" },
+    };
+  }
+
+  const insights = await prisma.consumptionInsight.findMany({
+    where,
+    include: {
+      inventoryItem: {
+        select: { name: true, category: true, unit: true, parLevel: true },
+      },
+    },
+    orderBy: { lastAnalyzedAt: "desc" },
+    take: 20,
+  });
+
+  // Filter to only those with seasonal data
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const seasonal = insights.filter((i) => {
+    const meta = i.metadata as any;
+    return meta && meta.seasonalFactors;
+  });
+
+  if (seasonal.length === 0) {
+    return {
+      message: "No seasonal forecast data available yet. Seasonal patterns require at least 90 days of usage data with 10+ log entries.",
+    };
+  }
+
+  return {
+    count: seasonal.length,
+    items: seasonal.map((i) => {
+      const meta = i.metadata as any;
+      const currentFactor = meta.currentSeasonalFactor;
+      const status = currentFactor > 1.2 ? "HIGH" : currentFactor < 0.8 ? "LOW" : "NORMAL";
+
+      const monthlyFactors: Record<string, number> = {};
+      for (let m = 0; m < 12; m++) {
+        if (meta.seasonalFactors[m] !== undefined) {
+          monthlyFactors[monthNames[m]] = Math.round(meta.seasonalFactors[m] * 100) / 100;
+        }
+      }
+
+      return {
+        itemName: i.inventoryItem.name,
+        category: i.inventoryItem.category,
+        unit: i.inventoryItem.unit,
+        seasonalStatus: status,
+        currentSeasonalFactor: Math.round(currentFactor * 100) / 100,
+        baseParLevel: meta.adjustedFromBase ? Math.round(meta.adjustedFromBase * 100) / 100 : null,
+        adjustedParLevel: i.suggestedParLevel ? Number(i.suggestedParLevel) : null,
+        monthlyFactors,
+      };
+    }),
+  };
+}
+
+async function findSubstitutes(
+  input: Record<string, any>,
+  _context: ToolContext
+) {
+  const where: any = {
+    name: { contains: input.product_name, mode: "insensitive" },
+    inStock: true,
+  };
+
+  if (input.category) {
+    where.category = input.category;
+  }
+  if (input.exclude_supplier_id) {
+    where.supplierId = { not: input.exclude_supplier_id };
+  }
+
+  const alternatives = await prisma.supplierProduct.findMany({
+    where,
+    include: {
+      supplier: { select: { id: true, name: true, rating: true, leadTimeDays: true } },
+    },
+    orderBy: { price: "asc" },
+    take: 10,
+  });
+
+  if (alternatives.length === 0) {
+    return {
+      message: `No in-stock substitutes found for "${input.product_name}". Try broadening your search or checking different categories.`,
+    };
+  }
+
+  const prices = alternatives.map((p) => Number(p.price));
+
+  return {
+    query: input.product_name,
+    count: alternatives.length,
+    alternatives: alternatives.map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      price: Number(p.price),
+      unit: p.unit,
+      supplier: p.supplier.name,
+      supplierId: p.supplier.id,
+      rating: p.supplier.rating ? Number(p.supplier.rating) : null,
+      leadTimeDays: p.supplier.leadTimeDays,
+    })),
+    priceSummary: {
+      lowest: Math.min(...prices),
+      highest: Math.max(...prices),
+      average: Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100,
+    },
+  };
+}
+
+async function getPriceTrends(
+  input: Record<string, any>,
+  _context: ToolContext
+) {
+  const days = input.days || 90;
+  let product;
+
+  if (input.product_id) {
+    product = await prisma.supplierProduct.findUnique({
+      where: { id: input.product_id },
+      include: { supplier: { select: { name: true } } },
+    });
+  } else if (input.product_name) {
+    product = await prisma.supplierProduct.findFirst({
+      where: { name: { contains: input.product_name, mode: "insensitive" } },
+      include: { supplier: { select: { name: true } } },
+    });
+  }
+
+  if (!product) {
+    return { error: "Product not found. Check the name or ID and try again." };
+  }
+
+  const since = new Date();
+  since.setDate(since.getDate() - days);
+
+  const history = await prisma.priceHistory.findMany({
+    where: {
+      productId: product.id,
+      recordedAt: { gte: since },
+    },
+    orderBy: { recordedAt: "asc" },
+  });
+
+  const currentPrice = Number(product.price);
+
+  if (history.length === 0) {
+    return {
+      product: product.name,
+      supplier: product.supplier.name,
+      currentPrice,
+      message: `No price history available for the last ${days} days. Current price: $${currentPrice.toFixed(2)}.`,
+    };
+  }
+
+  const prices = history.map((h) => Number(h.price));
+  const avg = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const min = Math.min(...prices);
+  const max = Math.max(...prices);
+  const sortedPrices = [...prices].sort((a, b) => a - b);
+  const belowCount = sortedPrices.filter((p) => p <= currentPrice).length;
+  const percentile = Math.round((belowCount / sortedPrices.length) * 10000) / 100;
+
+  // Determine trend: compare first third vs last third
+  const third = Math.max(1, Math.floor(prices.length / 3));
+  const earlyAvg = prices.slice(0, third).reduce((a, b) => a + b, 0) / third;
+  const lateAvg = prices.slice(-third).reduce((a, b) => a + b, 0) / third;
+  const trendChange = ((lateAvg - earlyAvg) / earlyAvg) * 100;
+  const trend = trendChange > 5 ? "rising" : trendChange < -5 ? "falling" : "stable";
+
+  // Last 10 price points
+  const timeline = history.slice(-10).map((h) => ({
+    price: Number(h.price),
+    date: h.recordedAt.toISOString().split("T")[0],
+  }));
+
+  let recommendation = "";
+  if (percentile <= 10) {
+    recommendation = `Current price is at the ${percentile}th percentile — this is a historic low. Consider locking in a contract or buying in bulk.`;
+  } else if (percentile <= 25) {
+    recommendation = `Current price is at the ${percentile}th percentile — below average. Good time to stock up.`;
+  } else if (percentile >= 75) {
+    recommendation = `Current price is at the ${percentile}th percentile — above average. Consider waiting for a price drop or finding alternatives.`;
+  } else {
+    recommendation = `Current price is at the ${percentile}th percentile — within normal range.`;
+  }
+
+  return {
+    product: product.name,
+    supplier: product.supplier.name,
+    currentPrice,
+    analysis: {
+      avgPrice: Math.round(avg * 100) / 100,
+      minPrice: min,
+      maxPrice: max,
+      percentile,
+      trend,
+      dataPoints: history.length,
+      periodDays: days,
+    },
+    timeline,
+    recommendation,
   };
 }

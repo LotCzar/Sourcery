@@ -542,4 +542,102 @@ export const aiTools: Anthropic.Tool[] = [
       properties: {},
     },
   },
+  {
+    name: "get_disputed_invoices",
+    description:
+      "List invoices with DISPUTED status and their discrepancy details. Shows invoice total vs expected total based on catalog prices.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "get_seasonal_forecast",
+    description:
+      "Show seasonal demand patterns and monthly usage multipliers for inventory items. Identifies items with significantly higher or lower seasonal demand.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        item_name: {
+          type: "string",
+          description: "Filter by item name (partial match)",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+      },
+    },
+  },
+  {
+    name: "find_substitutes",
+    description:
+      "Find substitute products from other suppliers when an item is out of stock. Returns in-stock alternatives sorted by price.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_name: {
+          type: "string",
+          description: "Name of the product to find substitutes for",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+        exclude_supplier_id: {
+          type: "string",
+          description: "Supplier ID to exclude from results",
+        },
+      },
+      required: ["product_name"],
+    },
+  },
+  {
+    name: "get_price_trends",
+    description:
+      "Analyze price history and trends for a product. Shows average, min, max, percentile, and identifies bulk-buy opportunities when prices are at historic lows.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_name: {
+          type: "string",
+          description: "Product name to search for",
+        },
+        product_id: {
+          type: "string",
+          description: "Product ID for exact lookup",
+        },
+        days: {
+          type: "number",
+          description: "Number of days of price history to analyze (default 90)",
+        },
+      },
+    },
+  },
 ];

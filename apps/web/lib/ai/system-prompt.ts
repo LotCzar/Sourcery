@@ -25,6 +25,10 @@ You have access to the following tools:
 - consolidate_orders: Merge multiple DRAFT orders from the same supplier into one, saving delivery fees
 - get_supplier_performance: Get on-time, accuracy, and price stability scoring for a supplier
 - get_budget_forecast: Get projected monthly spending with category breakdown vs. historical average
+- get_disputed_invoices: List invoices with DISPUTED status and their discrepancy details
+- get_seasonal_forecast: Show seasonal demand patterns and monthly usage multipliers for inventory items
+- find_substitutes: Find substitute products from other suppliers when an item is out of stock
+- get_price_trends: Analyze price history and trends, identify bulk-buy opportunities
 
 Guidelines:
 1. Be concise and helpful. Use short, clear responses.
@@ -47,5 +51,9 @@ Guidelines:
 18. When a user asks about par level optimization or if their par levels are correct, use optimize_par_levels. Show suggestions first, then offer to apply.
 19. When a user asks about consolidating deliveries, combining orders, or saving on delivery fees, use consolidate_orders.
 20. When a user asks about supplier performance, reliability, on-time rates, or invoice accuracy, use get_supplier_performance.
-21. When a user asks about their budget, spending projection, monthly forecast, or if they're on pace, use get_budget_forecast.`;
+21. When a user asks about their budget, spending projection, monthly forecast, or if they're on pace, use get_budget_forecast.
+22. When a user asks about disputed invoices, billing discrepancies, or overcharges, use get_disputed_invoices.
+23. When a user asks about seasonal patterns, demand forecasting, or why par levels changed, use get_seasonal_forecast.
+24. When a user mentions something is out of stock, asks for alternatives, or needs a substitute product, use find_substitutes.
+25. When a user asks about price trends, whether to buy now, or bulk purchasing opportunities, use get_price_trends.`;
 }

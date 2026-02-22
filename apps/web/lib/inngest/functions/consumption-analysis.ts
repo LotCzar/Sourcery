@@ -11,6 +11,7 @@ export const consumptionAnalysis = inngest.createFunction(
 
     let totalInsights = 0;
     let totalCritical = 0;
+    let totalSeasonal = 0;
 
     for (const restaurant of restaurants) {
       const items = await prisma.inventoryItem.findMany({
@@ -23,6 +24,7 @@ export const consumptionAnalysis = inngest.createFunction(
       });
 
       const criticalItems: string[] = [];
+      const seasonalNotifications: Array<{ itemName: string; factor: number; direction: string }> = [];
 
       for (const item of items) {
         const thirtyDaysAgo = new Date();
@@ -127,6 +129,88 @@ export const consumptionAnalysis = inngest.createFunction(
           },
         });
 
+        // Seasonal demand forecasting: query 90-day logs
+        const ninetyDaysAgo = new Date();
+        ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+
+        const seasonalLogs = await prisma.inventoryLog.findMany({
+          where: {
+            inventoryItemId: item.id,
+            changeType: { in: ["USED", "WASTE"] },
+            createdAt: { gte: ninetyDaysAgo },
+          },
+          orderBy: { createdAt: "asc" },
+        });
+
+        if (seasonalLogs.length >= 10) {
+          // Group usage by month (0-11), calculate daily avg per month
+          const monthlyUsage: Record<number, { total: number; days: Set<string> }> = {};
+
+          for (const log of seasonalLogs) {
+            const month = log.createdAt.getMonth();
+            if (!monthlyUsage[month]) {
+              monthlyUsage[month] = { total: 0, days: new Set() };
+            }
+            monthlyUsage[month].total += Math.abs(Number(log.quantity));
+            monthlyUsage[month].days.add(log.createdAt.toISOString().split("T")[0]);
+          }
+
+          // Calculate daily avg per month and overall avg
+          const monthlyDailyAvgs: Record<number, number> = {};
+          let totalDailyAvg = 0;
+          let monthCount = 0;
+
+          for (const [month, data] of Object.entries(monthlyUsage)) {
+            const daysCount = Math.max(data.days.size, 1);
+            const dailyAvg = data.total / daysCount;
+            monthlyDailyAvgs[Number(month)] = dailyAvg;
+            totalDailyAvg += dailyAvg;
+            monthCount++;
+          }
+
+          const overallAvg = monthCount > 0 ? totalDailyAvg / monthCount : 1;
+
+          // Calculate seasonal factors
+          const seasonalFactors: Record<number, number> = {};
+          for (const [month, dailyAvg] of Object.entries(monthlyDailyAvgs)) {
+            seasonalFactors[Number(month)] = overallAvg > 0 ? dailyAvg / overallAvg : 1;
+          }
+
+          const currentMonth = new Date().getMonth();
+          const currentSeasonalFactor = seasonalFactors[currentMonth] ?? 1;
+
+          // Adjust suggested par level
+          const adjustedFromBase = suggestedParLevel;
+          const adjustedParLevel = Math.ceil(suggestedParLevel * currentSeasonalFactor);
+
+          // Update the insight with seasonal data
+          await prisma.consumptionInsight.update({
+            where: {
+              restaurantId_inventoryItemId: {
+                restaurantId: restaurant.id,
+                inventoryItemId: item.id,
+              },
+            },
+            data: {
+              suggestedParLevel: adjustedParLevel,
+              metadata: {
+                seasonalFactors,
+                currentSeasonalFactor,
+                adjustedFromBase,
+              },
+            },
+          });
+
+          // Track seasonal notifications
+          if (currentSeasonalFactor > 1.2 || currentSeasonalFactor < 0.8) {
+            seasonalNotifications.push({
+              itemName: item.name,
+              factor: Math.round(currentSeasonalFactor * 100) / 100,
+              direction: currentSeasonalFactor > 1.2 ? "higher" : "lower",
+            });
+          }
+        }
+
         totalInsights++;
 
         // Track critical items (< 3 days runway)
@@ -155,6 +239,38 @@ export const consumptionAnalysis = inngest.createFunction(
               metadata: {
                 criticalItems,
                 action: "view_inventory",
+                actionUrl: "/inventory",
+              },
+            },
+          });
+        }
+      }
+
+      // Notify about seasonal demand changes
+      if (seasonalNotifications.length > 0) {
+        totalSeasonal += seasonalNotifications.length;
+
+        const seasonalOwner = await prisma.user.findFirst({
+          where: { restaurantId: restaurant.id, role: "OWNER" },
+        });
+
+        if (seasonalOwner) {
+          const highItems = seasonalNotifications.filter((n) => n.direction === "higher");
+          const lowItems = seasonalNotifications.filter((n) => n.direction === "lower");
+
+          const parts: string[] = [];
+          if (highItems.length > 0) parts.push(`${highItems.length} item(s) with higher seasonal demand`);
+          if (lowItems.length > 0) parts.push(`${lowItems.length} item(s) with lower seasonal demand`);
+
+          await prisma.notification.create({
+            data: {
+              type: "SYSTEM",
+              title: "Seasonal Demand Alert",
+              message: `Seasonal analysis detected ${parts.join(" and ")}. Par levels have been auto-adjusted. Ask the AI about seasonal forecasts for details.`,
+              userId: seasonalOwner.id,
+              metadata: {
+                seasonalNotifications,
+                action: "view_seasonal",
                 actionUrl: "/inventory",
               },
             },
@@ -253,6 +369,7 @@ export const consumptionAnalysis = inngest.createFunction(
       restaurantsProcessed: restaurants.length,
       insightsGenerated: totalInsights,
       criticalItems: totalCritical,
+      seasonalAdjustments: totalSeasonal,
     };
   }
 );
