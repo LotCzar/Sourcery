@@ -24,12 +24,16 @@ export function Header() {
       {/* Restaurant Switcher + Search */}
       <div className="flex flex-1 items-center gap-4" style={{ overflow: "visible" }}>
         <RestaurantSwitcher />
-        <GlobalSearch />
+        <div data-tour="global-search">
+          <GlobalSearch />
+        </div>
       </div>
 
       {/* Actions */}
       <div className="flex items-center gap-4 relative z-50">
-        <CartIcon onClick={() => setCartOpen(true)} />
+        <div data-tour="cart-button">
+          <CartIcon onClick={() => setCartOpen(true)} />
+        </div>
         <CartDrawer open={cartOpen} onOpenChange={setCartOpen} />
 
         <Button
@@ -37,11 +41,12 @@ export function Header() {
           size="icon"
           onClick={toggleChat}
           title="FreshSheet AI"
+          data-tour="ai-chat-button"
         >
           <Sparkles className="h-5 w-5" />
         </Button>
 
-        <Link href="/notifications">
+        <Link href="/notifications" data-tour="notifications-button">
           <Button variant="ghost" size="icon" className="relative">
             <Bell className="h-5 w-5" />
             {unreadCount > 0 && (

@@ -42,11 +42,19 @@ export function SupplierSidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
+          const tourAttr =
+            item.name === "Orders"
+              ? "supplier-sidebar-orders"
+              : item.name === "Products"
+                ? "supplier-sidebar-products"
+                : item.name === "Settings"
+                  ? "supplier-sidebar-settings"
+                  : undefined;
           const isActive =
             pathname === item.href ||
             (item.href !== "/supplier" && pathname.startsWith(item.href));
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} href={item.href} data-tour={tourAttr}>
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(

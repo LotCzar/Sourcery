@@ -178,7 +178,7 @@ export default function SupplierDashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="supplier-quick-actions">
         <Link href="/supplier/orders?status=PENDING">
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
@@ -253,7 +253,7 @@ export default function SupplierDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-tour="supplier-dashboard-stats">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">

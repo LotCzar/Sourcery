@@ -64,13 +64,21 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4">
+      <nav className="flex-1 space-y-1 px-3 py-4" data-tour="sidebar-nav">
         {navItems.map((item) => {
+          const tourAttr =
+            item.name === "Menu Parser"
+              ? "sidebar-menu-parser"
+              : item.name === "Price Alerts"
+                ? "sidebar-price-alerts"
+                : item.name === "Settings"
+                  ? "sidebar-settings"
+                  : undefined;
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
           return (
-            <Link key={item.name} href={item.href}>
+            <Link key={item.name} href={item.href} data-tour={tourAttr}>
               <Button
                 variant={isActive ? "secondary" : "ghost"}
                 className={cn(

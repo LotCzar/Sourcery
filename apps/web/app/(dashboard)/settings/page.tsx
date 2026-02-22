@@ -61,9 +61,12 @@ import {
   Clock,
   Plus,
   DollarSign,
+  HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
 import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
+import { useTour } from "@/lib/tour-context";
 
 const cuisineTypes = [
   "American",
@@ -435,6 +438,9 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Guided Tour */}
+              <GuidedTourCard />
 
               {/* Danger Zone */}
               <Card className="border-red-200">
@@ -1337,6 +1343,38 @@ function AccountingSection() {
             </div>
           </>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function GuidedTourCard() {
+  const { resetTour } = useTour();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HelpCircle className="h-5 w-5" />
+          Guided Tour
+        </CardTitle>
+        <CardDescription>
+          Take a guided tour of FreshSheet&apos;s features
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium">Restart Tour</p>
+            <p className="text-sm text-muted-foreground">
+              Walk through all the key features again
+            </p>
+          </div>
+          <Button variant="outline" onClick={resetTour}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Restart Tour
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );

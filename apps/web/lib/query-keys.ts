@@ -85,4 +85,7 @@ export const queryKeys = {
     integration: ["accounting", "integration"] as const,
     mappings: ["accounting", "mappings"] as const,
   },
+  tour: {
+    all: ["tour"] as const,
+  },
 };

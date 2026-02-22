@@ -159,6 +159,10 @@ model User {
   approvalReviews  OrderApproval[] @relation("ApprovalReviews")
   sentMessages     OrderMessage[]
 
+  // Guided tour
+  tourCompletedAt   DateTime?
+  tourState         Json?
+
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 

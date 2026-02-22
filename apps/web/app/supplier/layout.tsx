@@ -6,6 +6,7 @@ import { SupplierSidebar } from "@/components/supplier/sidebar";
 import { SupplierHeader } from "@/components/supplier/header";
 import { SupplierMobileNav } from "@/components/supplier/mobile-nav";
 import { Toaster } from "@/components/ui/toaster";
+import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
 async function checkSupplierAccess(userId: string) {
@@ -36,25 +37,27 @@ export default async function SupplierLayout({
   }
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      {/* Mobile Navigation */}
-      <SupplierMobileNav />
+    <TourWrapper audience="supplier">
+      <div className="flex h-screen overflow-hidden">
+        {/* Mobile Navigation */}
+        <SupplierMobileNav />
 
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:flex">
-        <SupplierSidebar />
-      </div>
-
-      {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <div className="relative z-50" style={{ overflow: "visible" }}>
-          <SupplierHeader />
+        {/* Desktop Sidebar */}
+        <div className="hidden lg:flex">
+          <SupplierSidebar />
         </div>
-        <main className="flex-1 overflow-y-auto bg-background p-6">
-          {children}
-        </main>
+
+        {/* Main Content */}
+        <div className="flex flex-1 flex-col overflow-hidden">
+          <div className="relative z-50" style={{ overflow: "visible" }}>
+            <SupplierHeader />
+          </div>
+          <main className="flex-1 overflow-y-auto bg-background p-6">
+            {children}
+          </main>
+        </div>
+        <Toaster />
       </div>
-      <Toaster />
-    </div>
+    </TourWrapper>
   );
 }

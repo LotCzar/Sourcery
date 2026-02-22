@@ -10,6 +10,7 @@ import { ChatSidebar } from "@/components/chat/chat-sidebar";
 import { RealtimeProvider } from "@/components/realtime-provider";
 import { Toaster } from "@/components/ui/toaster";
 import { OrgProvider } from "@/lib/org-context";
+import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
 async function checkOnboarding(userId: string) {
@@ -52,29 +53,31 @@ export default async function DashboardLayout({
 
   return (
     <OrgProvider>
-      <div className="flex h-screen overflow-hidden">
-        {/* Mobile Navigation */}
-        <MobileNav />
+      <TourWrapper audience="restaurant">
+        <div className="flex h-screen overflow-hidden">
+          {/* Mobile Navigation */}
+          <MobileNav />
 
-        {/* Desktop Sidebar */}
-        <div className="hidden lg:flex">
-          <Sidebar />
-        </div>
-
-        {/* Main Content */}
-        <div className="flex flex-1 flex-col overflow-hidden">
-          <div className="relative z-50" style={{ overflow: "visible" }}>
-            <Header />
+          {/* Desktop Sidebar */}
+          <div className="hidden lg:flex">
+            <Sidebar />
           </div>
-          <main className="flex-1 overflow-y-auto bg-background p-6">
-            <ErrorBoundary>{children}</ErrorBoundary>
-          </main>
-        </div>
 
-        <ChatSidebar />
-        <RealtimeProvider />
-        <Toaster />
-      </div>
+          {/* Main Content */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+            <div className="relative z-50" style={{ overflow: "visible" }}>
+              <Header />
+            </div>
+            <main className="flex-1 overflow-y-auto bg-background p-6">
+              <ErrorBoundary>{children}</ErrorBoundary>
+            </main>
+          </div>
+
+          <ChatSidebar />
+          <RealtimeProvider />
+          <Toaster />
+        </div>
+      </TourWrapper>
     </OrgProvider>
   );
 }

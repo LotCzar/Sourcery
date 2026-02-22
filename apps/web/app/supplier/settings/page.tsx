@@ -19,9 +19,12 @@ import {
   MapPin,
   Truck,
   Save,
+  HelpCircle,
+  RotateCcw,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupplierSettings, useUpdateSupplierSettings } from "@/hooks/use-supplier-settings";
+import { useTour } from "@/lib/tour-context";
 
 const supplierStatusConfig: Record<string, { label: string; color: string }> = {
   PENDING: { label: "Pending Verification", color: "bg-yellow-100 text-yellow-700" },
@@ -317,6 +320,9 @@ export default function SupplierSettingsPage() {
         </CardContent>
       </Card>
 
+      {/* Guided Tour */}
+      <GuidedTourCard />
+
       {/* Save Button */}
       <div className="flex justify-end">
         <Button onClick={handleSave} disabled={updateSettings.isPending}>
@@ -334,5 +340,37 @@ export default function SupplierSettingsPage() {
         </Button>
       </div>
     </div>
+  );
+}
+
+function GuidedTourCard() {
+  const { resetTour } = useTour();
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <HelpCircle className="h-5 w-5" />
+          Guided Tour
+        </CardTitle>
+        <CardDescription>
+          Take a guided tour of the Supplier Portal features
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium">Restart Tour</p>
+            <p className="text-sm text-muted-foreground">
+              Walk through all the key features again
+            </p>
+          </div>
+          <Button variant="outline" onClick={resetTour}>
+            <RotateCcw className="mr-2 h-4 w-4" />
+            Restart Tour
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
