@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { GlobalSearch } from "@/components/global-search";
 import { CartIcon } from "@/components/cart/cart-icon";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { RestaurantSwitcher } from "@/components/dashboard/restaurant-switcher";
 
 export function Header() {
   const [cartOpen, setCartOpen] = useState(false);
@@ -20,8 +21,9 @@ export function Header() {
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6 relative z-20" style={{ overflow: "visible" }}>
-      {/* Search */}
+      {/* Restaurant Switcher + Search */}
       <div className="flex flex-1 items-center gap-4" style={{ overflow: "visible" }}>
+        <RestaurantSwitcher />
         <GlobalSearch />
       </div>
 

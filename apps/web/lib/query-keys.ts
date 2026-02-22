@@ -51,6 +51,10 @@ export const queryKeys = {
     messages: (conversationId: string) =>
       ["chat", "messages", conversationId] as const,
   },
+  org: {
+    restaurants: ["org", "restaurants"] as const,
+    summary: ["org", "summary"] as const,
+  },
   supplier: {
     dashboard: ["supplier", "dashboard"] as const,
     products: {

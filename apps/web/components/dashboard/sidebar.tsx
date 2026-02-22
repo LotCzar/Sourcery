@@ -14,10 +14,12 @@ import {
   BellRing,
   FileText,
   Warehouse,
+  Building2,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useOrg } from "@/lib/org-context";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -35,6 +37,15 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { isOrgAdmin } = useOrg();
+
+  const orgNavItem = {
+    name: "Organization",
+    href: "/org-admin",
+    icon: Building2,
+  };
+
+  const navItems = isOrgAdmin ? [orgNavItem, ...navigation] : navigation;
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
@@ -50,7 +61,7 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
-        {navigation.map((item) => {
+        {navItems.map((item) => {
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));

@@ -640,4 +640,124 @@ export const aiTools: Anthropic.Tool[] = [
       },
     },
   },
+  {
+    name: "get_benchmarks",
+    description:
+      "Compare your restaurant's waste rate, spend per cover, and supplier pricing against anonymized platform-wide averages or organization-wide averages.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        metric: {
+          type: "string",
+          enum: ["waste_rate", "spend_per_cover", "supplier_pricing", "all"],
+          description:
+            "Which benchmark metric to compute (default: all)",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Filter by product category",
+        },
+        scope: {
+          type: "string",
+          enum: ["platform", "organization"],
+          description:
+            "Benchmark scope: 'platform' compares against all restaurants, 'organization' compares against restaurants in the same org. Default: platform.",
+        },
+      },
+    },
+  },
+  {
+    name: "get_negotiation_brief",
+    description:
+      "Generate a comprehensive vendor negotiation briefing with order history, price changes, delivery performance, market alternatives, and leverage points.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        supplier_name: {
+          type: "string",
+          description: "Supplier name to search for (fuzzy match)",
+        },
+        supplier_id: {
+          type: "string",
+          description: "Supplier ID",
+        },
+      },
+    },
+  },
+];
+
+// Org-admin-only tools — conditionally included for ORG_ADMIN users
+export const orgTools: Anthropic.Tool[] = [
+  {
+    name: "compare_restaurants",
+    description:
+      "Compare metrics across restaurants in your organization side-by-side. Shows spend, waste, orders, and inventory metrics per restaurant with rankings.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        restaurant_ids: {
+          type: "array",
+          items: { type: "string" },
+          description:
+            "Restaurant IDs to compare. If omitted, compares all org restaurants.",
+        },
+        metrics: {
+          type: "array",
+          items: {
+            type: "string",
+            enum: ["spend", "waste", "orders", "inventory"],
+          },
+          description:
+            "Which metrics to compare (default: all). Options: spend, waste, orders, inventory.",
+        },
+        time_range: {
+          type: "string",
+          enum: [
+            "this_week",
+            "last_week",
+            "this_month",
+            "last_month",
+            "last_30_days",
+            "last_90_days",
+          ],
+          description: "Time period for comparison (default: this_month)",
+        },
+      },
+    },
+  },
+  {
+    name: "org_summary",
+    description:
+      "Get an aggregate summary of all restaurants in your organization: total spend, total orders, low-stock alerts, top suppliers, and per-restaurant breakdown.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        time_range: {
+          type: "string",
+          enum: [
+            "this_week",
+            "last_week",
+            "this_month",
+            "last_month",
+            "last_30_days",
+            "last_90_days",
+          ],
+          description: "Time period for summary (default: this_month)",
+        },
+      },
+    },
+  },
 ];

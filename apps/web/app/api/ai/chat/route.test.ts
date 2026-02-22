@@ -238,7 +238,12 @@ describe("POST /api/ai/chat", () => {
     expect(mockExecuteTool).toHaveBeenCalledWith(
       "search_products",
       { query: "tomatoes" },
-      { userId: mockUser.id, restaurantId: mockUser.restaurant.id }
+      {
+        userId: mockUser.id,
+        restaurantId: mockUser.restaurant.id,
+        organizationId: null,
+        userRole: mockUser.role,
+      }
     );
 
     const eventTypes = events.map((e) => e.event);

@@ -306,3 +306,25 @@ export function createMockPOSIntegration(overrides?: Record<string, unknown>) {
     ...overrides,
   };
 }
+
+export function createMockOrganization(overrides?: Record<string, unknown>) {
+  return {
+    id: "org_1",
+    name: "Test Restaurant Group",
+    slug: "test-group",
+    logoUrl: null,
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockOrgAdmin(overrides?: Record<string, unknown>) {
+  return createMockUser({
+    id: "org_admin_1",
+    role: "ORG_ADMIN" as const,
+    organizationId: "org_1",
+    restaurantId: "rest_1",
+    ...overrides,
+  });
+}

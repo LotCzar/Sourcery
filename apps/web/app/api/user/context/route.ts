@@ -18,11 +18,24 @@ export async function GET() {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Fetch org restaurants if user is ORG_ADMIN with an organization
+    let orgRestaurants: { id: string; name: string }[] = [];
+    if (user.role === "ORG_ADMIN" && user.organizationId) {
+      orgRestaurants = await prisma.restaurant.findMany({
+        where: { organizationId: user.organizationId },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         userId: user.id,
         restaurantId: user.restaurant?.id || null,
+        role: user.role,
+        organizationId: user.organizationId || null,
+        orgRestaurants,
       },
     });
   } catch (error: any) {

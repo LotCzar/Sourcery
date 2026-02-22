@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
-import { aiTools } from "@/lib/ai/tools";
+import { aiTools, orgTools } from "@/lib/ai/tools";
 import { executeTool } from "@/lib/ai/tool-executor";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import type Anthropic from "@anthropic-ai/sdk";
@@ -26,7 +26,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: true },
+      include: { restaurant: true, organization: true },
     });
 
     if (!user?.restaurant) {
@@ -34,6 +34,26 @@ export async function POST(request: Request) {
         { error: "Restaurant not found" },
         { status: 404 }
       );
+    }
+
+    // For ORG_ADMIN, resolve active restaurant from header
+    let activeRestaurantId = user.restaurant.id;
+    let activeRestaurantName = user.restaurant.name;
+
+    if (user.role === "ORG_ADMIN" && user.organizationId) {
+      const headerRestaurantId = request.headers.get("x-restaurant-id");
+      if (headerRestaurantId) {
+        const headerRestaurant = await prisma.restaurant.findFirst({
+          where: {
+            id: headerRestaurantId,
+            organizationId: user.organizationId,
+          },
+        });
+        if (headerRestaurant) {
+          activeRestaurantId = headerRestaurant.id;
+          activeRestaurantName = headerRestaurant.name;
+        }
+      }
     }
 
     const { message, conversationId } = await request.json();
@@ -112,15 +132,36 @@ export async function POST(request: Request) {
     // Add current user message
     history.push({ role: "user", content: message });
 
+    // Build system prompt with optional org context
+    const orgContext =
+      user.role === "ORG_ADMIN" && user.organization
+        ? {
+            orgName: user.organization.name,
+            isOrgAdmin: true,
+            restaurantCount: await prisma.restaurant.count({
+              where: { organizationId: user.organizationId! },
+            }),
+          }
+        : undefined;
+
     const systemPrompt = buildSystemPrompt(
-      user.restaurant.name,
-      user.firstName || "there"
+      activeRestaurantName,
+      user.firstName || "there",
+      orgContext
     );
 
     const toolContext = {
       userId: user.id,
-      restaurantId: user.restaurant.id,
+      restaurantId: activeRestaurantId,
+      organizationId: user.organizationId || null,
+      userRole: user.role,
     };
+
+    // Conditionally include org tools for ORG_ADMIN users
+    const tools =
+      user.role === "ORG_ADMIN" && user.organizationId
+        ? [...aiTools, ...orgTools]
+        : aiTools;
 
     // SSE stream
     const encoder = new TextEncoder();
@@ -141,7 +182,7 @@ export async function POST(request: Request) {
               model: "claude-sonnet-4-20250514",
               max_tokens: 4096,
               system: systemPrompt,
-              tools: aiTools,
+              tools,
               messages,
             });
 

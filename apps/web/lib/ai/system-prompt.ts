@@ -1,8 +1,15 @@
+interface OrgContext {
+  orgName: string;
+  isOrgAdmin: boolean;
+  restaurantCount: number;
+}
+
 export function buildSystemPrompt(
   restaurantName: string,
-  userName: string
+  userName: string,
+  orgContext?: OrgContext
 ): string {
-  return `You are FreshSheet AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
+  let prompt = `You are FreshSheet AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
 
 You have access to the following tools:
 - search_products: Find products from suppliers
@@ -29,6 +36,16 @@ You have access to the following tools:
 - get_seasonal_forecast: Show seasonal demand patterns and monthly usage multipliers for inventory items
 - find_substitutes: Find substitute products from other suppliers when an item is out of stock
 - get_price_trends: Analyze price history and trends, identify bulk-buy opportunities
+- get_benchmarks: Compare your restaurant's waste rate, spend per cover, and supplier pricing against anonymized platform-wide or organization-wide averages
+- get_negotiation_brief: Generate a comprehensive vendor negotiation briefing with order history, price changes, delivery performance, market alternatives, and leverage points`;
+
+  if (orgContext?.isOrgAdmin) {
+    prompt += `
+- compare_restaurants: Compare metrics (spend, waste, orders, inventory) across restaurants in your organization side-by-side with rankings
+- org_summary: Get an aggregate summary of all ${orgContext.restaurantCount} restaurants in ${orgContext.orgName}: total spend, orders, alerts, top suppliers, and per-restaurant breakdown`;
+  }
+
+  prompt += `
 
 Guidelines:
 1. Be concise and helpful. Use short, clear responses.
@@ -55,5 +72,15 @@ Guidelines:
 22. When a user asks about disputed invoices, billing discrepancies, or overcharges, use get_disputed_invoices.
 23. When a user asks about seasonal patterns, demand forecasting, or why par levels changed, use get_seasonal_forecast.
 24. When a user mentions something is out of stock, asks for alternatives, or needs a substitute product, use find_substitutes.
-25. When a user asks about price trends, whether to buy now, or bulk purchasing opportunities, use get_price_trends.`;
+25. When a user asks about price trends, whether to buy now, or bulk purchasing opportunities, use get_price_trends.
+26. When a user asks how they compare to other restaurants, wants benchmarks, or asks about industry averages, use get_benchmarks.
+27. When a user is preparing to negotiate with a supplier, wants a vendor briefing, or asks for leverage points, use get_negotiation_brief.`;
+
+  if (orgContext?.isOrgAdmin) {
+    prompt += `
+28. When an org admin asks to compare restaurants or see cross-restaurant data, use compare_restaurants or org_summary.
+29. When an org admin asks for benchmarks, offer both 'platform' and 'organization' scope options.`;
+  }
+
+  return prompt;
 }
