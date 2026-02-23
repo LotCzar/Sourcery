@@ -337,7 +337,7 @@ export async function POST() {
   } catch (error: any) {
     console.error("Seed error:", error);
     return NextResponse.json(
-      { error: "Failed to seed test data", details: error?.message },
+      { error: "Failed to seed test data" },
       { status: 500 }
     );
   }
@@ -444,7 +444,7 @@ export async function DELETE() {
   } catch (error: any) {
     console.error("Clear error:", error);
     return NextResponse.json(
-      { error: "Failed to clear test data", details: error?.message },
+      { error: "Failed to clear test data" },
       { status: 500 }
     );
   }

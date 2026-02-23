@@ -65,7 +65,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get pending approvals error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch pending approvals", details: error?.message },
+      { error: "Failed to fetch pending approvals" },
       { status: 500 }
     );
   }

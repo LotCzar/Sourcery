@@ -56,7 +56,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Get supplier error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch supplier", details: error?.message },
+      { error: "Failed to fetch supplier" },
       { status: 500 }
     );
   }

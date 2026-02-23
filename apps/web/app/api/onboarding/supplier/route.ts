@@ -107,7 +107,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Supplier onboarding error:", error);
     return NextResponse.json(
-      { error: "Failed to complete supplier onboarding", details: error?.message },
+      { error: "Failed to complete supplier onboarding" },
       { status: 500 }
     );
   }

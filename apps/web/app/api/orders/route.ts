@@ -70,7 +70,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Get orders error:", error);
     return NextResponse.json(
-      { error: "Failed to get orders", details: error?.message },
+      { error: "Failed to get orders" },
       { status: 500 }
     );
   }
@@ -201,7 +201,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Create order error:", error);
     return NextResponse.json(
-      { error: "Failed to create order", details: error?.message },
+      { error: "Failed to create order" },
       { status: 500 }
     );
   }

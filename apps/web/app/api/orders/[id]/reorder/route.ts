@@ -166,7 +166,7 @@ export async function POST(
   } catch (error: any) {
     console.error("Reorder error:", error);
     return NextResponse.json(
-      { error: "Failed to create reorder", details: error?.message },
+      { error: "Failed to create reorder" },
       { status: 500 }
     );
   }

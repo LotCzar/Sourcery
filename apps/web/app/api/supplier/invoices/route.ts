@@ -125,7 +125,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Get invoices error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch invoices", details: error?.message },
+      { error: "Failed to fetch invoices" },
       { status: 500 }
     );
   }
@@ -278,7 +278,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Create invoice error:", error);
     return NextResponse.json(
-      { error: "Failed to create invoice", details: error?.message },
+      { error: "Failed to create invoice" },
       { status: 500 }
     );
   }

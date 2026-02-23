@@ -106,7 +106,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Invoice sync error:", error);
     return NextResponse.json(
-      { error: "Failed to sync invoices", details: error?.message },
+      { error: "Failed to sync invoices" },
       { status: 500 }
     );
   }

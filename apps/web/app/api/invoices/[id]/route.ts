@@ -97,7 +97,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Invoice fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch invoice", details: error?.message },
+      { error: "Failed to fetch invoice" },
       { status: 500 }
     );
   }
@@ -225,7 +225,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Invoice update error:", error);
     return NextResponse.json(
-      { error: "Failed to update invoice", details: error?.message },
+      { error: "Failed to update invoice" },
       { status: 500 }
     );
   }
@@ -275,7 +275,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Invoice delete error:", error);
     return NextResponse.json(
-      { error: "Failed to delete invoice", details: error?.message },
+      { error: "Failed to delete invoice" },
       { status: 500 }
     );
   }

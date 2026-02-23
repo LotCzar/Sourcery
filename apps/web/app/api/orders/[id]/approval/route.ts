@@ -181,7 +181,7 @@ export async function POST(
   } catch (error: any) {
     console.error("Review approval error:", error);
     return NextResponse.json(
-      { error: "Failed to review approval", details: error?.message },
+      { error: "Failed to review approval" },
       { status: 500 }
     );
   }

@@ -77,7 +77,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get driver deliveries error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch deliveries", details: error?.message },
+      { error: "Failed to fetch deliveries" },
       { status: 500 }
     );
   }

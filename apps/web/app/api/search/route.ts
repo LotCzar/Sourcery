@@ -134,7 +134,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Search error:", error);
     return NextResponse.json(
-      { error: "Search failed", details: error?.message },
+      { error: "Search failed" },
       { status: 500 }
     );
   }

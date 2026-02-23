@@ -37,7 +37,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get accounting integration error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch integration", details: error?.message },
+      { error: "Failed to fetch integration" },
       { status: 500 }
     );
   }

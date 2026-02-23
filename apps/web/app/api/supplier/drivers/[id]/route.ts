@@ -68,7 +68,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Update driver error:", error);
     return NextResponse.json(
-      { error: "Failed to update driver", details: error?.message },
+      { error: "Failed to update driver" },
       { status: 500 }
     );
   }
@@ -136,7 +136,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Delete driver error:", error);
     return NextResponse.json(
-      { error: "Failed to remove driver", details: error?.message },
+      { error: "Failed to remove driver" },
       { status: 500 }
     );
   }

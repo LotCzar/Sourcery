@@ -56,7 +56,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Conversation fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch conversation", details: error?.message },
+      { error: "Failed to fetch conversation" },
       { status: 500 }
     );
   }

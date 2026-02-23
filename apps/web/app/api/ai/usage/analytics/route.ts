@@ -191,7 +191,7 @@ export async function GET(req: Request) {
   } catch (error: any) {
     console.error("AI usage analytics error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch analytics", details: error?.message },
+      { error: "Failed to fetch analytics" },
       { status: 500 }
     );
   }

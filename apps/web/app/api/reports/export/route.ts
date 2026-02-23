@@ -215,7 +215,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Report export error:", error);
     return NextResponse.json(
-      { error: "Failed to export report", details: error?.message },
+      { error: "Failed to export report" },
       { status: 500 }
     );
   }

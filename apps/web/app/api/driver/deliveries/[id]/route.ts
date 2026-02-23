@@ -91,7 +91,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Get delivery detail error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch delivery", details: error?.message },
+      { error: "Failed to fetch delivery" },
       { status: 500 }
     );
   }
@@ -384,7 +384,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Update delivery error:", error);
     return NextResponse.json(
-      { error: "Failed to update delivery", details: error?.message },
+      { error: "Failed to update delivery" },
       { status: 500 }
     );
   }

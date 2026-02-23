@@ -20,101 +20,106 @@ export const usageAlerts = inngest.createFunction(
   { id: "usage-alerts", name: "Daily AI Usage Alerts" },
   { cron: "0 7 * * *" },
   async () => {
-    const periodStart = getPeriodStart();
+    try {
+      const periodStart = getPeriodStart();
 
-    const restaurants = await prisma.restaurant.findMany({
-      where: { planTier: { not: "ENTERPRISE" } },
-      select: { id: true, name: true, planTier: true },
-    });
-
-    let restaurantsChecked = 0;
-    let alertsSent = 0;
-
-    for (const restaurant of restaurants) {
-      restaurantsChecked++;
-
-      const ownerUser = await prisma.user.findFirst({
-        where: { restaurantId: restaurant.id, role: "OWNER" },
+      const restaurants = await prisma.restaurant.findMany({
+        where: { planTier: { not: "ENTERPRISE" } },
+        select: { id: true, name: true, planTier: true },
       });
 
-      if (!ownerUser) continue;
+      let restaurantsChecked = 0;
+      let alertsSent = 0;
 
-      const limits = PLAN_LIMITS[restaurant.planTier as PlanTier];
+      for (const restaurant of restaurants) {
+        restaurantsChecked++;
 
-      for (const [bucketKey, features] of Object.entries(FEATURE_GROUPS)) {
-        const limit = limits[bucketKey as keyof typeof limits];
-        if (!limit || limit === Infinity) continue;
-
-        const usageCount = await prisma.aiUsageLog.count({
-          where: {
-            restaurantId: restaurant.id,
-            feature: { in: features },
-            periodStart,
-          },
+        const ownerUser = await prisma.user.findFirst({
+          where: { restaurantId: restaurant.id, role: "OWNER" },
         });
 
-        const usagePercent = Math.round((usageCount / limit) * 100);
+        if (!ownerUser) continue;
 
-        if (usagePercent < ALERT_THRESHOLD * 100) continue;
+        const limits = PLAN_LIMITS[restaurant.planTier as PlanTier];
 
-        // Deduplicate: check for existing alert this period
-        const existing = await prisma.notification.findMany({
-          where: {
-            userId: ownerUser.id,
-            type: "SYSTEM",
-            createdAt: { gte: periodStart },
-          },
-        });
+        for (const [bucketKey, features] of Object.entries(FEATURE_GROUPS)) {
+          const limit = limits[bucketKey as keyof typeof limits];
+          if (!limit || limit === Infinity) continue;
 
-        const alreadyAlerted = existing.some((n) => {
-          const meta = n.metadata as Record<string, unknown> | null;
-          return (
-            meta?.alertType === "usage_limit" &&
-            meta?.featureBucket === bucketKey
-          );
-        });
-
-        if (alreadyAlerted) continue;
-
-        const featureLabel = BUCKET_LABELS[bucketKey] || bucketKey;
-
-        await prisma.notification.create({
-          data: {
-            type: "SYSTEM",
-            title: `${featureLabel} usage at ${usagePercent}%`,
-            message: `Your restaurant has used ${usageCount} of ${limit} ${featureLabel.toLowerCase()} operations this month (${usagePercent}%).`,
-            userId: ownerUser.id,
-            metadata: {
-              alertType: "usage_limit",
-              featureBucket: bucketKey,
-              usagePercent,
-              used: usageCount,
-              limit,
+          const usageCount = await prisma.aiUsageLog.count({
+            where: {
               restaurantId: restaurant.id,
-              actionUrl: "/settings",
+              feature: { in: features },
+              periodStart,
             },
-          },
-        });
-
-        if (ownerUser.email) {
-          const template = emailTemplates.usageAlert(
-            restaurant.name,
-            featureLabel,
-            usageCount,
-            limit,
-            usagePercent
-          );
-          await sendEmail({
-            to: ownerUser.email,
-            subject: template.subject,
-            html: template.html,
           });
+
+          const usagePercent = Math.round((usageCount / limit) * 100);
+
+          if (usagePercent < ALERT_THRESHOLD * 100) continue;
+
+          // Deduplicate: check for existing alert this period
+          const existing = await prisma.notification.findMany({
+            where: {
+              userId: ownerUser.id,
+              type: "SYSTEM",
+              createdAt: { gte: periodStart },
+            },
+          });
+
+          const alreadyAlerted = existing.some((n) => {
+            const meta = n.metadata as Record<string, unknown> | null;
+            return (
+              meta?.alertType === "usage_limit" &&
+              meta?.featureBucket === bucketKey
+            );
+          });
+
+          if (alreadyAlerted) continue;
+
+          const featureLabel = BUCKET_LABELS[bucketKey] || bucketKey;
+
+          await prisma.notification.create({
+            data: {
+              type: "SYSTEM",
+              title: `${featureLabel} usage at ${usagePercent}%`,
+              message: `Your restaurant has used ${usageCount} of ${limit} ${featureLabel.toLowerCase()} operations this month (${usagePercent}%).`,
+              userId: ownerUser.id,
+              metadata: {
+                alertType: "usage_limit",
+                featureBucket: bucketKey,
+                usagePercent,
+                used: usageCount,
+                limit,
+                restaurantId: restaurant.id,
+                actionUrl: "/settings",
+              },
+            },
+          });
+
+          if (ownerUser.email) {
+            const template = emailTemplates.usageAlert(
+              restaurant.name,
+              featureLabel,
+              usageCount,
+              limit,
+              usagePercent
+            );
+            await sendEmail({
+              to: ownerUser.email,
+              subject: template.subject,
+              html: template.html,
+            });
+          }
+
+          alertsSent++;
         }
-
-        alertsSent++;
       }
-    }
 
-    return { restaurantsChecked, alertsSent };
+      return { restaurantsChecked, alertsSent };
+    } catch (err) {
+      console.error("[usage-alerts] failed:", err);
+      throw err;
+    }
   }
 );

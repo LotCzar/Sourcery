@@ -61,7 +61,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get drivers error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch drivers", details: error?.message },
+      { error: "Failed to fetch drivers" },
       { status: 500 }
     );
   }
@@ -162,7 +162,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Create driver error:", error);
     return NextResponse.json(
-      { error: "Failed to create driver", details: error?.message },
+      { error: "Failed to create driver" },
       { status: 500 }
     );
   }

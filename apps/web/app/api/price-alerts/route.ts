@@ -69,7 +69,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Price alerts fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch price alerts", details: error?.message },
+      { error: "Failed to fetch price alerts" },
       { status: 500 }
     );
   }
@@ -160,7 +160,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Price alert create error:", error);
     return NextResponse.json(
-      { error: "Failed to create price alert", details: error?.message },
+      { error: "Failed to create price alert" },
       { status: 500 }
     );
   }

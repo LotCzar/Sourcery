@@ -300,7 +300,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Dashboard error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch dashboard data", details: error?.message },
+      { error: "Failed to fetch dashboard data" },
       { status: 500 }
     );
   }

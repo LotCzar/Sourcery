@@ -280,6 +280,6 @@ describe("POST /api/ai/chat", () => {
 
     const errorEvent = events.find((e) => e.event === "error");
     expect(errorEvent).toBeDefined();
-    expect(errorEvent!.data.message).toBe("API rate limited");
+    expect(errorEvent!.data.message).toBe("An error occurred while processing your request.");
   });
 });

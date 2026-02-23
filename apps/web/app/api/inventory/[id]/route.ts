@@ -94,7 +94,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Inventory fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch inventory item", details: error?.message },
+      { error: "Failed to fetch inventory item" },
       { status: 500 }
     );
   }
@@ -251,7 +251,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Inventory update error:", error);
     return NextResponse.json(
-      { error: "Failed to update inventory item", details: error?.message },
+      { error: "Failed to update inventory item" },
       { status: 500 }
     );
   }
@@ -301,7 +301,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Inventory delete error:", error);
     return NextResponse.json(
-      { error: "Failed to delete inventory item", details: error?.message },
+      { error: "Failed to delete inventory item" },
       { status: 500 }
     );
   }

@@ -103,7 +103,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Get order error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch order", details: error?.message },
+      { error: "Failed to fetch order" },
       { status: 500 }
     );
   }
@@ -434,7 +434,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Update order error:", error);
     return NextResponse.json(
-      { error: "Failed to update order", details: error?.message },
+      { error: "Failed to update order" },
       { status: 500 }
     );
   }
@@ -502,7 +502,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Delete order error:", error);
     return NextResponse.json(
-      { error: "Failed to delete order", details: error?.message },
+      { error: "Failed to delete order" },
       { status: 500 }
     );
   }

@@ -130,7 +130,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Inventory fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch inventory", details: error?.message },
+      { error: "Failed to fetch inventory" },
       { status: 500 }
     );
   }
@@ -212,7 +212,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Inventory create error:", error);
     return NextResponse.json(
-      { error: "Failed to create inventory item", details: error?.message },
+      { error: "Failed to create inventory item" },
       { status: 500 }
     );
   }

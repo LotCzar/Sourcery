@@ -335,7 +335,8 @@ export async function POST(request: Request) {
 
           send("done", { conversationId: conversation.id });
         } catch (err: any) {
-          send("error", { message: err.message || "An error occurred" });
+          console.error("Chat stream error:", err);
+          send("error", { message: "An error occurred while processing your request." });
         } finally {
           controller.close();
         }
@@ -352,7 +353,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Chat API error:", error);
     return NextResponse.json(
-      { error: "Failed to process chat", details: error?.message },
+      { error: "Failed to process chat" },
       { status: 500 }
     );
   }

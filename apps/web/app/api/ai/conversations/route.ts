@@ -39,7 +39,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Conversations fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch conversations", details: error?.message },
+      { error: "Failed to fetch conversations" },
       { status: 500 }
     );
   }
@@ -91,7 +91,7 @@ export async function DELETE(request: Request) {
   } catch (error: any) {
     console.error("Conversation delete error:", error);
     return NextResponse.json(
-      { error: "Failed to delete conversation", details: error?.message },
+      { error: "Failed to delete conversation" },
       { status: 500 }
     );
   }

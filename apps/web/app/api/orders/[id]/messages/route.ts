@@ -90,7 +90,7 @@ export async function GET(
   } catch (error: any) {
     console.error("Get order messages error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch messages", details: error?.message },
+      { error: "Failed to fetch messages" },
       { status: 500 }
     );
   }
@@ -208,7 +208,7 @@ export async function POST(
   } catch (error: any) {
     console.error("Send message error:", error);
     return NextResponse.json(
-      { error: "Failed to send message", details: error?.message },
+      { error: "Failed to send message" },
       { status: 500 }
     );
   }

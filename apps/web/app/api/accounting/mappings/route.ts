@@ -35,7 +35,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get mappings error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch mappings", details: error?.message },
+      { error: "Failed to fetch mappings" },
       { status: 500 }
     );
   }
@@ -108,7 +108,7 @@ export async function PUT(request: Request) {
   } catch (error: any) {
     console.error("Update mappings error:", error);
     return NextResponse.json(
-      { error: "Failed to update mappings", details: error?.message },
+      { error: "Failed to update mappings" },
       { status: 500 }
     );
   }

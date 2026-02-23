@@ -40,7 +40,7 @@ export async function POST() {
   } catch (error: any) {
     console.error("Disconnect POS integration error:", error);
     return NextResponse.json(
-      { error: "Failed to disconnect integration", details: error?.message },
+      { error: "Failed to disconnect integration" },
       { status: 500 }
     );
   }

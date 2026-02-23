@@ -46,7 +46,7 @@ export async function DELETE(
   } catch (error: any) {
     console.error("Price alert delete error:", error);
     return NextResponse.json(
-      { error: "Failed to delete price alert", details: error?.message },
+      { error: "Failed to delete price alert" },
       { status: 500 }
     );
   }
@@ -134,7 +134,7 @@ export async function PATCH(
   } catch (error: any) {
     console.error("Price alert update error:", error);
     return NextResponse.json(
-      { error: "Failed to update price alert", details: error?.message },
+      { error: "Failed to update price alert" },
       { status: 500 }
     );
   }

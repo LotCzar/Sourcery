@@ -72,7 +72,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get driver stats error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch driver stats", details: error?.message },
+      { error: "Failed to fetch driver stats" },
       { status: 500 }
     );
   }

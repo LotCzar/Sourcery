@@ -70,7 +70,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Accounting connect error:", error);
     return NextResponse.json(
-      { error: "Failed to initiate connection", details: error?.message },
+      { error: "Failed to initiate connection" },
       { status: 500 }
     );
   }

@@ -53,7 +53,7 @@ export async function GET(request: Request) {
   } catch (error: any) {
     console.error("Notifications fetch error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch notifications", details: error?.message },
+      { error: "Failed to fetch notifications" },
       { status: 500 }
     );
   }
@@ -98,7 +98,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Notification create error:", error);
     return NextResponse.json(
-      { error: "Failed to create notification", details: error?.message },
+      { error: "Failed to create notification" },
       { status: 500 }
     );
   }
@@ -138,7 +138,7 @@ export async function PATCH(request: Request) {
   } catch (error: any) {
     console.error("Notifications update error:", error);
     return NextResponse.json(
-      { error: "Failed to update notifications", details: error?.message },
+      { error: "Failed to update notifications" },
       { status: 500 }
     );
   }

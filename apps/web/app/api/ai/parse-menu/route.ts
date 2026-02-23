@@ -149,17 +149,9 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
       type: error?.type,
     });
 
-    // Return more detailed error for debugging
-    const errorDetails = {
-      message: error?.message || "Unknown error",
-      type: error?.type || error?.name || "UnknownError",
-      status: error?.status,
-    };
-
     return NextResponse.json(
       {
         error: "Failed to parse menu",
-        details: errorDetails,
       },
       { status: 500 }
     );

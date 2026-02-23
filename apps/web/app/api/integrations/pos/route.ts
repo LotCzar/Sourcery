@@ -43,7 +43,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get POS integration error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch integration", details: error?.message },
+      { error: "Failed to fetch integration" },
       { status: 500 }
     );
   }
@@ -126,7 +126,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Connect POS integration error:", error);
     return NextResponse.json(
-      { error: "Failed to connect integration", details: error?.message },
+      { error: "Failed to connect integration" },
       { status: 500 }
     );
   }

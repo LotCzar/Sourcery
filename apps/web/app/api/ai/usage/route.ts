@@ -83,7 +83,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("AI usage API error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch AI usage", details: error?.message },
+      { error: "Failed to fetch AI usage" },
       { status: 500 }
     );
   }

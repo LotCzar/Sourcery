@@ -7,79 +7,84 @@ export const accountingInvoiceSync = inngest.createFunction(
   { id: "accounting-invoice-sync", name: "Sync Invoice to Accounting on Payment" },
   { event: "invoice/status.changed" },
   async ({ event }) => {
-    const { invoiceId, newStatus, restaurantId } = event.data;
-
-    if (newStatus !== "PAID") {
-      return { action: "skipped", reason: "not_paid_status" };
-    }
-
-    const integration = await prisma.accountingIntegration.findUnique({
-      where: { restaurantId },
-    });
-
-    if (!integration || !integration.isActive) {
-      return { action: "skipped", reason: "no_active_integration" };
-    }
-
-    const invoice = await prisma.invoice.findUnique({
-      where: { id: invoiceId },
-      include: {
-        supplier: { select: { name: true } },
-        order: { select: { orderNumber: true } },
-      },
-    });
-
-    if (!invoice) {
-      return { action: "skipped", reason: "invoice_not_found" };
-    }
-
-    if (invoice.syncStatus === "SYNCED") {
-      return { action: "skipped", reason: "already_synced" };
-    }
-
     try {
-      const service = getAccountingService(integration.provider);
+      const { invoiceId, newStatus, restaurantId } = event.data;
 
-      await prisma.invoice.update({
-        where: { id: invoiceId },
-        data: { syncStatus: "PENDING" },
+      if (newStatus !== "PAID") {
+        return { action: "skipped", reason: "not_paid_status" };
+      }
+
+      const integration = await prisma.accountingIntegration.findUnique({
+        where: { restaurantId },
       });
 
-      const result = await service.syncInvoice(invoice, integration);
+      if (!integration || !integration.isActive) {
+        return { action: "skipped", reason: "no_active_integration" };
+      }
 
-      await prisma.invoice.update({
+      const invoice = await prisma.invoice.findUnique({
         where: { id: invoiceId },
-        data: {
-          syncStatus: "SYNCED",
+        include: {
+          supplier: { select: { name: true } },
+          order: { select: { orderNumber: true } },
+        },
+      });
+
+      if (!invoice) {
+        return { action: "skipped", reason: "invoice_not_found" };
+      }
+
+      if (invoice.syncStatus === "SYNCED") {
+        return { action: "skipped", reason: "already_synced" };
+      }
+
+      try {
+        const service = getAccountingService(integration.provider);
+
+        await prisma.invoice.update({
+          where: { id: invoiceId },
+          data: { syncStatus: "PENDING" },
+        });
+
+        const result = await service.syncInvoice(invoice, integration);
+
+        await prisma.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            syncStatus: "SYNCED",
+            externalId: result.externalId,
+            lastSyncError: null,
+          },
+        });
+
+        await prisma.accountingIntegration.update({
+          where: { id: integration.id },
+          data: { lastSyncAt: new Date() },
+        });
+
+        return {
+          action: "synced",
+          invoiceId,
           externalId: result.externalId,
-          lastSyncError: null,
-        },
-      });
+        };
+      } catch (err: any) {
+        await prisma.invoice.update({
+          where: { id: invoiceId },
+          data: {
+            syncStatus: "FAILED",
+            lastSyncError: err?.message || "Unknown error",
+          },
+        });
 
-      await prisma.accountingIntegration.update({
-        where: { id: integration.id },
-        data: { lastSyncAt: new Date() },
-      });
-
-      return {
-        action: "synced",
-        invoiceId,
-        externalId: result.externalId,
-      };
-    } catch (err: any) {
-      await prisma.invoice.update({
-        where: { id: invoiceId },
-        data: {
-          syncStatus: "FAILED",
-          lastSyncError: err?.message || "Unknown error",
-        },
-      });
-
-      return {
-        action: "failed",
-        invoiceId,
-        error: err?.message,
-      };
+        return {
+          action: "failed",
+          invoiceId,
+          error: err?.message,
+        };
+      }
+    } catch (err) {
+      console.error("[accounting-invoice-sync] failed:", { invoiceId: event.data.invoiceId, restaurantId: event.data.restaurantId }, err);
+      throw err;
     }
   }
 );
@@ -89,73 +94,78 @@ export const accountingBatchSync = inngest.createFunction(
   { id: "accounting-batch-sync", name: "Daily Accounting Batch Sync" },
   { cron: "0 2 * * *" }, // Daily at 2am
   async () => {
-    // Find all restaurants with active accounting integrations
-    const integrations = await prisma.accountingIntegration.findMany({
-      where: { isActive: true },
-    });
-
-    let totalSynced = 0;
-    let totalFailed = 0;
-
-    for (const integration of integrations) {
-      const invoices = await prisma.invoice.findMany({
-        where: {
-          restaurantId: integration.restaurantId,
-          syncStatus: "NOT_SYNCED",
-        },
-        include: {
-          supplier: { select: { name: true } },
-          order: { select: { orderNumber: true } },
-        },
+    try {
+      // Find all restaurants with active accounting integrations
+      const integrations = await prisma.accountingIntegration.findMany({
+        where: { isActive: true },
       });
 
-      if (invoices.length === 0) continue;
+      let totalSynced = 0;
+      let totalFailed = 0;
 
-      const service = getAccountingService(integration.provider);
+      for (const integration of integrations) {
+        const invoices = await prisma.invoice.findMany({
+          where: {
+            restaurantId: integration.restaurantId,
+            syncStatus: "NOT_SYNCED",
+          },
+          include: {
+            supplier: { select: { name: true } },
+            order: { select: { orderNumber: true } },
+          },
+        });
 
-      for (const invoice of invoices) {
-        try {
-          await prisma.invoice.update({
-            where: { id: invoice.id },
-            data: { syncStatus: "PENDING" },
-          });
+        if (invoices.length === 0) continue;
 
-          const result = await service.syncInvoice(invoice, integration);
+        const service = getAccountingService(integration.provider);
 
-          await prisma.invoice.update({
-            where: { id: invoice.id },
-            data: {
-              syncStatus: "SYNCED",
-              externalId: result.externalId,
-              lastSyncError: null,
-            },
-          });
+        for (const invoice of invoices) {
+          try {
+            await prisma.invoice.update({
+              where: { id: invoice.id },
+              data: { syncStatus: "PENDING" },
+            });
 
-          totalSynced++;
-        } catch (err: any) {
-          await prisma.invoice.update({
-            where: { id: invoice.id },
-            data: {
-              syncStatus: "FAILED",
-              lastSyncError: err?.message || "Unknown error",
-            },
-          });
-          totalFailed++;
+            const result = await service.syncInvoice(invoice, integration);
+
+            await prisma.invoice.update({
+              where: { id: invoice.id },
+              data: {
+                syncStatus: "SYNCED",
+                externalId: result.externalId,
+                lastSyncError: null,
+              },
+            });
+
+            totalSynced++;
+          } catch (err: any) {
+            await prisma.invoice.update({
+              where: { id: invoice.id },
+              data: {
+                syncStatus: "FAILED",
+                lastSyncError: err?.message || "Unknown error",
+              },
+            });
+            totalFailed++;
+          }
         }
+
+        // Update last sync time
+        await prisma.accountingIntegration.update({
+          where: { id: integration.id },
+          data: { lastSyncAt: new Date() },
+        });
       }
 
-      // Update last sync time
-      await prisma.accountingIntegration.update({
-        where: { id: integration.id },
-        data: { lastSyncAt: new Date() },
-      });
+      return {
+        action: "batch_sync_complete",
+        integrationsProcessed: integrations.length,
+        totalSynced,
+        totalFailed,
+      };
+    } catch (err) {
+      console.error("[accounting-batch-sync] failed:", err);
+      throw err;
     }
-
-    return {
-      action: "batch_sync_complete",
-      integrationsProcessed: integrations.length,
-      totalSynced,
-      totalFailed,
-    };
   }
 );

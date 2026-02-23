@@ -93,7 +93,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Bulk update error:", error);
     return NextResponse.json(
-      { error: "Failed to bulk update products", details: error?.message },
+      { error: "Failed to bulk update products" },
       { status: 500 }
     );
   }

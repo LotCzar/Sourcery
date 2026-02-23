@@ -37,7 +37,7 @@ export async function GET() {
   } catch (error: any) {
     console.error("Get approval rules error:", error);
     return NextResponse.json(
-      { error: "Failed to fetch approval rules", details: error?.message },
+      { error: "Failed to fetch approval rules" },
       { status: 500 }
     );
   }
@@ -91,7 +91,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("Create approval rule error:", error);
     return NextResponse.json(
-      { error: "Failed to create approval rule", details: error?.message },
+      { error: "Failed to create approval rule" },
       { status: 500 }
     );
   }

@@ -25,67 +25,72 @@ export async function executeTool(
     };
   }
 
-  switch (name) {
-    case "search_products":
-      return searchProducts(input, context);
-    case "get_inventory":
-      return getInventory(input, context);
-    case "get_order_history":
-      return getOrderHistory(input, context);
-    case "create_draft_order":
-      return createDraftOrder(input, context);
-    case "compare_prices":
-      return comparePrices(input);
-    case "get_supplier_info":
-      return getSupplierInfo(input);
-    case "create_price_alert":
-      return createPriceAlert(input, context);
-    case "adjust_inventory":
-      return adjustInventory(input, context);
-    case "get_consumption_insights":
-      return getConsumptionInsights(input, context);
-    case "reorder_item":
-      return reorderItem(input, context);
-    case "get_spending_summary":
-      return getSpendingSummary(input, context);
-    case "generate_restock_list":
-      return generateRestockList(input, context);
-    case "check_invoice":
-      return checkInvoice(input, context);
-    case "calculate_menu_cost":
-      return calculateMenuCost(input);
-    case "recommend_supplier":
-      return recommendSupplier(input, context);
-    case "optimize_par_levels":
-      return optimizeParLevels(input, context);
-    case "analyze_waste":
-      return analyzeWaste(input, context);
-    case "consolidate_orders":
-      return consolidateOrders(input, context);
-    case "get_supplier_performance":
-      return getSupplierPerformance(input, context);
-    case "get_budget_forecast":
-      return getBudgetForecast(input, context);
-    case "get_disputed_invoices":
-      return getDisputedInvoices(input, context);
-    case "get_seasonal_forecast":
-      return getSeasonalForecast(input, context);
-    case "find_substitutes":
-      return findSubstitutes(input, context);
-    case "get_price_trends":
-      return getPriceTrends(input, context);
-    case "get_benchmarks":
-      return getBenchmarks(input, context);
-    case "get_negotiation_brief":
-      return getNegotiationBrief(input, context);
-    case "compare_restaurants":
-      return compareRestaurants(input, context);
-    case "org_summary":
-      return orgSummary(input, context);
-    case "send_order_message":
-      return sendOrderMessage(input, context);
-    default:
-      return { error: `Unknown tool: ${name}` };
+  try {
+    switch (name) {
+      case "search_products":
+        return await searchProducts(input, context);
+      case "get_inventory":
+        return await getInventory(input, context);
+      case "get_order_history":
+        return await getOrderHistory(input, context);
+      case "create_draft_order":
+        return await createDraftOrder(input, context);
+      case "compare_prices":
+        return await comparePrices(input);
+      case "get_supplier_info":
+        return await getSupplierInfo(input);
+      case "create_price_alert":
+        return await createPriceAlert(input, context);
+      case "adjust_inventory":
+        return await adjustInventory(input, context);
+      case "get_consumption_insights":
+        return await getConsumptionInsights(input, context);
+      case "reorder_item":
+        return await reorderItem(input, context);
+      case "get_spending_summary":
+        return await getSpendingSummary(input, context);
+      case "generate_restock_list":
+        return await generateRestockList(input, context);
+      case "check_invoice":
+        return await checkInvoice(input, context);
+      case "calculate_menu_cost":
+        return await calculateMenuCost(input);
+      case "recommend_supplier":
+        return await recommendSupplier(input, context);
+      case "optimize_par_levels":
+        return await optimizeParLevels(input, context);
+      case "analyze_waste":
+        return await analyzeWaste(input, context);
+      case "consolidate_orders":
+        return await consolidateOrders(input, context);
+      case "get_supplier_performance":
+        return await getSupplierPerformance(input, context);
+      case "get_budget_forecast":
+        return await getBudgetForecast(input, context);
+      case "get_disputed_invoices":
+        return await getDisputedInvoices(input, context);
+      case "get_seasonal_forecast":
+        return await getSeasonalForecast(input, context);
+      case "find_substitutes":
+        return await findSubstitutes(input, context);
+      case "get_price_trends":
+        return await getPriceTrends(input, context);
+      case "get_benchmarks":
+        return await getBenchmarks(input, context);
+      case "get_negotiation_brief":
+        return await getNegotiationBrief(input, context);
+      case "compare_restaurants":
+        return await compareRestaurants(input, context);
+      case "org_summary":
+        return await orgSummary(input, context);
+      case "send_order_message":
+        return await sendOrderMessage(input, context);
+      default:
+        return { error: `Unknown tool: ${name}` };
+    }
+  } catch (err: any) {
+    console.error(`Tool execution failed [${name}]:`, err);
+    return { error: `The ${name} tool encountered an error. Please try again or rephrase your request.` };
   }
 }
 
