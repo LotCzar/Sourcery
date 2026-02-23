@@ -30,6 +30,8 @@ describe("POST /api/ai/search", () => {
     (getAnthropicClient as ReturnType<typeof vi.fn>).mockReturnValue(
       mockAnthropicClient
     );
+    // Default: allow rate limit checks to pass
+    prismaMock.aiUsageLog.count.mockResolvedValue(0);
   });
 
   it("returns 401 if not authenticated", async () => {
@@ -53,6 +55,8 @@ describe("POST /api/ai/search", () => {
           text: '{"entity":"products","filters":{"name":"tomatoes"},"sort":"price_asc","searchTerms":"tomatoes","redirectUrl":"/products"}',
         },
       ],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const product = {
@@ -79,6 +83,8 @@ describe("POST /api/ai/search", () => {
           text: '{"entity":"suppliers","filters":{},"sort":null,"searchTerms":"dairy","redirectUrl":"/suppliers"}',
         },
       ],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const supplier = {
@@ -100,6 +106,8 @@ describe("POST /api/ai/search", () => {
     prismaMock.user.findUnique.mockResolvedValue(mockUser as any);
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: "I cannot parse this query" }],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const response = await POST(

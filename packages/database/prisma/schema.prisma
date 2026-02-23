@@ -112,6 +112,20 @@ enum TrendDirection {
   STABLE
 }
 
+enum PlanTier {
+  STARTER
+  PROFESSIONAL
+  ENTERPRISE
+}
+
+enum AiFeature {
+  CHAT
+  PARSE_MENU
+  PARSE_RECEIPT
+  SEARCH
+  WEEKLY_DIGEST
+}
+
 // ============================================
 // ORGANIZATION MODEL
 // ============================================
@@ -193,6 +207,7 @@ model Restaurant {
   taxId         String?
   cuisineType   String?
   seatingCapacity Int?
+  planTier      PlanTier @default(STARTER)
 
   // Relations
   organizationId String?
@@ -207,6 +222,7 @@ model Restaurant {
   supplierRelationships RestaurantSupplier[]
   approvalRules  ApprovalRule[]
   accountingIntegration AccountingIntegration?
+  aiUsageLogs   AiUsageLog[]
 
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -734,6 +750,30 @@ model Message {
   createdAt      DateTime     @default(now())
 
   @@index([conversationId])
+}
+
+// ============================================
+// AI USAGE TRACKING
+// ============================================
+
+model AiUsageLog {
+  id               String     @id @default(cuid())
+  feature          AiFeature
+  restaurantId     String
+  restaurant       Restaurant @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  userId           String?
+  inputTokens      Int
+  outputTokens     Int
+  cacheReadTokens  Int        @default(0)
+  cacheWriteTokens Int        @default(0)
+  model            String
+  durationMs       Int?
+  periodStart      DateTime
+  createdAt        DateTime   @default(now())
+
+  @@index([restaurantId, feature, periodStart])
+  @@index([restaurantId, periodStart])
+  @@index([createdAt])
 }
 
 // ============================================

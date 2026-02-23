@@ -56,6 +56,8 @@ describe("POST /api/ai/chat", () => {
       mockAnthropicClient
     );
     mockExecuteTool.mockReset();
+    // Default: allow rate limit checks to pass
+    prismaMock.aiUsageLog.count.mockResolvedValue(0);
   });
 
   it("returns 503 when Anthropic not configured", async () => {
@@ -120,6 +122,8 @@ describe("POST /api/ai/chat", () => {
     mockAnthropicCreate.mockResolvedValue({
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello!" }],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -145,6 +149,8 @@ describe("POST /api/ai/chat", () => {
     mockAnthropicCreate.mockResolvedValue({
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello!" }],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createChatRequest({
@@ -168,6 +174,8 @@ describe("POST /api/ai/chat", () => {
     mockAnthropicCreate.mockResolvedValue({
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hi" }],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -192,6 +200,8 @@ describe("POST /api/ai/chat", () => {
     mockAnthropicCreate.mockResolvedValue({
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello there!" }],
+      usage: { input_tokens: 100, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -225,10 +235,14 @@ describe("POST /api/ai/chat", () => {
             input: { query: "tomatoes" },
           },
         ],
+        usage: { input_tokens: 150, output_tokens: 80 },
+        model: "claude-sonnet-4-20250514",
       })
       .mockResolvedValueOnce({
         stop_reason: "end_turn",
         content: [{ type: "text", text: "I found tomatoes for you." }],
+        usage: { input_tokens: 200, output_tokens: 100 },
+        model: "claude-sonnet-4-20250514",
       });
 
     const request = createChatRequest({ message: "Find tomatoes" });

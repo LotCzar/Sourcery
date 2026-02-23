@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
+import { trackAiUsage } from "@/lib/ai/usage";
 
 export async function POST(request: Request) {
   try {
@@ -20,13 +22,26 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: true },
+      include: { restaurant: { select: { id: true, name: true, planTier: true } } },
     });
 
     if (!user?.restaurant) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
+      );
+    }
+
+    // Rate limit check
+    const rateLimit = await checkAiRateLimit(user.restaurant.id, "SEARCH", user.restaurant.planTier);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "AI search rate limit exceeded",
+          details: `You have used ${rateLimit.used} of ${rateLimit.limit} search requests this month. Resets ${rateLimit.resetAt.toISOString()}.`,
+          usage: { used: rateLimit.used, limit: rateLimit.limit, resetAt: rateLimit.resetAt },
+        },
+        { status: 429 }
       );
     }
 
@@ -58,6 +73,16 @@ Examples:
 - "orders from last week" -> { "entity": "orders", "filters": {}, "sort": "date_desc", "searchTerms": "", "redirectUrl": "/orders" }
 - "show me dairy suppliers" -> { "entity": "suppliers", "filters": { "category": "DAIRY" }, "sort": null, "searchTerms": "dairy", "redirectUrl": "/suppliers" }`,
       messages: [{ role: "user", content: query }],
+    });
+
+    // Track usage
+    void trackAiUsage({
+      feature: "SEARCH",
+      restaurantId: user.restaurant.id,
+      userId: user.id,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      model: response.model,
     });
 
     const text =

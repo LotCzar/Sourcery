@@ -1,9 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
+import { prismaMock } from "@/__tests__/mocks/prisma";
 import { mockAuth } from "@/__tests__/mocks/clerk";
 import {
   mockAnthropicClient,
   mockAnthropicCreate,
 } from "@/__tests__/mocks/anthropic";
+import { createMockUserWithRestaurant } from "@/__tests__/fixtures";
 import { getAnthropicClient } from "@/lib/anthropic";
 
 const { mockValidateBody } = vi.hoisted(() => ({
@@ -25,11 +27,16 @@ function createParseMenuRequest(body: Record<string, unknown>) {
 }
 
 describe("POST /api/ai/parse-menu", () => {
+  const mockUser = createMockUserWithRestaurant();
+
   beforeEach(() => {
     mockAuth.mockResolvedValue({ userId: "clerk_test_user_123" });
     (getAnthropicClient as ReturnType<typeof vi.fn>).mockReturnValue(
       mockAnthropicClient
     );
+    // Default: mock user lookup and allow rate limit checks to pass
+    prismaMock.user.findUnique.mockResolvedValue(mockUser as any);
+    prismaMock.aiUsageLog.count.mockResolvedValue(0);
   });
 
   it("returns 503 when Anthropic not configured", async () => {
@@ -106,6 +113,8 @@ describe("POST /api/ai/parse-menu", () => {
     });
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: JSON.stringify(parsedResult) }],
+      usage: { input_tokens: 300, output_tokens: 200 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createParseMenuRequest({
@@ -139,6 +148,8 @@ describe("POST /api/ai/parse-menu", () => {
           text: `Here's the analysis:\n\n\`\`\`json\n${JSON.stringify(parsedResult)}\n\`\`\``,
         },
       ],
+      usage: { input_tokens: 300, output_tokens: 200 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createParseMenuRequest({
@@ -166,6 +177,8 @@ describe("POST /api/ai/parse-menu", () => {
           text: "I could not parse this menu. Please provide more details.",
         },
       ],
+      usage: { input_tokens: 300, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const request = createParseMenuRequest({

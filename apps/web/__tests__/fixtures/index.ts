@@ -33,6 +33,7 @@ export function createMockRestaurant(overrides?: Record<string, unknown>) {
     taxId: null,
     cuisineType: "American",
     seatingCapacity: 50,
+    planTier: "STARTER" as const,
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
     ...overrides,
@@ -384,6 +385,24 @@ export function createMockAccountingIntegration(overrides?: Record<string, unkno
     restaurantId: "rest_1",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockAiUsageLog(overrides?: Record<string, unknown>) {
+  return {
+    id: "usage_1",
+    feature: "CHAT" as const,
+    restaurantId: "rest_1",
+    userId: "user_1",
+    inputTokens: 500,
+    outputTokens: 200,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    model: "claude-sonnet-4-20250514",
+    durationMs: null,
+    periodStart: new Date("2026-02-01T00:00:00.000Z"),
+    createdAt: new Date("2026-02-15"),
     ...overrides,
   };
 }

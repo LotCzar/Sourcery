@@ -91,6 +91,9 @@ export const queryKeys = {
     integration: ["accounting", "integration"] as const,
     mappings: ["accounting", "mappings"] as const,
   },
+  aiUsage: {
+    all: ["ai", "usage"] as const,
+  },
   tour: {
     all: ["tour"] as const,
   },

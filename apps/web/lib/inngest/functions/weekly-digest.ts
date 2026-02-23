@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { sendEmail, emailTemplates } from "@/lib/email";
+import { trackAiUsage } from "@/lib/ai/usage";
 
 interface WeeklyMetrics {
   totalSpend: number;
@@ -199,6 +200,16 @@ Metrics:
 Be concise, highlight what needs attention, and suggest 1-2 actions.`,
               },
             ],
+          });
+
+          // Track usage (no rate limit for system jobs)
+          void trackAiUsage({
+            feature: "WEEKLY_DIGEST",
+            restaurantId: restaurant.id,
+            userId: null,
+            inputTokens: response.usage.input_tokens,
+            outputTokens: response.usage.output_tokens,
+            model: response.model,
           });
 
           const textBlock = response.content.find((b) => b.type === "text");

@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
+import { trackAiUsage } from "@/lib/ai/usage";
 
 export const maxDuration = 60;
 
@@ -22,13 +24,26 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: true },
+      include: { restaurant: { select: { id: true, name: true, planTier: true } } },
     });
 
     if (!user?.restaurant) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
+      );
+    }
+
+    // Rate limit check
+    const rateLimit = await checkAiRateLimit(user.restaurant.id, "PARSE_RECEIPT", user.restaurant.planTier);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Receipt parsing rate limit exceeded",
+          details: `You have used ${rateLimit.used} of ${rateLimit.limit} parse requests this month. Resets ${rateLimit.resetAt.toISOString()}.`,
+          usage: { used: rateLimit.used, limit: rateLimit.limit, resetAt: rateLimit.resetAt },
+        },
+        { status: 429 }
       );
     }
 
@@ -107,6 +122,16 @@ Be precise with numbers. If a field cannot be determined, use null. For line ite
           ],
         },
       ],
+    });
+
+    // Track usage
+    void trackAiUsage({
+      feature: "PARSE_RECEIPT",
+      restaurantId: user.restaurant.id,
+      userId: user.id,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+      model: response.model,
     });
 
     const text =

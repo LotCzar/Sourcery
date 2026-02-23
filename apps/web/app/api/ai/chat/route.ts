@@ -5,6 +5,8 @@ import { getAnthropicClient } from "@/lib/anthropic";
 import { aiTools, orgTools } from "@/lib/ai/tools";
 import { executeTool } from "@/lib/ai/tool-executor";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
+import { trackAiUsage } from "@/lib/ai/usage";
 import type Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 60;
@@ -26,7 +28,10 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: true, organization: true },
+      include: {
+        restaurant: { select: { id: true, name: true, planTier: true } },
+        organization: true,
+      },
     });
 
     if (!user?.restaurant) {
@@ -39,6 +44,7 @@ export async function POST(request: Request) {
     // For ORG_ADMIN, resolve active restaurant from header
     let activeRestaurantId = user.restaurant.id;
     let activeRestaurantName = user.restaurant.name;
+    let activePlanTier = user.restaurant.planTier;
 
     if (user.role === "ORG_ADMIN" && user.organizationId) {
       const headerRestaurantId = request.headers.get("x-restaurant-id");
@@ -48,12 +54,27 @@ export async function POST(request: Request) {
             id: headerRestaurantId,
             organizationId: user.organizationId,
           },
+          select: { id: true, name: true, planTier: true },
         });
         if (headerRestaurant) {
           activeRestaurantId = headerRestaurant.id;
           activeRestaurantName = headerRestaurant.name;
+          activePlanTier = headerRestaurant.planTier;
         }
       }
+    }
+
+    // Rate limit check before processing
+    const rateLimit = await checkAiRateLimit(activeRestaurantId, "CHAT", activePlanTier);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "AI chat rate limit exceeded",
+          details: `You have used ${rateLimit.used} of ${rateLimit.limit} chat requests this month. Resets ${rateLimit.resetAt.toISOString()}.`,
+          usage: { used: rateLimit.used, limit: rateLimit.limit, resetAt: rateLimit.resetAt },
+        },
+        { status: 429 }
+      );
     }
 
     const { message, conversationId } = await request.json();
@@ -211,6 +232,18 @@ export async function POST(request: Request) {
               system: systemPrompt,
               tools,
               messages,
+            });
+
+            // Track usage for each turn
+            void trackAiUsage({
+              feature: "CHAT",
+              restaurantId: activeRestaurantId,
+              userId: user.id,
+              inputTokens: response.usage.input_tokens,
+              outputTokens: response.usage.output_tokens,
+              cacheReadTokens: (response.usage as any).cache_read_input_tokens ?? 0,
+              cacheWriteTokens: (response.usage as any).cache_creation_input_tokens ?? 0,
+              model: response.model,
             });
 
             if (response.stop_reason === "tool_use") {

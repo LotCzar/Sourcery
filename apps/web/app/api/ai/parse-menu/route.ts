@@ -1,8 +1,11 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { ParseMenuSchema } from "@/lib/validations";
 import { validateBody } from "@/lib/validations/validate";
+import { checkAiRateLimit } from "@/lib/ai/rate-limit";
+import { trackAiUsage } from "@/lib/ai/usage";
 
 export async function POST(request: Request) {
   try {
@@ -14,10 +17,35 @@ export async function POST(request: Request) {
         { status: 503 }
       );
     }
-    const { userId } = await auth();
+    const { userId: clerkId } = await auth();
 
-    if (!userId) {
+    if (!clerkId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+      include: { restaurant: { select: { id: true, planTier: true } } },
+    });
+
+    if (!user?.restaurant) {
+      return NextResponse.json(
+        { error: "Restaurant not found" },
+        { status: 404 }
+      );
+    }
+
+    // Rate limit check
+    const rateLimit = await checkAiRateLimit(user.restaurant.id, "PARSE_MENU", user.restaurant.planTier);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        {
+          error: "Menu parsing rate limit exceeded",
+          details: `You have used ${rateLimit.used} of ${rateLimit.limit} parse requests this month. Resets ${rateLimit.resetAt.toISOString()}.`,
+          usage: { used: rateLimit.used, limit: rateLimit.limit, resetAt: rateLimit.resetAt },
+        },
+        { status: 429 }
+      );
     }
 
     const body = await request.json();
@@ -73,6 +101,16 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
         },
       ],
       system: systemPrompt,
+    });
+
+    // Track usage
+    void trackAiUsage({
+      feature: "PARSE_MENU",
+      restaurantId: user.restaurant.id,
+      userId: user.id,
+      inputTokens: message.usage.input_tokens,
+      outputTokens: message.usage.output_tokens,
+      model: message.model,
     });
 
     // Extract the text content from the response

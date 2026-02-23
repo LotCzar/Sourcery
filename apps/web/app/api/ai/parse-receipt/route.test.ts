@@ -31,6 +31,8 @@ describe("POST /api/ai/parse-receipt", () => {
     (getAnthropicClient as ReturnType<typeof vi.fn>).mockReturnValue(
       mockAnthropicClient
     );
+    // Default: allow rate limit checks to pass
+    prismaMock.aiUsageLog.count.mockResolvedValue(0);
   });
 
   it("returns 401 if not authenticated", async () => {
@@ -72,6 +74,8 @@ describe("POST /api/ai/parse-receipt", () => {
           }),
         },
       ],
+      usage: { input_tokens: 500, output_tokens: 200 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const response = await POST(
@@ -130,6 +134,8 @@ describe("POST /api/ai/parse-receipt", () => {
           }),
         },
       ],
+      usage: { input_tokens: 500, output_tokens: 200 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const response = await POST(
@@ -187,6 +193,8 @@ describe("POST /api/ai/parse-receipt", () => {
           }),
         },
       ],
+      usage: { input_tokens: 500, output_tokens: 200 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const response = await POST(
@@ -214,6 +222,8 @@ describe("POST /api/ai/parse-receipt", () => {
     prismaMock.user.findUnique.mockResolvedValue(mockUser as any);
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: "I cannot read this image clearly" }],
+      usage: { input_tokens: 500, output_tokens: 50 },
+      model: "claude-sonnet-4-20250514",
     });
 
     const response = await POST(
