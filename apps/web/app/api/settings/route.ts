@@ -48,6 +48,8 @@ export async function GET() {
               phone: user.restaurant.phone,
               website: user.restaurant.website,
               cuisineType: user.restaurant.cuisineType,
+              stripeCustomerId: user.restaurant.stripeCustomerId,
+              stripeSubscriptionId: user.restaurant.stripeSubscriptionId,
               createdAt: user.restaurant.createdAt,
             }
           : null,

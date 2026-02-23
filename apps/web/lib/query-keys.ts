@@ -54,6 +54,8 @@ export const queryKeys = {
   org: {
     restaurants: ["org", "restaurants"] as const,
     summary: ["org", "summary"] as const,
+    aiCosts: (params?: Record<string, string | undefined>) =>
+      ["org", "ai-costs", params] as const,
   },
   supplier: {
     dashboard: ["supplier", "dashboard"] as const,

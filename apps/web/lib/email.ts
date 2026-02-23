@@ -240,6 +240,30 @@ export const emailTemplates = {
     `,
   }),
 
+  usageAlert: (restaurantName: string, featureName: string, used: number, limit: number, usagePercent: number) => ({
+    subject: `Usage Alert: ${featureName} at ${usagePercent}% - ${restaurantName}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #d97706;">Usage Alert</h1>
+        <p>Your <strong>${featureName}</strong> usage for <strong>${restaurantName}</strong> is approaching the limit.</p>
+        <div style="background: #fffbeb; border: 1px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0 0 12px;"><strong>${featureName}</strong></p>
+          <div style="background: #e5e7eb; border-radius: 9999px; height: 12px; overflow: hidden;">
+            <div style="background: ${usagePercent >= 90 ? '#ef4444' : '#f59e0b'}; height: 100%; width: ${Math.min(usagePercent, 100)}%; border-radius: 9999px;"></div>
+          </div>
+          <p style="margin: 8px 0 0; font-size: 14px; color: #6b7280;">${used} / ${limit} operations used (${usagePercent}%)</p>
+        </div>
+        <p>Consider upgrading your plan to increase your limits.</p>
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="/settings" style="background: #d97706; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Manage Plan</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   weeklyDigest: (restaurantName: string, aiSummary: string, metrics: { totalSpend: number; orderCount: number; lowStockCount: number; priceAlerts: number; wastePercent: number; overdueInvoices: number }) => ({
     subject: `Weekly Digest: ${restaurantName}`,
     html: `

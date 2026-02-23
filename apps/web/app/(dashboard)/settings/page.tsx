@@ -68,6 +68,7 @@ import {
 } from "lucide-react";
 import { useAiUsage } from "@/hooks/use-ai-usage";
 import { useUpdatePlan } from "@/hooks/use-update-plan";
+import { useBillingCheckout, useBillingPortal } from "@/hooks/use-billing";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
 import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
 import { useTour } from "@/lib/tour-context";
@@ -1363,10 +1364,15 @@ function AccountingSection() {
 
 function UsageSection() {
   const { data: usageData, isLoading, isError } = useAiUsage();
+  const { data: settingsData } = useSettings();
   const updatePlan = useUpdatePlan();
+  const billingCheckout = useBillingCheckout();
+  const billingPortal = useBillingPortal();
   const { toast } = useToast();
 
   const usage = usageData?.features;
+  const restaurant = settingsData?.data?.restaurant;
+  const hasSubscription = !!(restaurant as Record<string, unknown> | null)?.stripeSubscriptionId;
 
   const getBarColor = (used: number, limit: number) => {
     const pct = (used / limit) * 100;
@@ -1383,6 +1389,30 @@ function UsageSection() {
       onError: (err) => {
         toast({
           title: "Failed to update plan",
+          description: err instanceof Error ? err.message : undefined,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handleBillingCheckout = (tier: string) => {
+    billingCheckout.mutate(tier, {
+      onError: (err) => {
+        toast({
+          title: "Failed to start checkout",
+          description: err instanceof Error ? err.message : undefined,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handleBillingPortal = () => {
+    billingPortal.mutate(undefined, {
+      onError: (err) => {
+        toast({
+          title: "Failed to open billing portal",
           description: err instanceof Error ? err.message : undefined,
           variant: "destructive",
         });
@@ -1421,23 +1451,62 @@ function UsageSection() {
               {usageData.tier}
             </Badge>
           </div>
-          <div className="space-y-2">
-            <Label>Change Plan</Label>
-            <Select
-              value={usageData.tier}
-              onValueChange={handlePlanChange}
-              disabled={updatePlan.isPending}
+
+          {hasSubscription ? (
+            <Button
+              variant="outline"
+              onClick={handleBillingPortal}
+              disabled={billingPortal.isPending}
             >
-              <SelectTrigger className="w-[220px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="STARTER">Starter</SelectItem>
-                <SelectItem value="PROFESSIONAL">Professional</SelectItem>
-                <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+              {billingPortal.isPending && (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              )}
+              <DollarSign className="mr-2 h-4 w-4" />
+              Manage Subscription
+            </Button>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">Upgrade your plan via Stripe billing:</p>
+              <div className="flex gap-2">
+                {([
+                  { tier: "PROFESSIONAL", label: "Professional - $49/mo" },
+                  { tier: "ENTERPRISE", label: "Enterprise - $199/mo" },
+                ] as const).map(({ tier, label }) => (
+                  <Button
+                    key={tier}
+                    variant={usageData.tier === tier ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => handleBillingCheckout(tier)}
+                    disabled={billingCheckout.isPending || usageData.tier === tier}
+                  >
+                    {billingCheckout.isPending && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label>Or change plan directly (no billing):</Label>
+                <Select
+                  value={usageData.tier}
+                  onValueChange={handlePlanChange}
+                  disabled={updatePlan.isPending}
+                >
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STARTER">Starter</SelectItem>
+                    <SelectItem value="PROFESSIONAL">Professional</SelectItem>
+                    <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             Resets on {new Date(usageData.resetAt).toLocaleDateString()}
           </p>

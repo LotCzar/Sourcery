@@ -209,6 +209,11 @@ model Restaurant {
   seatingCapacity Int?
   planTier      PlanTier @default(STARTER)
 
+  // Stripe billing
+  stripeCustomerId      String?  @unique
+  stripeSubscriptionId  String?  @unique
+  stripePriceId         String?
+
   // Relations
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
