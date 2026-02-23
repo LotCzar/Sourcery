@@ -22,11 +22,18 @@ export interface ActiveToolCall {
   status: "running" | "complete";
 }
 
+export interface RateLimitInfo {
+  used: number;
+  limit: number;
+  resetAt: string;
+}
+
 export function useChatStream() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeToolCalls, setActiveToolCalls] = useState<ActiveToolCall[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [rateLimitInfo, setRateLimitInfo] = useState<RateLimitInfo | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const queryClient = useQueryClient();
 
@@ -34,6 +41,7 @@ export function useChatStream() {
     async (message: string, existingConversationId?: string | null) => {
       setIsLoading(true);
       setActiveToolCalls([]);
+      setRateLimitInfo(null);
 
       // Add user message immediately
       const userMsg: ChatMessage = {
@@ -66,6 +74,17 @@ export function useChatStream() {
 
         if (!response.ok) {
           const errData = await response.json();
+          if (response.status === 429 && errData.usage) {
+            setRateLimitInfo({
+              used: errData.usage.used,
+              limit: errData.usage.limit,
+              resetAt: errData.usage.resetAt,
+            });
+            // Remove the placeholder assistant message
+            setMessages((prev) => prev.filter((m) => m.id !== assistantId));
+            setIsLoading(false);
+            return;
+          }
           throw new Error(errData.error || "Chat request failed");
         }
 
@@ -226,6 +245,7 @@ export function useChatStream() {
     activeToolCalls,
     isLoading,
     conversationId,
+    rateLimitInfo,
     sendMessage,
     abort,
     clearMessages,

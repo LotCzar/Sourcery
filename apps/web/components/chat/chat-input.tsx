@@ -9,9 +9,10 @@ interface ChatInputProps {
   onSend: (message: string) => void;
   onAbort: () => void;
   isLoading: boolean;
+  disabled?: boolean;
 }
 
-export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
+export function ChatInput({ onSend, onAbort, isLoading, disabled }: ChatInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const {
@@ -82,18 +83,18 @@ export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
         value={input}
         onChange={handleInput}
         onKeyDown={handleKeyDown}
-        placeholder="Ask about products, orders, inventory..."
+        placeholder={disabled ? "Chat limit reached for this month" : "Ask about products, orders, inventory..."}
         rows={1}
         className="flex-1 resize-none rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         style={{ minHeight: "36px", maxHeight: "120px" }}
-        disabled={isLoading}
+        disabled={isLoading || disabled}
       />
       {isSupported && (
         <Button
           size="icon"
           variant={isListening ? "destructive" : "ghost"}
           onClick={handleMicClick}
-          disabled={isLoading}
+          disabled={isLoading || disabled}
           className={`h-9 w-9 shrink-0 ${isListening ? "animate-pulse" : ""}`}
           title={isListening ? "Stop recording" : "Start voice input"}
         >
@@ -117,7 +118,7 @@ export function ChatInput({ onSend, onAbort, isLoading }: ChatInputProps) {
         <Button
           size="icon"
           onClick={handleSubmit}
-          disabled={!input.trim()}
+          disabled={!input.trim() || disabled}
           className="h-9 w-9 shrink-0"
         >
           <Send className="h-4 w-4" />

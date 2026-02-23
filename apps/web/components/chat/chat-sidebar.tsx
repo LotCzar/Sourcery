@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback } from "react";
-import { MessageSquarePlus, Trash2, History } from "lucide-react";
+import { MessageSquarePlus, Trash2, History, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import {
@@ -34,6 +34,7 @@ export function ChatSidebar() {
     activeToolCalls,
     isLoading,
     conversationId,
+    rateLimitInfo,
     sendMessage,
     abort,
     clearMessages,
@@ -143,6 +144,19 @@ export function ChatSidebar() {
           </SheetDescription>
         </SheetHeader>
 
+        {rateLimitInfo && (
+          <div className="mx-3 mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">Chat limit reached</p>
+              <p className="text-xs text-amber-700">
+                You&apos;ve used {rateLimitInfo.used} of {rateLimitInfo.limit} chat messages this month. Resets{" "}
+                {new Date(rateLimitInfo.resetAt).toLocaleDateString()}.
+              </p>
+            </div>
+          </div>
+        )}
+
         {showHistory && conversationList.length > 0 ? (
           <div className="flex-1 overflow-y-auto">
             <div className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground">
@@ -177,7 +191,7 @@ export function ChatSidebar() {
           />
         )}
 
-        <ChatInput onSend={handleSend} onAbort={abort} isLoading={isLoading} />
+        <ChatInput onSend={handleSend} onAbort={abort} isLoading={isLoading} disabled={!!rateLimitInfo} />
       </SheetContent>
     </Sheet>
   );

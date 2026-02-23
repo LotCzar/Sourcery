@@ -64,7 +64,10 @@ import {
   DollarSign,
   HelpCircle,
   RotateCcw,
+  Zap,
 } from "lucide-react";
+import { useAiUsage } from "@/hooks/use-ai-usage";
+import { useUpdatePlan } from "@/hooks/use-update-plan";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
 import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
 import { useTour } from "@/lib/tour-context";
@@ -369,7 +372,7 @@ export default function SettingsPage() {
         {/* Main Content */}
         <div className="lg:col-span-3">
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-6">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Profile</span>
@@ -385,6 +388,10 @@ export default function SettingsPage() {
               <TabsTrigger value="integrations" className="flex items-center gap-2">
                 <Plug className="h-4 w-4" />
                 <span className="hidden sm:inline">Integrations</span>
+              </TabsTrigger>
+              <TabsTrigger value="usage" className="flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                <span className="hidden sm:inline">Usage</span>
               </TabsTrigger>
               <TabsTrigger value="developer" className="flex items-center gap-2">
                 <Wrench className="h-4 w-4" />
@@ -879,6 +886,11 @@ export default function SettingsPage() {
               <AccountingSection />
             </TabsContent>
 
+            {/* Usage Tab */}
+            <TabsContent value="usage" className="space-y-6">
+              <UsageSection />
+            </TabsContent>
+
             {/* Developer Tab */}
             <TabsContent value="developer" className="space-y-6">
               <Card>
@@ -1346,6 +1358,128 @@ function AccountingSection() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function UsageSection() {
+  const { data: usageData, isLoading, isError } = useAiUsage();
+  const updatePlan = useUpdatePlan();
+  const { toast } = useToast();
+
+  const usage = usageData?.features;
+
+  const getBarColor = (used: number, limit: number) => {
+    const pct = (used / limit) * 100;
+    if (pct >= 90) return "bg-red-500";
+    if (pct >= 70) return "bg-amber-500";
+    return "bg-green-500";
+  };
+
+  const handlePlanChange = (tier: string) => {
+    updatePlan.mutate(tier, {
+      onSuccess: () => {
+        toast({ title: `Plan updated to ${tier.charAt(0) + tier.slice(1).toLowerCase()}` });
+      },
+      onError: (err) => {
+        toast({
+          title: "Failed to update plan",
+          description: err instanceof Error ? err.message : undefined,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (isError || !usageData) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-sm text-muted-foreground">Unable to load usage data.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <>
+      <Card>
+        <CardHeader>
+          <CardTitle>Current Plan</CardTitle>
+          <CardDescription>Manage your subscription tier</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center gap-3">
+            <Badge variant="outline" className="text-sm">
+              {usageData.tier}
+            </Badge>
+          </div>
+          <div className="space-y-2">
+            <Label>Change Plan</Label>
+            <Select
+              value={usageData.tier}
+              onValueChange={handlePlanChange}
+              disabled={updatePlan.isPending}
+            >
+              <SelectTrigger className="w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="STARTER">Starter</SelectItem>
+                <SelectItem value="PROFESSIONAL">Professional</SelectItem>
+                <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Resets on {new Date(usageData.resetAt).toLocaleDateString()}
+          </p>
+        </CardContent>
+      </Card>
+
+      {usage && (
+        <Card>
+          <CardHeader>
+            <CardTitle>AI Usage This Month</CardTitle>
+            <CardDescription>Track your AI feature consumption</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 sm:grid-cols-3">
+              {([
+                { key: "chat" as const, label: "Chat" },
+                { key: "parse" as const, label: "Parse" },
+                { key: "search" as const, label: "Search" },
+              ]).map(({ key, label }) => {
+                const feature = usage[key];
+                const pct = Math.min((feature.used / feature.limit) * 100, 100);
+                return (
+                  <div key={key} className="space-y-2 rounded-lg border p-4">
+                    <p className="text-sm font-medium">{label}</p>
+                    <p className="text-2xl font-bold">
+                      {feature.used} <span className="text-sm font-normal text-muted-foreground">/ {feature.limit} used</span>
+                    </p>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className={`h-full rounded-full transition-all ${getBarColor(feature.used, feature.limit)}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">{feature.remaining} remaining</p>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </>
   );
 }
 
