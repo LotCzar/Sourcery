@@ -95,6 +95,7 @@ export const queryKeys = {
   },
   aiUsage: {
     all: ["ai", "usage"] as const,
+    analytics: (range: string) => ["ai", "usage", "analytics", range] as const,
   },
   tour: {
     all: ["tour"] as const,

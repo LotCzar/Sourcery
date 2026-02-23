@@ -67,6 +67,19 @@ import {
   Zap,
 } from "lucide-react";
 import { useAiUsage } from "@/hooks/use-ai-usage";
+import { useAiUsageAnalytics } from "@/hooks/use-ai-usage-analytics";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
 import { useUpdatePlan } from "@/hooks/use-update-plan";
 import { useBillingCheckout, useBillingPortal } from "@/hooks/use-billing";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
@@ -1548,7 +1561,237 @@ function UsageSection() {
           </CardContent>
         </Card>
       )}
+
+      <UsageAnalyticsCharts />
     </>
+  );
+}
+
+const FEATURE_COLORS: Record<string, string> = {
+  CHAT: "#3B82F6",
+  PARSE_MENU: "#22C55E",
+  PARSE_RECEIPT: "#14B8A6",
+  SEARCH: "#F97316",
+  WEEKLY_DIGEST: "#8B5CF6",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  CHAT: "Chat",
+  PARSE_MENU: "Parse Menu",
+  PARSE_RECEIPT: "Parse Receipt",
+  SEARCH: "Search",
+  WEEKLY_DIGEST: "Weekly Digest",
+};
+
+const USER_COLORS = ["#3B82F6", "#22C55E", "#F97316", "#8B5CF6", "#EC4899", "#14B8A6", "#F59E0B", "#6366F1"];
+
+function UsageAnalyticsCharts() {
+  const [analyticsRange, setAnalyticsRange] = useState("30");
+  const { data: analyticsResult, isLoading } = useAiUsageAnalytics(analyticsRange);
+  const analytics = analyticsResult?.data;
+
+  const formatDate = (value: string | number) => {
+    const str = String(value);
+    return new Date(str + "T00:00:00Z").toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      timeZone: "UTC",
+    });
+  };
+
+  const formatCost = (value: number) =>
+    `$${value.toFixed(4)}`;
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!analytics) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>AI Usage Analytics</CardTitle>
+            <CardDescription>Trends and team breakdown</CardDescription>
+          </div>
+          <Select value={analyticsRange} onValueChange={setAnalyticsRange}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        {/* Summary Stats */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">Total Requests</p>
+            <p className="text-2xl font-bold">{analytics.totalRequests.toLocaleString()}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-sm text-muted-foreground">Estimated Cost</p>
+            <p className="text-2xl font-bold">{formatCost(analytics.totalCost)}</p>
+          </div>
+        </div>
+
+        {/* Stacked Area Chart - AI Operations by Feature */}
+        <div>
+          <h4 className="mb-4 text-sm font-medium">Daily AI Operations by Feature</h4>
+          <div className="h-[300px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={analytics.timeSeries}>
+                <defs>
+                  {Object.entries(FEATURE_COLORS).map(([key, color]) => (
+                    <linearGradient key={key} id={`gradient-${key}`} x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={color} stopOpacity={0.3} />
+                      <stop offset="95%" stopColor={color} stopOpacity={0} />
+                    </linearGradient>
+                  ))}
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatDate}
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  labelFormatter={(label) => formatDate(label)}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                />
+                {Object.entries(FEATURE_COLORS).map(([key, color]) => (
+                  <Area
+                    key={key}
+                    type="monotone"
+                    dataKey={key}
+                    name={FEATURE_LABELS[key]}
+                    stackId="1"
+                    stroke={color}
+                    fill={`url(#gradient-${key})`}
+                  />
+                ))}
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Cost Trend Chart */}
+        <div>
+          <h4 className="mb-4 text-sm font-medium">Daily Cost Trend</h4>
+          <div className="h-[250px]">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={analytics.timeSeries}>
+                <defs>
+                  <linearGradient id="gradient-cost" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={formatDate}
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  tickFormatter={(v) => `$${v.toFixed(2)}`}
+                />
+                <Tooltip
+                  labelFormatter={(label) => formatDate(label)}
+                  formatter={(value) => [formatCost(value as number), "Cost"]}
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "8px",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="totalCost"
+                  name="Cost"
+                  stroke="#22C55E"
+                  fill="url(#gradient-cost)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Per-User Bar Chart */}
+        {analytics.perUser.length > 0 && (
+          <div>
+            <h4 className="mb-4 text-sm font-medium">Usage by Team Member</h4>
+            <div className="h-[250px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={analytics.perUser}
+                  layout="vertical"
+                  margin={{ left: 80 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis
+                    type="number"
+                    className="text-xs"
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    allowDecimals={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    className="text-xs"
+                    tick={{ fill: "hsl(var(--muted-foreground))" }}
+                    width={75}
+                  />
+                  <Tooltip
+                    formatter={(value, name) => {
+                      if (name === "requestCount") return [value, "Requests"];
+                      return [formatCost(value as number), "Cost"];
+                    }}
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "8px",
+                    }}
+                  />
+                  <Bar dataKey="requestCount" name="requestCount" radius={[0, 4, 4, 0]}>
+                    {analytics.perUser.map((_, index) => (
+                      <Cell key={index} fill={USER_COLORS[index % USER_COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
