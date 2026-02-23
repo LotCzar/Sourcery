@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     // Create restaurant
     const restaurant = await prisma.restaurant.create({
       data: {
-        name: data.restaurantName,
+        name: data.restaurantName.trim(),
         address: data.address || null,
         city: data.city || null,
         state: data.state || null,

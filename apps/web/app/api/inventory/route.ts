@@ -55,6 +55,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { name: "asc" },
+      take: 500,
     });
 
     // Filter low stock items if requested

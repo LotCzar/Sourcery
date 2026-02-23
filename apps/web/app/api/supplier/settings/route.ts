@@ -104,9 +104,9 @@ export async function PATCH(request: Request) {
     // Build update data - only include fields that are provided
     const updateData: any = {};
 
-    if (data.name !== undefined) updateData.name = data.name;
+    if (data.name !== undefined) updateData.name = data.name.trim();
     if (data.description !== undefined) updateData.description = data.description;
-    if (data.email !== undefined) updateData.email = data.email;
+    if (data.email !== undefined) updateData.email = data.email?.trim() ?? null;
     if (data.phone !== undefined) updateData.phone = data.phone;
     if (data.address !== undefined) updateData.address = data.address;
     if (data.city !== undefined) updateData.city = data.city;

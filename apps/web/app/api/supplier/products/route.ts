@@ -28,7 +28,7 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const category = searchParams.get("category");
-    const search = searchParams.get("search");
+    const search = searchParams.get("search")?.slice(0, 200) || null;
     const inStock = searchParams.get("inStock");
 
     // Build where clause
@@ -57,6 +57,7 @@ export async function GET(request: Request) {
     const products = await prisma.supplierProduct.findMany({
       where,
       orderBy: { name: "asc" },
+      take: 500,
     });
 
     return NextResponse.json({
@@ -107,9 +108,9 @@ export async function POST(request: Request) {
     const product = await prisma.supplierProduct.create({
       data: {
         supplierId: user.supplier.id,
-        name: data.name,
+        name: data.name.trim(),
         description: data.description || null,
-        sku: data.sku || null,
+        sku: data.sku?.trim() || null,
         category: data.category,
         brand: data.brand || null,
         imageUrl: data.imageUrl || null,

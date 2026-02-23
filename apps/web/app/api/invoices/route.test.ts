@@ -11,6 +11,22 @@ import {
 import { createRequest, createJsonRequest, parseResponse } from "@/__tests__/helpers";
 import { Decimal } from "@prisma/client/runtime/library";
 
+/** Mock the aggregate/count calls used for summary stats in GET */
+function mockSummaryStats(opts?: {
+  pendingTotal?: number;
+  paidTotal?: number;
+  overdueCount?: number;
+  totalCount?: number;
+}) {
+  const { pendingTotal = 0, paidTotal = 0, overdueCount = 0, totalCount = 0 } = opts ?? {};
+  prismaMock.invoice.aggregate
+    .mockResolvedValueOnce({ _sum: { total: pendingTotal ? new Decimal(pendingTotal) : null } } as any)
+    .mockResolvedValueOnce({ _sum: { total: paidTotal ? new Decimal(paidTotal) : null } } as any);
+  prismaMock.invoice.count
+    .mockResolvedValueOnce(overdueCount as any)
+    .mockResolvedValueOnce(totalCount as any);
+}
+
 describe("GET /api/invoices", () => {
   it("returns 401 when unauthenticated", async () => {
     mockAuth.mockResolvedValueOnce({ userId: null });
@@ -44,9 +60,8 @@ describe("GET /api/invoices", () => {
       supplier: { id: "sup_1", name: "Test Supplier", email: "sup@test.com" },
       order: { id: "order_1", orderNumber: "ORD-001", status: "DELIVERED" },
     };
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([invoice] as any)
-      .mockResolvedValueOnce([createMockInvoice()] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([invoice] as any);
+    mockSummaryStats();
 
     const response = await GET(createRequest("http://localhost/api/invoices"));
     const { status, data } = await parseResponse(response);
@@ -64,13 +79,12 @@ describe("GET /api/invoices", () => {
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
     prismaMock.invoice.findMany.mockResolvedValueOnce([] as any);
-
-    const allInvoices = [
-      createMockInvoice({ status: "PENDING", total: new Decimal("100.00") }),
-      createMockInvoice({ id: "inv_2", status: "OVERDUE", total: new Decimal("200.00") }),
-      createMockInvoice({ id: "inv_3", status: "PAID", total: new Decimal("150.00") }),
-    ];
-    prismaMock.invoice.findMany.mockResolvedValueOnce(allInvoices as any);
+    mockSummaryStats({
+      pendingTotal: 300,
+      paidTotal: 150,
+      overdueCount: 1,
+      totalCount: 3,
+    });
 
     const response = await GET(createRequest("http://localhost/api/invoices"));
     const { data } = await parseResponse(response);
@@ -84,9 +98,8 @@ describe("GET /api/invoices", () => {
   it("filters by status", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([] as any);
+    mockSummaryStats();
 
     await GET(createRequest("http://localhost/api/invoices?status=PAID"));
 
@@ -100,9 +113,8 @@ describe("GET /api/invoices", () => {
   it("filters by supplierId", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([] as any);
+    mockSummaryStats();
 
     await GET(createRequest("http://localhost/api/invoices?supplierId=sup_1"));
 
@@ -116,9 +128,8 @@ describe("GET /api/invoices", () => {
   it("ignores 'all' filter values for status", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([] as any);
+    mockSummaryStats();
 
     await GET(createRequest("http://localhost/api/invoices?status=all"));
 
@@ -132,9 +143,8 @@ describe("GET /api/invoices", () => {
   it("ignores 'all' filter values for supplierId", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([] as any);
+    mockSummaryStats();
 
     await GET(createRequest("http://localhost/api/invoices?supplierId=all"));
 
@@ -154,9 +164,8 @@ describe("GET /api/invoices", () => {
       supplier: { id: "sup_1", name: "Test Supplier", email: "sup@test.com" },
       order: null,
     };
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([invoice] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([invoice] as any);
+    mockSummaryStats();
 
     const response = await GET(createRequest("http://localhost/api/invoices"));
     const { data } = await parseResponse(response);
@@ -173,9 +182,8 @@ describe("GET /api/invoices", () => {
       supplier: { id: "sup_1", name: "Test Supplier", email: "sup@test.com" },
       order: null,
     };
-    prismaMock.invoice.findMany
-      .mockResolvedValueOnce([invoice] as any)
-      .mockResolvedValueOnce([] as any);
+    prismaMock.invoice.findMany.mockResolvedValueOnce([invoice] as any);
+    mockSummaryStats();
 
     const response = await GET(createRequest("http://localhost/api/invoices"));
     const { data } = await parseResponse(response);
@@ -236,8 +244,8 @@ describe("POST /api/invoices", () => {
     expect(data.error).toBe("Validation failed");
   });
 
-  it("returns 404 when supplier not found", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(null);
+  it("returns 404 when supplier not found (not linked to restaurant)", async () => {
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce(null);
 
     const response = await POST(
       createJsonRequest("http://localhost/api/invoices", validBody)
@@ -249,7 +257,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("returns 400 when order already has an invoice", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
     prismaMock.order.findFirst.mockResolvedValueOnce(createMockOrder() as any);
     prismaMock.invoice.findUnique.mockResolvedValueOnce(createMockInvoice() as any);
 
@@ -263,7 +275,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("returns 404 when order not found", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
     prismaMock.order.findFirst.mockResolvedValueOnce(null);
 
     const response = await POST(
@@ -276,7 +292,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("calculates total as subtotal + tax", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
     prismaMock.order.findFirst.mockResolvedValueOnce(createMockOrder() as any);
     prismaMock.invoice.findUnique.mockResolvedValueOnce(null);
 
@@ -301,7 +321,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("defaults tax to 0", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
 
     const createdInvoice = {
       ...createMockInvoice({ total: new Decimal("100.00") }),
@@ -331,7 +355,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("sets status to PENDING when dueDate is in the future", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
 
     const createdInvoice = {
       ...createMockInvoice({ status: "PENDING" }),
@@ -357,7 +385,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("sets status to OVERDUE when dueDate is in the past", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
 
     const createdInvoice = {
       ...createMockInvoice({ status: "OVERDUE" }),
@@ -383,7 +415,11 @@ describe("POST /api/invoices", () => {
   });
 
   it("returns created invoice with formatted data", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(createMockSupplier() as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({
+      supplierId: "sup_1",
+      restaurantId: "rest_1",
+      supplier: createMockSupplier(),
+    } as any);
 
     const createdInvoice = {
       ...createMockInvoice(),

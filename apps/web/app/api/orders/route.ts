@@ -40,6 +40,7 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
 
     // Format decimal fields for JSON serialization

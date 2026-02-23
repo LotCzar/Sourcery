@@ -11,7 +11,7 @@ export async function GET(request: Request) {
     }
 
     const { searchParams } = new URL(request.url);
-    const query = searchParams.get("q")?.trim();
+    const query = searchParams.get("q")?.trim().slice(0, 200);
 
     if (!query || query.length < 2) {
       return NextResponse.json({
@@ -33,11 +33,20 @@ export async function GET(request: Request) {
       );
     }
 
-    // Search in parallel
+    // Get restaurant's supplier relationships for scoping
+    const restaurantSuppliers = await prisma.restaurantSupplier.findMany({
+      where: { restaurantId: user.restaurant.id },
+      select: { supplierId: true },
+    });
+
+    const allowedSupplierIds = restaurantSuppliers.map((rs) => rs.supplierId);
+
+    // Search in parallel — scoped to restaurant's suppliers
     const [products, suppliers, orders] = await Promise.all([
-      // Search products
+      // Search products — only from restaurant's suppliers
       prisma.supplierProduct.findMany({
         where: {
+          supplierId: { in: allowedSupplierIds },
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { description: { contains: query, mode: "insensitive" } },
@@ -53,9 +62,10 @@ export async function GET(request: Request) {
         orderBy: { name: "asc" },
       }),
 
-      // Search suppliers
+      // Search suppliers — only restaurant's suppliers
       prisma.supplier.findMany({
         where: {
+          id: { in: allowedSupplierIds },
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { description: { contains: query, mode: "insensitive" } },

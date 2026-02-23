@@ -2,9 +2,20 @@ import { describe, it, expect } from "vitest";
 import { GET } from "./route";
 import { prismaMock } from "@/__tests__/mocks/prisma";
 import { mockAuth } from "@/__tests__/mocks/clerk";
-import { createMockProduct, createMockSupplier } from "@/__tests__/fixtures";
+import { createMockProduct, createMockSupplier, createMockUserWithRestaurant } from "@/__tests__/fixtures";
 import { createRequest, parseResponse } from "@/__tests__/helpers";
 import { Decimal } from "@prisma/client/runtime/library";
+
+/** Mock the user lookup and restaurant supplier scoping */
+function mockUserAndSuppliers() {
+  const user = createMockUserWithRestaurant();
+  prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+  prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+    { supplierId: "sup_1" },
+  ] as any);
+  // Also mock the count for pagination
+  prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
+}
 
 describe("GET /api/products", () => {
   it("returns 401 when unauthenticated", async () => {
@@ -20,6 +31,12 @@ describe("GET /api/products", () => {
   });
 
   it("returns formatted products with numeric prices", async () => {
+    const user = createMockUserWithRestaurant();
+    prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+      { supplierId: "sup_1" },
+    ] as any);
+
     const supplier = createMockSupplier();
     const product = {
       ...createMockProduct({ price: new Decimal("4.99") }),
@@ -34,6 +51,7 @@ describe("GET /api/products", () => {
     };
 
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([product] as any);
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(1);
     prismaMock.supplierProduct.groupBy.mockResolvedValueOnce([
       { category: "PRODUCE", _count: { category: 1 } },
     ] as any);
@@ -54,6 +72,7 @@ describe("GET /api/products", () => {
   });
 
   it("passes search filter to Prisma", async () => {
+    mockUserAndSuppliers();
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplierProduct.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplier.findMany.mockResolvedValueOnce([]);
@@ -75,6 +94,7 @@ describe("GET /api/products", () => {
   });
 
   it("passes category filter to Prisma", async () => {
+    mockUserAndSuppliers();
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplierProduct.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplier.findMany.mockResolvedValueOnce([]);
@@ -93,6 +113,7 @@ describe("GET /api/products", () => {
   });
 
   it("passes inStock filter to Prisma", async () => {
+    mockUserAndSuppliers();
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplierProduct.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplier.findMany.mockResolvedValueOnce([]);
@@ -111,6 +132,7 @@ describe("GET /api/products", () => {
   });
 
   it("applies price_asc sort order", async () => {
+    mockUserAndSuppliers();
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplierProduct.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplier.findMany.mockResolvedValueOnce([]);

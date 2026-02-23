@@ -49,22 +49,30 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
+      take: 200,
     });
 
-    // Calculate summary stats
-    const allInvoices = await prisma.invoice.findMany({
-      where: { restaurantId: user.restaurant.id },
-    });
+    // Calculate summary stats using aggregate queries
+    const restaurantId = user.restaurant.id;
+    const [totalPendingResult, totalPaidResult, overdueCount, totalInvoiceCount] = await Promise.all([
+      prisma.invoice.aggregate({
+        where: { restaurantId, status: { in: ["PENDING", "OVERDUE"] } },
+        _sum: { total: true },
+      }),
+      prisma.invoice.aggregate({
+        where: { restaurantId, status: "PAID" },
+        _sum: { total: true },
+      }),
+      prisma.invoice.count({
+        where: { restaurantId, status: "OVERDUE" },
+      }),
+      prisma.invoice.count({
+        where: { restaurantId },
+      }),
+    ]);
 
-    const totalPending = allInvoices
-      .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
-      .reduce((sum, i) => sum + Number(i.total), 0);
-
-    const totalPaid = allInvoices
-      .filter((i) => i.status === "PAID")
-      .reduce((sum, i) => sum + Number(i.total), 0);
-
-    const overdueCount = allInvoices.filter((i) => i.status === "OVERDUE").length;
+    const totalPending = totalPendingResult._sum.total ? Number(totalPendingResult._sum.total) : 0;
+    const totalPaid = totalPaidResult._sum.total ? Number(totalPaidResult._sum.total) : 0;
 
     // Format invoices
     const formattedInvoices = invoices.map((invoice) => ({
@@ -94,7 +102,7 @@ export async function GET(request: Request) {
         totalPending,
         totalPaid,
         overdueCount,
-        totalInvoices: allInvoices.length,
+        totalInvoices: totalInvoiceCount,
       },
     });
   } catch (error: any) {
@@ -139,12 +147,16 @@ export async function POST(request: Request) {
       fileUrl,
     } = validation.data;
 
-    // Check if supplier exists
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
+    // Verify supplier exists and belongs to this restaurant
+    const restaurantSupplier = await prisma.restaurantSupplier.findFirst({
+      where: {
+        restaurantId: user.restaurant.id,
+        supplierId,
+      },
+      include: { supplier: true },
     });
 
-    if (!supplier) {
+    if (!restaurantSupplier) {
       return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
     }
 

@@ -87,13 +87,13 @@ export const OrderActionSchema = z.enum([
 export const CreateOrderItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().positive(),
-  notes: z.string().optional(),
+  notes: z.string().max(1000).optional(),
 });
 
 export const CreateOrderSchema = z.object({
   supplierId: z.string().min(1),
   items: z.array(CreateOrderItemSchema).min(1),
-  deliveryNotes: z.string().optional(),
+  deliveryNotes: z.string().max(2000).optional(),
 });
 
 export const UpdateOrderSchema = z.object({
@@ -102,33 +102,33 @@ export const UpdateOrderSchema = z.object({
 
 // Inventory
 export const CreateInventoryItemSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(255),
   category: ProductCategorySchema,
   unit: UnitTypeSchema,
   currentQuantity: z.number().min(0).default(0),
   parLevel: z.number().min(0).optional(),
   costPerUnit: z.number().min(0).optional(),
-  location: z.string().optional(),
-  notes: z.string().optional(),
+  location: z.string().max(255).optional(),
+  notes: z.string().max(2000).optional(),
   supplierProductId: z.string().optional(),
 });
 
 export const UpdateInventoryItemSchema = z
   .object({
     // Item details update
-    name: z.string().min(1).optional(),
+    name: z.string().min(1).max(255).optional(),
     category: ProductCategorySchema.optional(),
     unit: UnitTypeSchema.optional(),
     parLevel: z.number().min(0).nullable().optional(),
     costPerUnit: z.number().min(0).nullable().optional(),
-    location: z.string().nullable().optional(),
-    notes: z.string().nullable().optional(),
+    location: z.string().max(255).nullable().optional(),
+    notes: z.string().max(2000).nullable().optional(),
     supplierProductId: z.string().nullable().optional(),
     // Quantity adjustment
     adjustQuantity: z.number().optional(),
     changeType: InventoryChangeTypeSchema.optional(),
-    adjustmentNotes: z.string().optional(),
-    reference: z.string().optional(),
+    adjustmentNotes: z.string().max(2000).optional(),
+    reference: z.string().max(255).optional(),
   });
 
 // Price Alerts
@@ -141,8 +141,8 @@ export const CreatePriceAlertSchema = z.object({
 // Notifications
 export const CreateNotificationSchema = z.object({
   type: NotificationTypeSchema,
-  title: z.string().min(1),
-  message: z.string().min(1),
+  title: z.string().min(1).max(255),
+  message: z.string().min(1).max(5000),
   metadata: z.record(z.string(), z.unknown()).optional(),
 });
 
@@ -179,7 +179,7 @@ export const ApprovalRuleSchema = z.object({
 
 export const ReviewApprovalSchema = z.object({
   status: z.enum(["APPROVED", "REJECTED"]),
-  notes: z.string().optional(),
+  notes: z.string().max(2000).optional(),
 });
 
 // Messaging
@@ -199,13 +199,13 @@ export const AccountingMappingSchema = z.object({
 
 // Supplier Products
 export const CreateSupplierProductSchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1).max(255),
   category: ProductCategorySchema,
   price: z.number().positive(),
   unit: UnitTypeSchema,
-  description: z.string().optional(),
-  sku: z.string().optional(),
-  brand: z.string().optional(),
+  description: z.string().max(2000).optional(),
+  sku: z.string().max(100).optional(),
+  brand: z.string().max(255).optional(),
   imageUrl: z.string().url().optional(),
   packSize: z.number().positive().optional(),
   inStock: z.boolean().optional(),
@@ -213,13 +213,13 @@ export const CreateSupplierProductSchema = z.object({
 });
 
 export const UpdateSupplierProductSchema = z.object({
-  name: z.string().min(1).optional(),
+  name: z.string().min(1).max(255).optional(),
   category: ProductCategorySchema.optional(),
   price: z.number().positive().optional(),
   unit: UnitTypeSchema.optional(),
-  description: z.string().nullable().optional(),
-  sku: z.string().nullable().optional(),
-  brand: z.string().nullable().optional(),
+  description: z.string().max(2000).nullable().optional(),
+  sku: z.string().max(100).nullable().optional(),
+  brand: z.string().max(255).nullable().optional(),
   imageUrl: z.string().url().nullable().optional(),
   packSize: z.number().positive().nullable().optional(),
   inStock: z.boolean().optional(),
@@ -228,17 +228,17 @@ export const UpdateSupplierProductSchema = z.object({
 
 // Supplier Settings
 export const UpdateSupplierSettingsSchema = z.object({
-  name: z.string().min(1).optional(),
-  description: z.string().nullable().optional(),
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(2000).nullable().optional(),
   email: z.string().email().nullable().optional(),
-  phone: z.string().nullable().optional(),
-  address: z.string().nullable().optional(),
-  city: z.string().nullable().optional(),
-  state: z.string().nullable().optional(),
-  zipCode: z.string().nullable().optional(),
+  phone: z.string().max(255).nullable().optional(),
+  address: z.string().max(255).nullable().optional(),
+  city: z.string().max(255).nullable().optional(),
+  state: z.string().max(255).nullable().optional(),
+  zipCode: z.string().max(255).nullable().optional(),
   website: z.string().url().nullable().optional(),
   logoUrl: z.string().url().nullable().optional(),
-  taxId: z.string().nullable().optional(),
+  taxId: z.string().max(100).nullable().optional(),
   minimumOrder: z.number().min(0).nullable().optional(),
   deliveryFee: z.number().min(0).nullable().optional(),
   leadTimeDays: z.number().int().min(1).optional(),
@@ -246,34 +246,34 @@ export const UpdateSupplierSettingsSchema = z.object({
 
 // Onboarding
 export const OnboardingSchema = z.object({
-  restaurantName: z.string().min(1, "Restaurant name is required"),
-  address: z.string().optional(),
-  city: z.string().optional(),
-  state: z.string().optional(),
-  zipCode: z.string().optional(),
-  phone: z.string().optional(),
+  restaurantName: z.string().min(1, "Restaurant name is required").max(255),
+  address: z.string().max(255).optional(),
+  city: z.string().max(255).optional(),
+  state: z.string().max(255).optional(),
+  zipCode: z.string().max(255).optional(),
+  phone: z.string().max(255).optional(),
   email: z.string().email().optional(),
   website: z.string().url().optional(),
-  cuisineType: z.string().optional(),
-  seatingCapacity: z.string().optional(),
+  cuisineType: z.string().max(255).optional(),
+  seatingCapacity: z.string().max(255).optional(),
 });
 
 // Ingredient Matching
 export const MatchIngredientsSchema = z.object({
   ingredients: z.array(
     z.object({
-      name: z.string().min(1),
-      category: z.string().min(1),
-      estimatedQuantity: z.string().min(1),
-      unit: z.string().min(1),
+      name: z.string().min(1).max(255),
+      category: z.string().min(1).max(255),
+      estimatedQuantity: z.string().min(1).max(255),
+      unit: z.string().min(1).max(255),
     })
   ).min(1).max(200),
 });
 
 // AI Parse Menu
 export const ParseMenuSchema = z.object({
-  menuText: z.string().min(1, "Menu text is required"),
-  menuType: z.string().optional(),
+  menuText: z.string().min(1, "Menu text is required").max(50000),
+  menuType: z.string().max(255).optional(),
 });
 
 // Settings
@@ -310,7 +310,7 @@ export const DriverDeliveryActionSchema = z.enum([
 export const UpdateDeliverySchema = z.object({
   action: DriverDeliveryActionSchema,
   estimatedDeliveryAt: z.string().optional(),
-  trackingNotes: z.string().optional(),
+  trackingNotes: z.string().max(2000).optional(),
 });
 
 // Accounting Mappings Update
@@ -320,12 +320,12 @@ export const UpdateAccountingMappingsSchema = z.object({
 
 // Invoice Creation
 export const CreateInvoiceSchema = z.object({
-  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  invoiceNumber: z.string().min(1, "Invoice number is required").max(100),
   supplierId: z.string().min(1, "Supplier ID is required"),
   orderId: z.string().optional(),
   subtotal: z.number().positive("Subtotal must be positive"),
   tax: z.number().min(0).default(0),
   dueDate: z.string().min(1, "Due date is required"),
-  notes: z.string().optional(),
+  notes: z.string().max(2000).optional(),
   fileUrl: z.string().url().optional(),
 });

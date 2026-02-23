@@ -45,6 +45,9 @@ describe("GET /api/search", () => {
   it("returns products matching search term", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+      { supplierId: "sup_1" },
+    ] as any);
 
     const product = {
       ...createMockProduct(),
@@ -66,6 +69,9 @@ describe("GET /api/search", () => {
   it("returns suppliers matching search term", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+      { supplierId: "sup_1" },
+    ] as any);
 
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplier.findMany.mockResolvedValueOnce([
@@ -92,6 +98,9 @@ describe("GET /api/search", () => {
   it("returns orders matching search term", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+      { supplierId: "sup_1" },
+    ] as any);
 
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
     prismaMock.supplier.findMany.mockResolvedValueOnce([]);
@@ -116,6 +125,9 @@ describe("GET /api/search", () => {
   it("returns results from all three tables in parallel", async () => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValueOnce([
+      { supplierId: "sup_1" },
+    ] as any);
 
     const product = {
       ...createMockProduct(),

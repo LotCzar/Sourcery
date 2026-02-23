@@ -10,8 +10,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Get user's restaurant and their supplier relationships
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { restaurant: true },
+    });
+
+    if (!user?.restaurant) {
+      return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    }
+
+    const restaurantSuppliers = await prisma.restaurantSupplier.findMany({
+      where: { restaurantId: user.restaurant.id },
+      select: { supplierId: true },
+    });
+
+    const allowedSupplierIds = restaurantSuppliers.map((rs) => rs.supplierId);
+
     const { searchParams } = new URL(request.url);
-    const search = searchParams.get("search") || "";
+    const search = (searchParams.get("search") || "").slice(0, 200);
     const category = searchParams.get("category") || "";
     const supplierId = searchParams.get("supplier") || "";
     const sortBy = searchParams.get("sort") || "name";
@@ -20,8 +37,10 @@ export async function GET(request: Request) {
     const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") || "20")));
     const skip = (page - 1) * limit;
 
-    // Build where clause
-    const where: any = {};
+    // Build where clause — scoped to restaurant's suppliers
+    const where: any = {
+      supplierId: { in: allowedSupplierIds },
+    };
 
     if (search) {
       where.OR = [
@@ -75,16 +94,17 @@ export async function GET(request: Request) {
       prisma.supplierProduct.count({ where }),
     ]);
 
-    // Get all categories for filter options
+    // Get categories for filter options — scoped to restaurant's suppliers
     const categories = await prisma.supplierProduct.groupBy({
       by: ["category"],
+      where: { supplierId: { in: allowedSupplierIds } },
       _count: { category: true },
       orderBy: { category: "asc" },
     });
 
-    // Get all suppliers for filter options
+    // Get suppliers for filter options — scoped to restaurant's suppliers
     const suppliers = await prisma.supplier.findMany({
-      where: { status: "VERIFIED" },
+      where: { id: { in: allowedSupplierIds } },
       select: {
         id: true,
         name: true,

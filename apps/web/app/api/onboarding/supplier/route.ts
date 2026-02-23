@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     const leadTimeDays = data.leadTimeDays ? parseInt(data.leadTimeDays) : 1;
 
     // Get user email - use supplier email from form, or fall back to user's Clerk email
-    const supplierEmail = data.email || user.emailAddresses[0]?.emailAddress || "";
+    const supplierEmail = (data.email?.trim()) || user.emailAddresses[0]?.emailAddress || "";
 
     // Create or update user in database with SUPPLIER_ADMIN role
     const dbUser = await prisma.user.upsert({
@@ -75,9 +75,9 @@ export async function POST(request: Request) {
       // Create new supplier with PENDING status
       supplier = await prisma.supplier.create({
         data: {
-          name: data.companyName,
+          name: data.companyName.trim(),
           email: supplierEmail,
-          phone: data.phone || null,
+          phone: data.phone?.trim() || null,
           address: data.address || null,
           city: data.city || null,
           state: data.state || null,
