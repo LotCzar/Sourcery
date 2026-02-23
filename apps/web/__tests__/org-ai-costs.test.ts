@@ -59,8 +59,13 @@ describe("GET /api/org/ai-costs", () => {
     prismaMock.user.findUnique.mockResolvedValueOnce(
       createMockOrgAdmin() as any
     );
+    // First call: tier check
     prismaMock.restaurant.findMany.mockResolvedValueOnce([
-      createMockRestaurant({ organizationId: "org_1" }) as any,
+      { planTier: "PROFESSIONAL" },
+    ] as any);
+    // Second call: actual restaurant data
+    prismaMock.restaurant.findMany.mockResolvedValueOnce([
+      createMockRestaurant({ organizationId: "org_1", planTier: "PROFESSIONAL" }) as any,
     ]);
     prismaMock.aiUsageLog.groupBy.mockResolvedValueOnce([
       {
@@ -103,8 +108,13 @@ describe("GET /api/org/ai-costs", () => {
     prismaMock.user.findUnique.mockResolvedValueOnce(
       createMockOrgAdmin() as any
     );
+    // First call: tier check
     prismaMock.restaurant.findMany.mockResolvedValueOnce([
-      createMockRestaurant({ organizationId: "org_1" }) as any,
+      { planTier: "PROFESSIONAL" },
+    ] as any);
+    // Second call: actual restaurant data
+    prismaMock.restaurant.findMany.mockResolvedValueOnce([
+      createMockRestaurant({ organizationId: "org_1", planTier: "PROFESSIONAL" }) as any,
     ]);
     prismaMock.aiUsageLog.groupBy.mockResolvedValueOnce([] as any);
 
@@ -121,6 +131,11 @@ describe("GET /api/org/ai-costs", () => {
     prismaMock.user.findUnique.mockResolvedValueOnce(
       createMockOrgAdmin() as any
     );
+    // First call: tier check
+    prismaMock.restaurant.findMany.mockResolvedValueOnce([
+      { planTier: "PROFESSIONAL" },
+    ] as any);
+    // Second call: actual restaurant data
     prismaMock.restaurant.findMany.mockResolvedValueOnce([]);
 
     const res = await GET(

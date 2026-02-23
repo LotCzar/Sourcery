@@ -230,7 +230,7 @@ describe("get_disputed_invoices Chat Tool", () => {
     const result = await executeTool(
       "get_disputed_invoices",
       {},
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.count).toBe(1);
@@ -245,7 +245,7 @@ describe("get_disputed_invoices Chat Tool", () => {
     const result = await executeTool(
       "get_disputed_invoices",
       {},
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.message).toContain("No disputed invoices");
@@ -266,7 +266,7 @@ describe("Seasonal Demand Forecasting", () => {
   });
 
   it("stores seasonal factors in metadata when 10+ logs in 90 days", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const item = createMockInventoryItem({
       supplierProduct: {
         supplier: { leadTimeDays: 2 },
@@ -314,7 +314,7 @@ describe("Seasonal Demand Forecasting", () => {
   });
 
   it("adjusts suggestedParLevel by current seasonal factor", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const item = createMockInventoryItem({
       supplierProduct: {
         supplier: { leadTimeDays: 2 },
@@ -356,7 +356,7 @@ describe("Seasonal Demand Forecasting", () => {
   });
 
   it("creates notification when seasonal factor > 1.2", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const item = createMockInventoryItem({
       supplierProduct: {
@@ -419,7 +419,7 @@ describe("Seasonal Demand Forecasting", () => {
   });
 
   it("skips seasonal analysis when fewer than 10 logs in 90 days", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const item = createMockInventoryItem({
       supplierProduct: {
         supplier: { leadTimeDays: 2 },
@@ -492,7 +492,7 @@ describe("get_seasonal_forecast Chat Tool", () => {
     const result = await executeTool(
       "get_seasonal_forecast",
       {},
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.count).toBe(1);
@@ -509,7 +509,7 @@ describe("get_seasonal_forecast Chat Tool", () => {
     const result = await executeTool(
       "get_seasonal_forecast",
       {},
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.message).toContain("No seasonal forecast data");
@@ -530,7 +530,7 @@ describe("Smart Substitution Suggestions", () => {
   });
 
   it("finds alternatives for out-of-stock items and creates notification", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const outOfStockProduct = createMockProduct({
       inStock: false,
@@ -571,7 +571,7 @@ describe("Smart Substitution Suggestions", () => {
   });
 
   it("skips items with no available alternatives", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const outOfStockProduct = createMockProduct({
       inStock: false,
@@ -596,7 +596,7 @@ describe("Smart Substitution Suggestions", () => {
   });
 
   it("excludes same supplier from alternatives", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const outOfStockProduct = createMockProduct({
       inStock: false,
@@ -622,7 +622,7 @@ describe("Smart Substitution Suggestions", () => {
   });
 
   it("skips restaurants with no owner", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
     prismaMock.user.findFirst.mockResolvedValue(null);
@@ -669,7 +669,7 @@ describe("find_substitutes Chat Tool", () => {
     const result = await executeTool(
       "find_substitutes",
       { product_name: "Tomatoes" },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.count).toBe(2);
@@ -685,7 +685,7 @@ describe("find_substitutes Chat Tool", () => {
     const result = await executeTool(
       "find_substitutes",
       { product_name: "Rare Truffles" },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.message).toContain("No in-stock substitutes");
@@ -706,7 +706,7 @@ describe("Contract Price Locking Alerts", () => {
   });
 
   it("creates notification when product price is at 10th percentile", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const product = createMockProduct({
       id: "prod_1",
@@ -747,7 +747,7 @@ describe("Contract Price Locking Alerts", () => {
   });
 
   it("skips products with fewer than 5 orders", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
@@ -762,7 +762,7 @@ describe("Contract Price Locking Alerts", () => {
   });
 
   it("skips products with insufficient price history (<10 records)", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const product = createMockProduct({
       id: "prod_1",
@@ -793,7 +793,7 @@ describe("Contract Price Locking Alerts", () => {
   });
 
   it("calculates potential savings correctly", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const product = createMockProduct({
       id: "prod_1",
@@ -860,7 +860,7 @@ describe("get_price_trends Chat Tool", () => {
     const result = await executeTool(
       "get_price_trends",
       { product_name: "Tomatoes" },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.product).toBe("Tomatoes");
@@ -880,7 +880,7 @@ describe("get_price_trends Chat Tool", () => {
     const result = await executeTool(
       "get_price_trends",
       { product_name: "Nonexistent Product" },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.error).toContain("Product not found");

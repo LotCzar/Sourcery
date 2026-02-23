@@ -28,7 +28,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("creates draft orders for items approaching stockout within lead time", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier({ leadTimeDays: 3 });
     const product = createMockProduct({ supplierId: supplier.id });
@@ -65,7 +65,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("creates orders for critically low items without insights", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
     const product = createMockProduct({ supplierId: supplier.id });
@@ -91,7 +91,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("groups items by supplier into separate orders", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier1 = createMockSupplier({ id: "sup_1", name: "Supplier A" });
     const supplier2 = createMockSupplier({ id: "sup_2", name: "Supplier B" });
@@ -131,7 +131,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("flags below-minimum orders in notification metadata", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier({ minimumOrder: new Decimal("500.00") });
     const product = createMockProduct({ supplierId: supplier.id, price: new Decimal("2.00") });
@@ -157,7 +157,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("includes per-item reasoning in notification", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier({ leadTimeDays: 2 });
     const product = createMockProduct({ supplierId: supplier.id });
@@ -185,7 +185,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("skips restaurants with no owner", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
     prismaMock.user.findFirst.mockResolvedValue(null);
@@ -197,7 +197,7 @@ describe("Proactive Ordering Autopilot", () => {
   });
 
   it("skips items without supplier product links", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const item = createMockInventoryItem({
       currentQuantity: new Decimal("2.000"),
@@ -397,7 +397,7 @@ describe("Par Level Optimizer (Chat Tool)", () => {
     executeTool = module.executeTool;
   });
 
-  const context = { userId: "user_1", restaurantId: "rest_1" };
+  const context = { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const };
 
   it("returns suggestions for items >20% difference", async () => {
     const insight = createMockConsumptionInsight({
@@ -535,7 +535,7 @@ describe("Consumption Analysis - Par Level Notification", () => {
     const { getInngestHandler } = await import("./mocks/inngest");
     const handler = getInngestHandler("consumption-analysis")!;
 
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
@@ -589,7 +589,7 @@ describe("Smart Weekly Digest", () => {
   });
 
   it("aggregates correct metrics", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser({ email: "owner@test.com" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
@@ -637,7 +637,7 @@ describe("Smart Weekly Digest", () => {
   });
 
   it("falls back when Anthropic unavailable", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser({ email: "owner@test.com" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
@@ -659,7 +659,7 @@ describe("Smart Weekly Digest", () => {
   });
 
   it("sends email using weeklyDigest template", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser({ email: "owner@test.com" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
@@ -681,7 +681,7 @@ describe("Smart Weekly Digest", () => {
   });
 
   it("creates notification after sending", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser({ email: "owner@test.com" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);

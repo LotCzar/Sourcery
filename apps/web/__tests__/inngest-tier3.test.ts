@@ -10,7 +10,7 @@ import {
 } from "@/__tests__/fixtures";
 import { Decimal } from "@prisma/client/runtime/library";
 
-const context = { userId: "user_1", restaurantId: "rest_1" };
+const context = { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const };
 
 // ============================================
 // GET_BENCHMARKS TESTS

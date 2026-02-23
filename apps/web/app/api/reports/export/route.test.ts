@@ -10,7 +10,7 @@ import { GET } from "./route";
 import { Decimal } from "@prisma/client/runtime/library";
 
 describe("GET /api/reports/export", () => {
-  const mockUser = createMockUserWithRestaurant();
+  const mockUser = createMockUserWithRestaurant({}, { planTier: "PROFESSIONAL" });
 
   beforeEach(() => {
     mockAuth.mockResolvedValue({ userId: "clerk_test_user_123" });

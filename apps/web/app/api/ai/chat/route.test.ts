@@ -257,6 +257,7 @@ describe("POST /api/ai/chat", () => {
         restaurantId: mockUser.restaurant.id,
         organizationId: null,
         userRole: mockUser.role,
+        planTier: mockUser.restaurant.planTier,
       }
     );
 

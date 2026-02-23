@@ -13,6 +13,7 @@ const orgAdminContext = {
   restaurantId: "rest_1",
   organizationId: "org_1",
   userRole: "ORG_ADMIN",
+  planTier: "PROFESSIONAL" as const,
 };
 
 const staffContext = {
@@ -20,6 +21,7 @@ const staffContext = {
   restaurantId: "rest_1",
   organizationId: null,
   userRole: "STAFF",
+  planTier: "PROFESSIONAL" as const,
 };
 
 const orgAdminNoOrgContext = {
@@ -27,6 +29,7 @@ const orgAdminNoOrgContext = {
   restaurantId: "rest_1",
   organizationId: null,
   userRole: "ORG_ADMIN",
+  planTier: "PROFESSIONAL" as const,
 };
 
 // ============================================

@@ -213,7 +213,7 @@ describe("Smart Delivery Scheduling", () => {
   });
 
   it("suggests consolidation when 2+ DRAFTs for same supplier", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier({ deliveryFee: new Decimal("15.00") });
 
@@ -254,7 +254,7 @@ describe("Smart Delivery Scheduling", () => {
   });
 
   it("calculates correct delivery fee savings", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier({ deliveryFee: new Decimal("20.00") });
 
@@ -291,7 +291,7 @@ describe("Smart Delivery Scheduling", () => {
   });
 
   it("detects add-to-upcoming-delivery opportunity", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -325,7 +325,7 @@ describe("Smart Delivery Scheduling", () => {
   });
 
   it("skips supplier with only 1 draft order", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -351,7 +351,7 @@ describe("Smart Delivery Scheduling", () => {
   });
 
   it("skips restaurants with no owner", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
     prismaMock.user.findFirst.mockResolvedValue(null);
@@ -376,7 +376,7 @@ describe("Supplier Performance Scoring", () => {
   });
 
   it("calculates on-time delivery % with 1-day grace", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -410,7 +410,7 @@ describe("Supplier Performance Scoring", () => {
   });
 
   it("calculates invoice accuracy %", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -446,7 +446,7 @@ describe("Supplier Performance Scoring", () => {
   });
 
   it("sends alert when on-time < 80%", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -483,7 +483,7 @@ describe("Supplier Performance Scoring", () => {
   });
 
   it("skips suppliers with < 5 delivered orders", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
     const supplier = createMockSupplier();
 
@@ -505,7 +505,7 @@ describe("Supplier Performance Scoring", () => {
   });
 
   it("skips restaurants with no owner", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
 
     prismaMock.restaurant.findMany.mockResolvedValue([restaurant] as any);
     prismaMock.user.findFirst.mockResolvedValue(null);
@@ -530,7 +530,7 @@ describe("Predictive Budget Alerts", () => {
   });
 
   it("sends warning when projected > 110%", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     // Mock current MTD orders - high spending
@@ -567,7 +567,7 @@ describe("Predictive Budget Alerts", () => {
   });
 
   it("sends critical alert when projected > 130%", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     const mtdOrders = Array.from({ length: 10 }, (_, i) =>
@@ -600,7 +600,7 @@ describe("Predictive Budget Alerts", () => {
   });
 
   it("does not alert when within 110%", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     // Moderate MTD spending
@@ -633,7 +633,7 @@ describe("Predictive Budget Alerts", () => {
   });
 
   it("skips when no historical data", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     const mtdOrders = [
@@ -659,7 +659,7 @@ describe("Predictive Budget Alerts", () => {
   });
 
   it("includes category breakdown in metadata", async () => {
-    const restaurant = createMockRestaurant();
+    const restaurant = createMockRestaurant({ planTier: "PROFESSIONAL" });
     const owner = createMockUser();
 
     const mtdOrders = Array.from({ length: 5 }, (_, i) =>
@@ -758,7 +758,7 @@ describe("consolidate_orders Chat Tool", () => {
     const result = await executeTool(
       "consolidate_orders",
       { order_ids: ["o1", "o2"] },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.success).toBe(true);
@@ -786,7 +786,7 @@ describe("consolidate_orders Chat Tool", () => {
     const result = await executeTool(
       "consolidate_orders",
       { order_ids: ["o1", "o2"] },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.error).toContain("same supplier");
@@ -796,7 +796,7 @@ describe("consolidate_orders Chat Tool", () => {
     const result = await executeTool(
       "consolidate_orders",
       { order_ids: ["o1"] },
-      { userId: "user_1", restaurantId: "rest_1" }
+      { userId: "user_1", restaurantId: "rest_1", organizationId: null, userRole: "OWNER", planTier: "PROFESSIONAL" as const }
     );
 
     expect(result.error).toContain("At least 2");

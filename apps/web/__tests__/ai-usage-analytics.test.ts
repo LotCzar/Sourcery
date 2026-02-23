@@ -41,7 +41,7 @@ describe("GET /api/ai/usage/analytics", () => {
   it("returns timeSeries and perUser with correct shape", async () => {
     const user = {
       ...createMockUser(),
-      restaurant: { id: "rest_1" },
+      restaurant: { id: "rest_1", planTier: "PROFESSIONAL" },
     };
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
@@ -105,7 +105,7 @@ describe("GET /api/ai/usage/analytics", () => {
   it("defaults to 30-day range", async () => {
     const user = {
       ...createMockUser(),
-      restaurant: { id: "rest_1" },
+      restaurant: { id: "rest_1", planTier: "PROFESSIONAL" },
     };
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
     prismaMock.aiUsageLog.findMany.mockResolvedValueOnce([]);
@@ -122,7 +122,7 @@ describe("GET /api/ai/usage/analytics", () => {
   it("respects range=7", async () => {
     const user = {
       ...createMockUser(),
-      restaurant: { id: "rest_1" },
+      restaurant: { id: "rest_1", planTier: "PROFESSIONAL" },
     };
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
     prismaMock.aiUsageLog.findMany.mockResolvedValueOnce([]);
@@ -139,7 +139,7 @@ describe("GET /api/ai/usage/analytics", () => {
   it("handles null userId as System Jobs", async () => {
     const user = {
       ...createMockUser(),
-      restaurant: { id: "rest_1" },
+      restaurant: { id: "rest_1", planTier: "PROFESSIONAL" },
     };
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
@@ -174,7 +174,7 @@ describe("GET /api/ai/usage/analytics", () => {
   it("returns zero-filled time series when no data", async () => {
     const user = {
       ...createMockUser(),
-      restaurant: { id: "rest_1" },
+      restaurant: { id: "rest_1", planTier: "PROFESSIONAL" },
     };
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
     prismaMock.aiUsageLog.findMany.mockResolvedValueOnce([]);
