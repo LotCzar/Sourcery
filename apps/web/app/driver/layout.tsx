@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import { DriverHeader } from "@/components/driver/header";
 import { DriverMobileNav } from "@/components/driver/mobile-nav";
 import { Toaster } from "@/components/ui/toaster";
+import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
 async function checkDriverAccess(userId: string) {
@@ -34,13 +35,15 @@ export default async function DriverLayout({
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden">
-      <DriverHeader />
-      <main className="flex-1 overflow-y-auto bg-background p-4 pb-20 lg:pb-4">
-        {children}
-      </main>
-      <DriverMobileNav />
-      <Toaster />
-    </div>
+    <TourWrapper audience="driver">
+      <div className="flex h-screen flex-col overflow-hidden">
+        <DriverHeader />
+        <main className="flex-1 overflow-y-auto bg-background p-4 pb-20 lg:pb-4">
+          {children}
+        </main>
+        <DriverMobileNav />
+        <Toaster />
+      </div>
+    </TourWrapper>
   );
 }

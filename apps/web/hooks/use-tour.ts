@@ -5,7 +5,7 @@ import { queryKeys } from "@/lib/query-keys";
 interface TourState {
   tourCompletedAt: string | null;
   tourState: { currentStep: number; completedAt?: string } | null;
-  audience: "restaurant" | "supplier";
+  audience: "restaurant" | "supplier" | "driver";
 }
 
 interface TourResponse {

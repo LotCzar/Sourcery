@@ -12,6 +12,7 @@ import { useTourState, useUpdateTour } from "@/hooks/use-tour";
 import {
   restaurantTourSteps,
   supplierTourSteps,
+  driverTourSteps,
   type TourStep,
 } from "@/lib/tour-steps";
 
@@ -42,14 +43,18 @@ export function TourProvider({
   audience,
   children,
 }: {
-  audience: "restaurant" | "supplier";
+  audience: "restaurant" | "supplier" | "driver";
   children: ReactNode;
 }) {
   const { data } = useTourState();
   const updateTour = useUpdateTour();
 
   const steps =
-    audience === "supplier" ? supplierTourSteps : restaurantTourSteps;
+    audience === "driver"
+      ? driverTourSteps
+      : audience === "supplier"
+        ? supplierTourSteps
+        : restaurantTourSteps;
 
   const [isActive, setIsActive] = useState(false);
   const [currentStep, setCurrentStep] = useState(0);

@@ -224,7 +224,7 @@ export default function DeliveryDetailPage() {
       )}
 
       {/* Action Buttons */}
-      <div className="space-y-2">
+      <div className="space-y-2" data-tour="driver-delivery-actions">
         {(delivery.status === "CONFIRMED" || delivery.status === "SHIPPED") && (
           <Button
             className="w-full bg-indigo-600 hover:bg-indigo-700"

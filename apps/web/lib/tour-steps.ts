@@ -26,6 +26,14 @@ export const restaurantTourSteps: TourStep[] = [
     placement: "bottom",
   },
   {
+    id: "upcoming-deliveries",
+    target: '[data-tour="upcoming-deliveries"]',
+    title: "Upcoming Deliveries",
+    description:
+      "Track incoming orders in real-time. See live ETAs, driver info, and delivery status — updates appear automatically as your orders move.",
+    placement: "bottom",
+  },
+  {
     id: "quick-actions",
     target: '[data-tour="quick-actions"]',
     title: "Quick Actions",
@@ -125,11 +133,27 @@ export const supplierTourSteps: TourStep[] = [
     placement: "right",
   },
   {
+    id: "supplier-delivery-tracking",
+    target: '[data-tour="supplier-sidebar-orders"]',
+    title: "Delivery Tracking",
+    description:
+      "When shipping orders, assign a driver and set an ETA. Track deliveries through Shipped, In Transit, and Delivered stages.",
+    placement: "right",
+  },
+  {
     id: "supplier-sidebar-products",
     target: '[data-tour="supplier-sidebar-products"]',
     title: "Product Catalog",
     description:
       "Add, edit, and manage your product listings. Update prices, stock levels, and product details.",
+    placement: "right",
+  },
+  {
+    id: "supplier-driver-management",
+    target: '[data-tour="supplier-sidebar-settings"]',
+    title: "Driver Management",
+    description:
+      "Add and manage your delivery drivers from Settings. Assign them to orders so restaurants can track deliveries in real-time.",
     placement: "right",
   },
   {
@@ -139,5 +163,40 @@ export const supplierTourSteps: TourStep[] = [
     description:
       "Update your business info, delivery zones, and preferences. You can restart this tour anytime from here!",
     placement: "right",
+  },
+];
+
+export const driverTourSteps: TourStep[] = [
+  {
+    id: "driver-stats",
+    target: '[data-tour="driver-stats"]',
+    title: "Today's Overview",
+    description:
+      "See how many deliveries are assigned, completed, and currently active at a glance.",
+    placement: "bottom",
+  },
+  {
+    id: "driver-active-delivery",
+    target: '[data-tour="driver-active-delivery"]',
+    title: "Active Delivery",
+    description:
+      "Your current in-transit delivery appears here. Quickly mark it as delivered when you arrive.",
+    placement: "bottom",
+  },
+  {
+    id: "driver-delivery-queue",
+    target: '[data-tour="driver-delivery-queue"]',
+    title: "Delivery Queue",
+    description:
+      "All your upcoming deliveries are listed here. Tap any delivery to see full details.",
+    placement: "top",
+  },
+  {
+    id: "driver-delivery-actions",
+    target: '[data-tour="driver-delivery-actions"]',
+    title: "Delivery Actions",
+    description:
+      "Start a delivery, update your ETA, or mark an order as delivered — all from the delivery detail page.",
+    placement: "top",
   },
 ];

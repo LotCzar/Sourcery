@@ -8,7 +8,7 @@ export function TourWrapper({
   audience,
   children,
 }: {
-  audience: "restaurant" | "supplier";
+  audience: "restaurant" | "supplier" | "driver";
   children: React.ReactNode;
 }) {
   return (

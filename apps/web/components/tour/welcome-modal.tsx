@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, ShoppingCart, BarChart3, Zap, Package, Users, Truck } from "lucide-react";
+import { Sparkles, ShoppingCart, BarChart3, Zap, Package, Users, Truck, MapPin, CheckCircle } from "lucide-react";
 import { useTour } from "@/lib/tour-context";
 import { useTourState } from "@/hooks/use-tour";
 import {
@@ -18,42 +18,61 @@ export function WelcomeModal() {
 
   const audience = data?.data?.audience ?? "restaurant";
   const isSupplier = audience === "supplier";
+  const isDriver = audience === "driver";
 
-  const features = isSupplier
+  const features = isDriver
     ? [
         {
-          icon: ShoppingCart,
-          title: "Manage Orders",
-          description: "View and fulfill restaurant orders in real-time",
-        },
-        {
-          icon: Package,
-          title: "Product Catalog",
-          description: "List your products and keep pricing up to date",
-        },
-        {
           icon: Truck,
-          title: "Delivery Tracking",
-          description: "Track shipments and manage delivery schedules",
+          title: "Delivery Queue",
+          description: "See all your assigned deliveries for the day",
+        },
+        {
+          icon: MapPin,
+          title: "Restaurant Details",
+          description: "Get addresses, phone numbers, and delivery notes",
+        },
+        {
+          icon: CheckCircle,
+          title: "Status Updates",
+          description: "Start deliveries, update ETAs, and mark orders delivered",
         },
       ]
-    : [
-        {
-          icon: Sparkles,
-          title: "AI-Powered Ordering",
-          description: "Parse menus and auto-match ingredients to suppliers",
-        },
-        {
-          icon: BarChart3,
-          title: "Price Intelligence",
-          description: "Track prices across suppliers and get alerted on changes",
-        },
-        {
-          icon: Zap,
-          title: "Smart Automation",
-          description: "Auto-reorder, low-stock alerts, and AI daily briefings",
-        },
-      ];
+    : isSupplier
+      ? [
+          {
+            icon: ShoppingCart,
+            title: "Manage Orders",
+            description: "View and fulfill restaurant orders in real-time",
+          },
+          {
+            icon: Package,
+            title: "Product Catalog",
+            description: "List your products and keep pricing up to date",
+          },
+          {
+            icon: Truck,
+            title: "Delivery Tracking",
+            description: "Track shipments and manage delivery schedules",
+          },
+        ]
+      : [
+          {
+            icon: Sparkles,
+            title: "AI-Powered Ordering",
+            description: "Parse menus and auto-match ingredients to suppliers",
+          },
+          {
+            icon: BarChart3,
+            title: "Price Intelligence",
+            description: "Track prices across suppliers and get alerted on changes",
+          },
+          {
+            icon: Zap,
+            title: "Smart Automation",
+            description: "Auto-reorder, low-stock alerts, and AI daily briefings",
+          },
+        ];
 
   return (
     <Dialog open={showWelcome} onOpenChange={(open) => { if (!open) dismissWelcome(); }}>
@@ -63,12 +82,14 @@ export function WelcomeModal() {
             <Sparkles className="h-8 w-8 text-primary" />
           </div>
           <DialogTitle className="text-2xl">
-            Welcome to FreshSheet{isSupplier ? " Supplier Portal" : ""}!
+            Welcome to FreshSheet{isDriver ? " Driver Portal" : isSupplier ? " Supplier Portal" : ""}!
           </DialogTitle>
           <DialogDescription className="text-base">
-            {isSupplier
-              ? "Let us show you around the supplier portal so you can start managing orders and products right away."
-              : "Let us give you a quick tour so you can get the most out of your sourcing platform."}
+            {isDriver
+              ? "Let us show you around so you can start making deliveries right away."
+              : isSupplier
+                ? "Let us show you around the supplier portal so you can start managing orders and products right away."
+                : "Let us give you a quick tour so you can get the most out of your sourcing platform."}
           </DialogDescription>
         </DialogHeader>
 

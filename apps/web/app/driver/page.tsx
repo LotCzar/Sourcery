@@ -59,7 +59,7 @@ export default function DriverPage() {
   return (
     <div className="space-y-4 max-w-lg mx-auto">
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-3" data-tour="driver-stats">
         <Card>
           <CardContent className="p-3 text-center">
             <Package className="h-5 w-5 mx-auto text-muted-foreground" />
@@ -91,7 +91,7 @@ export default function DriverPage() {
 
       {/* Active Delivery */}
       {activeDelivery && (
-        <Card className="border-green-200 bg-green-50/50">
+        <Card className="border-green-200 bg-green-50/50" data-tour="driver-active-delivery">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <span className="relative flex h-3 w-3">
@@ -138,7 +138,7 @@ export default function DriverPage() {
       )}
 
       {/* Delivery Queue */}
-      <div>
+      <div data-tour="driver-delivery-queue">
         <h2 className="font-semibold text-lg mb-3">
           {pendingDeliveries.length > 0
             ? `Delivery Queue (${pendingDeliveries.length})`

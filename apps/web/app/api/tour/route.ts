@@ -15,6 +15,7 @@ export async function GET() {
       tourCompletedAt: true,
       tourState: true,
       supplierId: true,
+      role: true,
     },
   });
 
@@ -25,7 +26,7 @@ export async function GET() {
     data: {
       tourCompletedAt: user.tourCompletedAt,
       tourState: user.tourState,
-      audience: user.supplierId ? "supplier" : "restaurant",
+      audience: user.role === "DRIVER" ? "driver" : user.supplierId ? "supplier" : "restaurant",
     },
   });
 }
