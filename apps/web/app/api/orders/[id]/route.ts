@@ -202,6 +202,8 @@ export async function PATCH(
         });
 
         // Role hierarchy for approval bypass
+        // ORG_ADMIN intentionally has the same approval level as OWNER
+        // so org admins can approve orders across all restaurants in their org
         const roleHierarchy: Record<string, number> = {
           STAFF: 0,
           MANAGER: 1,

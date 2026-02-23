@@ -47,7 +47,6 @@ export async function GET(
             state: true,
             zipCode: true,
             phone: true,
-            email: true,
           },
         },
         items: {
@@ -67,7 +66,6 @@ export async function GET(
           select: {
             firstName: true,
             lastName: true,
-            email: true,
           },
         },
       },

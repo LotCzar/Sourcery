@@ -47,6 +47,7 @@ export async function GET(request: Request) {
         },
         restaurant: { select: { id: true, name: true } },
       },
+      take: 5000,
     });
 
     // Calculate metrics

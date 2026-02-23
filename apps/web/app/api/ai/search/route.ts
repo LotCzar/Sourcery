@@ -4,7 +4,7 @@ import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { trackAiUsage } from "@/lib/ai/usage";
-import { AiSearchSchema } from "@/lib/validations";
+import { AiSearchSchema, ProductCategorySchema, OrderStatusSchema } from "@/lib/validations";
 import { validateBody } from "@/lib/validations/validate";
 
 export async function POST(request: Request) {
@@ -103,6 +103,19 @@ Examples:
       });
     }
 
+    // Validate AI-generated filters against known enums
+    const validCategory = parsed.filters?.category
+      ? ProductCategorySchema.safeParse(parsed.filters.category).success
+        ? parsed.filters.category
+        : null
+      : null;
+
+    const validStatus = parsed.filters?.status
+      ? OrderStatusSchema.safeParse(parsed.filters.status).success
+        ? parsed.filters.status
+        : null
+      : null;
+
     // Execute search based on parsed intent
     let results: any[] = [];
     const searchTerms = parsed.searchTerms || query;
@@ -112,8 +125,8 @@ Examples:
         const products = await prisma.supplierProduct.findMany({
           where: {
             name: { contains: searchTerms, mode: "insensitive" },
-            ...(parsed.filters?.category
-              ? { category: parsed.filters.category }
+            ...(validCategory
+              ? { category: validCategory }
               : {}),
           },
           include: { supplier: { select: { name: true } } },
@@ -142,8 +155,8 @@ Examples:
               {
                 products: {
                   some: {
-                    ...(parsed.filters?.category
-                      ? { category: parsed.filters.category }
+                    ...(validCategory
+                      ? { category: validCategory }
                       : { name: { contains: searchTerms, mode: "insensitive" } }),
                   },
                 },
@@ -165,7 +178,7 @@ Examples:
         const orders = await prisma.order.findMany({
           where: {
             restaurantId,
-            ...(parsed.filters?.status ? { status: parsed.filters.status } : {}),
+            ...(validStatus ? { status: validStatus } : {}),
           },
           include: { supplier: { select: { name: true } } },
           orderBy: { createdAt: "desc" },

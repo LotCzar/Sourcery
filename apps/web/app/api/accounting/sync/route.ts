@@ -90,7 +90,7 @@ export async function POST(request: Request) {
           where: { id: invoice.id },
           data: {
             syncStatus: "FAILED",
-            lastSyncError: err?.message || "Unknown error",
+            lastSyncError: "Sync failed",
           },
         });
       }

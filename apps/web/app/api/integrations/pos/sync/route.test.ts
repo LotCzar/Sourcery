@@ -75,7 +75,7 @@ describe("POST /api/integrations/pos/sync", () => {
 
     expect(status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.message).toBe("Menu sync initiated");
+    expect(data.data.message).toBe("Menu sync initiated");
     expect(mockInngestSend).toHaveBeenCalledWith({
       name: "pos/sync.requested",
       data: {

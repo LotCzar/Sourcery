@@ -42,7 +42,7 @@ export async function GET(request: Request) {
       where,
       include: {
         supplier: {
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true },
         },
         order: {
           select: { id: true, orderNumber: true, status: true },

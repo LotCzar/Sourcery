@@ -99,6 +99,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = validateBody(CreateSupplierProductSchema, body);
     if (!validation.success) return validation.response;

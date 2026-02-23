@@ -24,6 +24,7 @@ export async function GET() {
     const rules = await prisma.approvalRule.findMany({
       where: { restaurantId: user.restaurant.id },
       orderBy: { minAmount: "asc" },
+      take: 100,
     });
 
     return NextResponse.json({

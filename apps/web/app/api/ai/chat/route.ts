@@ -224,8 +224,14 @@ export async function POST(request: Request) {
         try {
           const messages = [...history];
           let continueLoop = true;
+          const MAX_TOOL_ITERATIONS = 10;
+          let toolIterations = 0;
 
           while (continueLoop) {
+            if (++toolIterations > MAX_TOOL_ITERATIONS) {
+              send("text", { text: "I've reached the maximum number of tool calls for this request. Please try again with a simpler query." });
+              break;
+            }
             const response = await anthropic.messages.create({
               model: "claude-sonnet-4-20250514",
               max_tokens: 4096,

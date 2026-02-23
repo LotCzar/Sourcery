@@ -49,6 +49,7 @@ export async function GET() {
         createdAt: { gte: monthStart },
       },
       select: { total: true, restaurantId: true },
+      take: 5000,
     });
 
     // Last month orders (for comparison)
@@ -59,6 +60,7 @@ export async function GET() {
         createdAt: { gte: lastMonthStart, lt: lastMonthEnd },
       },
       select: { total: true },
+      take: 5000,
     });
 
     const totalSpend = thisMonthOrders.reduce(
@@ -98,6 +100,7 @@ export async function GET() {
         createdAt: { gte: monthStart },
       },
       include: { supplier: { select: { name: true } } },
+      take: 5000,
     });
 
     const supplierSpendMap: Record<string, number> = {};

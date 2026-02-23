@@ -29,6 +29,10 @@ export async function PATCH(
       );
     }
 
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     // Verify driver belongs to this supplier
     const driver = await prisma.user.findFirst({
       where: {
@@ -103,6 +107,10 @@ export async function DELETE(
         { error: "Supplier not found" },
         { status: 404 }
       );
+    }
+
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
     const driver = await prisma.user.findFirst({

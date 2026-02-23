@@ -92,7 +92,7 @@ export const CreateOrderItemSchema = z.object({
 
 export const CreateOrderSchema = z.object({
   supplierId: z.string().min(1),
-  items: z.array(CreateOrderItemSchema).min(1),
+  items: z.array(CreateOrderItemSchema).min(1).max(200),
   deliveryNotes: z.string().max(2000).optional(),
 });
 
@@ -315,7 +315,7 @@ export const UpdateDeliverySchema = z.object({
 
 // Accounting Mappings Update
 export const UpdateAccountingMappingsSchema = z.object({
-  mappings: z.array(AccountingMappingSchema).min(1),
+  mappings: z.array(AccountingMappingSchema).min(1).max(50),
 });
 
 // Supplier Invoice Creation (discriminated union)

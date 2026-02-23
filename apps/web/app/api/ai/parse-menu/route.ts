@@ -97,7 +97,7 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
       messages: [
         {
           role: "user",
-          content: `Please analyze this ${menuType || "restaurant"} menu and extract all ingredients:\n\n${menuText}`,
+          content: `Please analyze this ${menuType || "restaurant"} menu and extract all ingredients:\n\n<user_menu_text>\n${menuText}\n</user_menu_text>`,
         },
       ],
       system: systemPrompt,
@@ -143,11 +143,6 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
     });
   } catch (error: any) {
     console.error("Menu parsing error:", error);
-    console.error("Error details:", {
-      message: error?.message,
-      status: error?.status,
-      type: error?.type,
-    });
 
     return NextResponse.json(
       {

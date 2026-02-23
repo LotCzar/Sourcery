@@ -43,7 +43,7 @@ export async function POST() {
 
     return NextResponse.json({
       success: true,
-      message: "Menu sync initiated",
+      data: { message: "Menu sync initiated" },
     });
   } catch (error: any) {
     console.error("Trigger POS sync error:", error);

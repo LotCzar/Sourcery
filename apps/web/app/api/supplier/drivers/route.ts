@@ -90,6 +90,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = validateBody(CreateDriverSchema, body);
     if (!validation.success) return validation.response;
@@ -136,7 +140,7 @@ export async function POST(request: Request) {
     // The driver will need to sign up through Clerk to get a real clerkId
     const driver = await prisma.user.create({
       data: {
-        clerkId: `driver_pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        clerkId: `driver_pending_${crypto.randomUUID()}`,
         email,
         firstName,
         lastName: lastName || null,

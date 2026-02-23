@@ -53,6 +53,7 @@ export async function GET() {
           select: { items: true },
         },
       },
+      take: 100,
     });
 
     return NextResponse.json({
