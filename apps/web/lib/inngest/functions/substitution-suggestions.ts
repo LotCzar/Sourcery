@@ -1,18 +1,21 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const substitutionSuggestions = inngest.createFunction(
   { id: "substitution-suggestions", name: "Smart Substitution Suggestions" },
   { cron: "0 10 * * *" }, // Daily 10 AM
   async () => {
     const restaurants = await prisma.restaurant.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, planTier: true },
     });
 
     let totalSubstitutions = 0;
     let totalNotifications = 0;
 
     for (const restaurant of restaurants) {
+      if (!hasTier(restaurant.planTier as PlanTier, getJobTier("substitution-suggestions"))) continue;
+
       const ownerUser = await prisma.user.findFirst({
         where: { restaurantId: restaurant.id, role: "OWNER" },
       });

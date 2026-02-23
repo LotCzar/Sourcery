@@ -1,3 +1,5 @@
+import { type PlanTier, PROFESSIONAL_TOOL_NAMES } from "@/lib/tier";
+
 interface OrgContext {
   orgName: string;
   isOrgAdmin: boolean;
@@ -7,7 +9,8 @@ interface OrgContext {
 export function buildSystemPrompt(
   restaurantName: string,
   userName: string,
-  orgContext?: OrgContext
+  orgContext?: OrgContext,
+  planTier?: PlanTier
 ): string {
   let prompt = `You are FreshSheet AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
 
@@ -80,6 +83,14 @@ Guidelines:
     prompt += `
 28. When an org admin asks to compare restaurants or see cross-restaurant data, use compare_restaurants or org_summary.
 29. When an org admin asks for benchmarks, offer both 'platform' and 'organization' scope options.`;
+  }
+
+  if (planTier === "STARTER") {
+    prompt += `
+
+IMPORTANT - Subscription Tier Notice:
+This restaurant is on the Starter plan. The following tools require a Professional plan and will return an upgrade message if called: ${PROFESSIONAL_TOOL_NAMES.join(", ")}.
+When the user asks about features powered by these tools, let them know this is a Professional feature and suggest upgrading in Settings.`;
   }
 
   return prompt;

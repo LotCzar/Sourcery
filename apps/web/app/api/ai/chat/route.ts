@@ -195,7 +195,8 @@ export async function POST(request: Request) {
     const systemPrompt = buildSystemPrompt(
       activeRestaurantName,
       user.firstName || "there",
-      orgContext
+      orgContext,
+      activePlanTier
     );
 
     const toolContext = {
@@ -203,6 +204,7 @@ export async function POST(request: Request) {
       restaurantId: activeRestaurantId,
       organizationId: user.organizationId || null,
       userRole: user.role,
+      planTier: activePlanTier,
     };
 
     // Conditionally include org tools for ORG_ADMIN users

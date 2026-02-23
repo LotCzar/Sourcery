@@ -65,6 +65,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { AiPromptChips } from "@/components/ai-prompt-chips";
+import { TierGate } from "@/components/tier-gate";
 
 interface InventoryItem {
   id: string;
@@ -491,6 +492,7 @@ export default function InventoryPage() {
             message:
               "Analyze my inventory usage patterns and suggest optimized par levels for my items.",
             icon: <ClipboardList className="h-3.5 w-3.5" />,
+            requiredTier: "PROFESSIONAL",
           },
           {
             label: "Generate restock list",
@@ -502,6 +504,11 @@ export default function InventoryPage() {
       />
 
       {/* AI Consumption Insights */}
+      <TierGate
+        requiredTier="PROFESSIONAL"
+        feature="AI Consumption Insights"
+        description="Get AI-powered consumption forecasting, stockout predictions, and par level recommendations. Upgrade to Professional to unlock."
+      >
       {insightsResult?.data && insightsResult.data.length > 0 && (
         <Card className="border-purple-200 bg-purple-50/30">
           <CardHeader>
@@ -597,6 +604,7 @@ export default function InventoryPage() {
           </CardContent>
         </Card>
       )}
+      </TierGate>
 
       {/* Filters */}
       <Card>

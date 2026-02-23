@@ -36,6 +36,9 @@ import {
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
 import { useChat } from "@/lib/chat-context";
+import { usePlanTier } from "@/lib/org-context";
+import { hasTier } from "@/lib/tier";
+import { ProBadge } from "@/components/pro-badge";
 import { PendingApprovals } from "@/components/dashboard/pending-approvals";
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -109,6 +112,8 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 export default function DashboardPage() {
   const { user } = useUser();
   const { openChatWithMessage } = useChat();
+  const currentTier = usePlanTier();
+  const isPro = hasTier(currentTier, "PROFESSIONAL");
   const { data: result, isLoading, error } = useDashboard();
   const { data: analyticsResult } = useAnalytics("30");
 
@@ -255,22 +260,30 @@ export default function DashboardPage() {
               What should I reorder?
             </button>
             <button
-              onClick={() => openChatWithMessage("Analyze my spending over the last 30 days. Break down by supplier and category, and highlight any trends.")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("Analyze my spending over the last 30 days. Break down by supplier and category, and highlight any trends.") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <DollarSign className="h-4 w-4 text-primary" />
               </div>
-              Analyze my spending
+              <span className="flex items-center gap-1.5">
+                Analyze spending
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
-              onClick={() => openChatWithMessage("Find cost savings opportunities by comparing supplier prices for items I frequently order.")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("Find cost savings opportunities by comparing supplier prices for items I frequently order.") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <TrendingDown className="h-4 w-4 text-primary" />
               </div>
-              Find cost savings
+              <span className="flex items-center gap-1.5">
+                Find cost savings
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
               onClick={() => openChatWithMessage("Check my inventory for items that are low stock or running out soon and need to be reordered.")}
@@ -282,22 +295,30 @@ export default function DashboardPage() {
               Check low stock items
             </button>
             <button
-              onClick={() => openChatWithMessage("Compare my suppliers by price, delivery reliability, and product range. Which ones offer the best value?")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("Compare my suppliers by price, delivery reliability, and product range. Which ones offer the best value?") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Users className="h-4 w-4 text-primary" />
               </div>
-              Compare suppliers
+              <span className="flex items-center gap-1.5">
+                Compare suppliers
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
-              onClick={() => openChatWithMessage("Forecast my budget for next month based on current ordering patterns and historical spending data.")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("Forecast my budget for next month based on current ordering patterns and historical spending data.") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <BarChart3 className="h-4 w-4 text-primary" />
               </div>
-              Forecast budget
+              <span className="flex items-center gap-1.5">
+                Forecast budget
+                {!isPro && <ProBadge />}
+              </span>
             </button>
           </div>
         </CardContent>

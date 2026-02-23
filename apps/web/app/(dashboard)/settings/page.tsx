@@ -85,6 +85,7 @@ import { useBillingCheckout, useBillingPortal } from "@/hooks/use-billing";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
 import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
 import { useTour } from "@/lib/tour-context";
+import { TierGate } from "@/components/tier-gate";
 
 const cuisineTypes = [
   "American",
@@ -1562,7 +1563,13 @@ function UsageSection() {
         </Card>
       )}
 
-      <UsageAnalyticsCharts />
+      <TierGate
+        requiredTier="PROFESSIONAL"
+        feature="AI Usage Analytics"
+        description="View detailed AI usage trends, per-user breakdowns, and cost analytics. Upgrade to Professional to unlock."
+      >
+        <UsageAnalyticsCharts />
+      </TierGate>
     </>
   );
 }

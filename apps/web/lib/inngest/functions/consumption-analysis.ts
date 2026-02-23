@@ -1,12 +1,13 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const consumptionAnalysis = inngest.createFunction(
   { id: "consumption-analysis", name: "Daily Consumption Analysis" },
   { cron: "0 6 * * *" }, // Daily 6 AM
   async () => {
     const restaurants = await prisma.restaurant.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, planTier: true },
     });
 
     let totalInsights = 0;
@@ -14,6 +15,8 @@ export const consumptionAnalysis = inngest.createFunction(
     let totalSeasonal = 0;
 
     for (const restaurant of restaurants) {
+      if (!hasTier(restaurant.planTier as PlanTier, getJobTier("consumption-analysis"))) continue;
+
       const items = await prisma.inventoryItem.findMany({
         where: { restaurantId: restaurant.id },
         include: {

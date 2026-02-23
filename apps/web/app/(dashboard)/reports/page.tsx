@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { usePlanTier } from "@/lib/org-context";
+import { hasTier } from "@/lib/tier";
+import { ProBadge } from "@/components/pro-badge";
 import {
   Card,
   CardContent,
@@ -99,6 +102,8 @@ export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("30");
   const { data: result, isLoading, error } = useAnalytics(timeRange);
   const data: AnalyticsData | null = result?.data ?? null;
+  const currentTier = usePlanTier();
+  const canExport = hasTier(currentTier, "PROFESSIONAL");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -158,26 +163,32 @@ export default function ReportsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/api/reports/export?type=spending&format=csv&timeRange=${timeRange}`, "_blank")}
+              disabled={!canExport}
+              onClick={canExport ? () => window.open(`/api/reports/export?type=spending&format=csv&timeRange=${timeRange}`, "_blank") : undefined}
             >
               <Download className="h-4 w-4 mr-1" />
               Spending CSV
+              {!canExport && <ProBadge className="ml-1" />}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/api/reports/export?type=orders&format=csv&timeRange=${timeRange}`, "_blank")}
+              disabled={!canExport}
+              onClick={canExport ? () => window.open(`/api/reports/export?type=orders&format=csv&timeRange=${timeRange}`, "_blank") : undefined}
             >
               <Download className="h-4 w-4 mr-1" />
               Orders CSV
+              {!canExport && <ProBadge className="ml-1" />}
             </Button>
             <Button
               variant="outline"
               size="sm"
-              onClick={() => window.open(`/api/reports/export?type=suppliers&format=csv&timeRange=${timeRange}`, "_blank")}
+              disabled={!canExport}
+              onClick={canExport ? () => window.open(`/api/reports/export?type=suppliers&format=csv&timeRange=${timeRange}`, "_blank") : undefined}
             >
               <Download className="h-4 w-4 mr-1" />
               Suppliers CSV
+              {!canExport && <ProBadge className="ml-1" />}
             </Button>
           </div>
           <Select value={timeRange} onValueChange={setTimeRange}>

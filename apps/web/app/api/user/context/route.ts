@@ -11,7 +11,7 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: { select: { id: true } } },
+      include: { restaurant: { select: { id: true, planTier: true } } },
     });
 
     if (!user) {
@@ -19,11 +19,11 @@ export async function GET() {
     }
 
     // Fetch org restaurants if user is ORG_ADMIN with an organization
-    let orgRestaurants: { id: string; name: string }[] = [];
+    let orgRestaurants: { id: string; name: string; planTier: string }[] = [];
     if (user.role === "ORG_ADMIN" && user.organizationId) {
       orgRestaurants = await prisma.restaurant.findMany({
         where: { organizationId: user.organizationId },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
         orderBy: { name: "asc" },
       });
     }
@@ -33,6 +33,7 @@ export async function GET() {
       data: {
         userId: user.id,
         restaurantId: user.restaurant?.id || null,
+        planTier: user.restaurant?.planTier || "STARTER",
         role: user.role,
         organizationId: user.organizationId || null,
         orgRestaurants,

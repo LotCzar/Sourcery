@@ -1,11 +1,13 @@
 import prisma from "@/lib/prisma";
 import { inngest } from "@/lib/inngest/client";
+import { type PlanTier, getToolTier, hasTier } from "@/lib/tier";
 
 interface ToolContext {
   userId: string;
   restaurantId: string;
   organizationId: string | null;
   userRole: string;
+  planTier: PlanTier;
 }
 
 export async function executeTool(
@@ -13,6 +15,16 @@ export async function executeTool(
   input: Record<string, any>,
   context: ToolContext
 ): Promise<any> {
+  const requiredTier = getToolTier(name);
+  if (!hasTier(context.planTier, requiredTier)) {
+    return {
+      error: "upgrade_required",
+      message: `The ${name} tool requires a ${requiredTier} plan. You are currently on the ${context.planTier} plan. Please upgrade at Settings to access this feature.`,
+      requiredTier,
+      currentTier: context.planTier,
+    };
+  }
+
   switch (name) {
     case "search_products":
       return searchProducts(input, context);

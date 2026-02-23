@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { hasTier, ROUTE_TIER } from "@/lib/tier";
 
 export async function GET(request: Request) {
   try {
@@ -18,6 +19,19 @@ export async function GET(request: Request) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
+      );
+    }
+
+    if (!hasTier(user.restaurant.planTier, ROUTE_TIER.REPORTS_EXPORT)) {
+      return NextResponse.json(
+        {
+          error: "Professional plan required",
+          message: "Report exports require a Professional plan. Upgrade in Settings to access this feature.",
+          upgradeUrl: "/settings",
+          currentTier: user.restaurant.planTier,
+          requiredTier: ROUTE_TIER.REPORTS_EXPORT,
+        },
+        { status: 403 }
       );
     }
 

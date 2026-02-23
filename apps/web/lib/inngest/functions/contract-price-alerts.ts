@@ -1,18 +1,21 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const contractPriceAlerts = inngest.createFunction(
   { id: "contract-price-alerts", name: "Contract Price Locking Alerts" },
   { cron: "0 7 * * 1" }, // Monday 7 AM
   async () => {
     const restaurants = await prisma.restaurant.findMany({
-      select: { id: true, name: true },
+      select: { id: true, name: true, planTier: true },
     });
 
     let totalOpportunities = 0;
     let totalNotifications = 0;
 
     for (const restaurant of restaurants) {
+      if (!hasTier(restaurant.planTier as PlanTier, getJobTier("contract-price-alerts"))) continue;
+
       const ownerUser = await prisma.user.findFirst({
         where: { restaurantId: restaurant.id, role: "OWNER" },
       });

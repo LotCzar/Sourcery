@@ -1,5 +1,6 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const orderAnomaly = inngest.createFunction(
   { id: "order-anomaly", name: "Order Anomaly Detection" },
@@ -10,6 +11,15 @@ export const orderAnomaly = inngest.createFunction(
     // Only check anomalies on new pending orders
     if (newStatus !== "PENDING") {
       return { action: "skipped", reason: "not_pending" };
+    }
+
+    // Tier check
+    const restaurant = await prisma.restaurant.findUnique({
+      where: { id: restaurantId },
+      select: { planTier: true },
+    });
+    if (!restaurant || !hasTier(restaurant.planTier as PlanTier, getJobTier("order-anomaly"))) {
+      return { action: "skipped", reason: "tier_not_met" };
     }
 
     const order = await prisma.order.findUnique({

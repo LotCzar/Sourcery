@@ -8,17 +8,20 @@ import {
   useCallback,
 } from "react";
 import { apiFetch } from "@/lib/api";
+import type { PlanTier } from "@/lib/tier";
 
 const STORAGE_KEY = "freshsheet_active_restaurant";
 
 interface OrgRestaurant {
   id: string;
   name: string;
+  planTier: PlanTier;
 }
 
 interface OrgContextType {
   activeRestaurantId: string | null;
   activeRestaurantName: string | null;
+  planTier: PlanTier;
   availableRestaurants: OrgRestaurant[];
   isOrgAdmin: boolean;
   switchRestaurant: (id: string) => void;
@@ -27,6 +30,7 @@ interface OrgContextType {
 const OrgContext = createContext<OrgContextType>({
   activeRestaurantId: null,
   activeRestaurantName: null,
+  planTier: "STARTER",
   availableRestaurants: [],
   isOrgAdmin: false,
   switchRestaurant: () => {},
@@ -37,6 +41,7 @@ interface UserContextResponse {
   data: {
     userId: string;
     restaurantId: string | null;
+    planTier: PlanTier;
     role: string;
     organizationId: string | null;
     orgRestaurants: OrgRestaurant[];
@@ -50,6 +55,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
   const [activeRestaurantName, setActiveRestaurantName] = useState<
     string | null
   >(null);
+  const [planTier, setPlanTier] = useState<PlanTier>("STARTER");
   const [availableRestaurants, setAvailableRestaurants] = useState<
     OrgRestaurant[]
   >([]);
@@ -60,6 +66,9 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       try {
         const res = await apiFetch<UserContextResponse>("/api/user/context");
         const data = res.data;
+
+        // Set plan tier from the user's own restaurant
+        setPlanTier(data.planTier || "STARTER");
 
         if (data.role === "ORG_ADMIN" && data.orgRestaurants.length > 0) {
           setIsOrgAdmin(true);
@@ -83,6 +92,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
           setActiveRestaurantId(activeId);
           setActiveRestaurantName(activeRest?.name || null);
+          if (activeRest) setPlanTier(activeRest.planTier);
 
           if (typeof window !== "undefined") {
             localStorage.setItem(STORAGE_KEY, activeId!);
@@ -103,6 +113,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
       setActiveRestaurantId(id);
       setActiveRestaurantName(rest.name);
+      setPlanTier(rest.planTier);
 
       if (typeof window !== "undefined") {
         localStorage.setItem(STORAGE_KEY, id);
@@ -116,6 +127,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
       value={{
         activeRestaurantId,
         activeRestaurantName,
+        planTier,
         availableRestaurants,
         isOrgAdmin,
         switchRestaurant,
@@ -128,4 +140,9 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
 
 export function useOrg() {
   return useContext(OrgContext);
+}
+
+export function usePlanTier(): PlanTier {
+  const { planTier } = useContext(OrgContext);
+  return planTier;
 }

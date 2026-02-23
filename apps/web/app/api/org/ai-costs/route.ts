@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getPeriodStart } from "@/lib/ai/plan-config";
 import { calculateCost } from "@/lib/ai/cost-config";
+import { hasTier, ROUTE_TIER, type PlanTier } from "@/lib/tier";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +23,28 @@ export async function GET(request: NextRequest) {
     if (user.role !== "ORG_ADMIN" || !user.organizationId) {
       return NextResponse.json(
         { error: "Requires ORG_ADMIN role with an organization" },
+        { status: 403 }
+      );
+    }
+
+    // Check if any restaurant in the org has Professional+ tier
+    const orgRestaurants = await prisma.restaurant.findMany({
+      where: { organizationId: user.organizationId },
+      select: { planTier: true },
+    });
+    const highestTier = orgRestaurants.reduce<PlanTier>(
+      (best, r) => (hasTier(r.planTier as PlanTier, best) ? (r.planTier as PlanTier) : best),
+      "STARTER"
+    );
+    if (!hasTier(highestTier, ROUTE_TIER.ORG_AI_COSTS)) {
+      return NextResponse.json(
+        {
+          error: "Professional plan required",
+          message: "Organization AI cost attribution requires at least one restaurant on the Professional plan.",
+          upgradeUrl: "/settings",
+          currentTier: highestTier,
+          requiredTier: ROUTE_TIER.ORG_AI_COSTS,
+        },
         { status: 403 }
       );
     }

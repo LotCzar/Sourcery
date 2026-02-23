@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { calculateCost } from "@/lib/ai/cost-config";
+import { hasTier, ROUTE_TIER } from "@/lib/tier";
 
 const VALID_RANGES = new Set(["7", "30", "90"]);
 const ALL_FEATURES = [
@@ -21,13 +22,26 @@ export async function GET(req: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: { select: { id: true } } },
+      include: { restaurant: { select: { id: true, planTier: true } } },
     });
 
     if (!user?.restaurant) {
       return NextResponse.json(
         { error: "Restaurant not found" },
         { status: 404 }
+      );
+    }
+
+    if (!hasTier(user.restaurant.planTier, ROUTE_TIER.AI_USAGE_ANALYTICS)) {
+      return NextResponse.json(
+        {
+          error: "Professional plan required",
+          message: "AI usage analytics require a Professional plan. Upgrade in Settings to access this feature.",
+          upgradeUrl: "/settings",
+          currentTier: user.restaurant.planTier,
+          requiredTier: ROUTE_TIER.AI_USAGE_ANALYTICS,
+        },
+        { status: 403 }
       );
     }
 

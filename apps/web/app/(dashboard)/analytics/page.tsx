@@ -171,6 +171,7 @@ export default function AnalyticsPage() {
             message:
               "Analyze my spending trends over the last few months. Are costs going up or down? What categories are driving the change?",
             icon: <TrendingUp className="h-3.5 w-3.5" />,
+            requiredTier: "PROFESSIONAL",
           },
           {
             label: "Best value supplier?",
