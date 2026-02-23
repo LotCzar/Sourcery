@@ -25,6 +25,10 @@ export async function GET() {
       );
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const integration = user.restaurant.posIntegration;
 
     return NextResponse.json({
@@ -67,6 +71,10 @@ export async function POST(request: Request) {
         { error: "Restaurant not found" },
         { status: 404 }
       );
+    }
+
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
     const body = await request.json();

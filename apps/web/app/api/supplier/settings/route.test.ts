@@ -122,7 +122,7 @@ describe("PATCH /api/supplier/settings", () => {
     const response = await PATCH(
       createJsonRequest(
         "http://localhost/api/supplier/settings",
-        { minimumOrder: "75.00", deliveryFee: "15.00" },
+        { minimumOrder: 75.00, deliveryFee: 15.00 },
         "PATCH"
       )
     );

@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateBody } from "@/lib/validations/validate";
+import { CreateSupplierProductSchema } from "@/lib/validations";
 
 // GET - List supplier products
 export async function GET(request: Request) {
@@ -96,15 +98,11 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(CreateSupplierProductSchema, body);
+    if (!validation.success) return validation.response;
 
-    // Validate required fields
-    if (!data.name || !data.category || !data.price || !data.unit) {
-      return NextResponse.json(
-        { error: "Missing required fields: name, category, price, unit" },
-        { status: 400 }
-      );
-    }
+    const data = validation.data;
 
     const product = await prisma.supplierProduct.create({
       data: {
@@ -115,11 +113,11 @@ export async function POST(request: Request) {
         category: data.category,
         brand: data.brand || null,
         imageUrl: data.imageUrl || null,
-        price: parseFloat(data.price),
+        price: data.price,
         unit: data.unit,
-        packSize: data.packSize ? parseFloat(data.packSize) : null,
+        packSize: data.packSize || null,
         inStock: data.inStock !== false,
-        stockQuantity: data.stockQuantity ? parseInt(data.stockQuantity) : null,
+        stockQuantity: data.stockQuantity ?? null,
       },
     });
 

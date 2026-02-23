@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateBody } from "@/lib/validations/validate";
+import { UpdateSupplierSettingsSchema } from "@/lib/validations";
 
 // GET - Get supplier settings/profile
 export async function GET() {
@@ -93,7 +95,11 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(UpdateSupplierSettingsSchema, body);
+    if (!validation.success) return validation.response;
+
+    const data = validation.data;
 
     // Build update data - only include fields that are provided
     const updateData: any = {};
@@ -109,22 +115,9 @@ export async function PATCH(request: Request) {
     if (data.website !== undefined) updateData.website = data.website;
     if (data.logoUrl !== undefined) updateData.logoUrl = data.logoUrl;
     if (data.taxId !== undefined) updateData.taxId = data.taxId;
-
-    if (data.minimumOrder !== undefined) {
-      updateData.minimumOrder = data.minimumOrder
-        ? parseFloat(data.minimumOrder)
-        : null;
-    }
-
-    if (data.deliveryFee !== undefined) {
-      updateData.deliveryFee = data.deliveryFee
-        ? parseFloat(data.deliveryFee)
-        : null;
-    }
-
-    if (data.leadTimeDays !== undefined) {
-      updateData.leadTimeDays = parseInt(data.leadTimeDays) || 1;
-    }
+    if (data.minimumOrder !== undefined) updateData.minimumOrder = data.minimumOrder;
+    if (data.deliveryFee !== undefined) updateData.deliveryFee = data.deliveryFee;
+    if (data.leadTimeDays !== undefined) updateData.leadTimeDays = data.leadTimeDays;
 
     const supplier = await prisma.supplier.update({
       where: { id: user.supplier.id },

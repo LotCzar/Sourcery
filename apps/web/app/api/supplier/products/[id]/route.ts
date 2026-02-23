@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateBody } from "@/lib/validations/validate";
+import { UpdateSupplierProductSchema } from "@/lib/validations";
 
 // GET - Get single product
 export async function GET(
@@ -110,7 +112,11 @@ export async function PATCH(
       );
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(UpdateSupplierProductSchema, body);
+    if (!validation.success) return validation.response;
+
+    const data = validation.data;
 
     // Build update data
     const updateData: any = {};
@@ -122,19 +128,13 @@ export async function PATCH(
     if (data.brand !== undefined) updateData.brand = data.brand;
     if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl;
     if (data.unit !== undefined) updateData.unit = data.unit;
-    if (data.packSize !== undefined) {
-      updateData.packSize = data.packSize ? parseFloat(data.packSize) : null;
-    }
+    if (data.packSize !== undefined) updateData.packSize = data.packSize;
     if (data.inStock !== undefined) updateData.inStock = data.inStock;
-    if (data.stockQuantity !== undefined) {
-      updateData.stockQuantity = data.stockQuantity
-        ? parseInt(data.stockQuantity)
-        : null;
-    }
+    if (data.stockQuantity !== undefined) updateData.stockQuantity = data.stockQuantity;
 
     // Handle price update with history tracking
     if (data.price !== undefined) {
-      const newPrice = parseFloat(data.price);
+      const newPrice = data.price;
       if (Number(existingProduct.price) !== newPrice) {
         updateData.price = newPrice;
         // Record price change in history

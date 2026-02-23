@@ -22,6 +22,10 @@ export async function POST() {
       );
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     if (!user.restaurant.posIntegration) {
       return NextResponse.json(
         { error: "No integration found" },

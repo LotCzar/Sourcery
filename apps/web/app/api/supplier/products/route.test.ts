@@ -83,7 +83,7 @@ describe("POST /api/supplier/products", () => {
   const validBody = {
     name: "Fresh Salmon",
     category: "SEAFOOD",
-    price: "12.99",
+    price: 12.99,
     unit: "POUND",
   };
 
@@ -111,7 +111,7 @@ describe("POST /api/supplier/products", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toContain("Missing required fields");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("creates product with correct data", async () => {

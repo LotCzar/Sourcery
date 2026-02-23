@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 import { prismaMock } from "@/__tests__/mocks/prisma";
 import { mockAuth } from "@/__tests__/mocks/clerk";
-import { createMockSupplier, createMockProduct } from "@/__tests__/fixtures";
+import { createMockSupplier, createMockProduct, createMockUserWithRestaurant } from "@/__tests__/fixtures";
 import { createRequest, parseResponse } from "@/__tests__/helpers";
 import { Decimal } from "@prisma/client/runtime/library";
 import { GET } from "./route";
@@ -11,6 +11,8 @@ const mockParams = { params: Promise.resolve({ id: "sup_1" }) };
 describe("GET /api/suppliers/[id]", () => {
   beforeEach(() => {
     mockAuth.mockResolvedValue({ userId: "clerk_test_user_123" });
+    const user = createMockUserWithRestaurant();
+    prismaMock.user.findUnique.mockResolvedValue(user as any);
   });
 
   it("returns 401 when unauthenticated", async () => {
@@ -26,8 +28,8 @@ describe("GET /api/suppliers/[id]", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("returns 404 when supplier not found", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(null);
+  it("returns 404 when supplier not linked to restaurant", async () => {
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce(null);
 
     const response = await GET(
       createRequest("http://localhost/api/suppliers/sup_1"),
@@ -40,6 +42,8 @@ describe("GET /api/suppliers/[id]", () => {
   });
 
   it("returns supplier with products and Decimal-to-Number conversion", async () => {
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
+
     const supplier = {
       ...createMockSupplier(),
       products: [
@@ -70,6 +74,8 @@ describe("GET /api/suppliers/[id]", () => {
   });
 
   it("handles null optional Decimal fields", async () => {
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
+
     const supplier = {
       ...createMockSupplier({
         minimumOrder: null,

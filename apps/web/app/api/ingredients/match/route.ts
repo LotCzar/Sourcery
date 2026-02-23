@@ -1,13 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-
-interface IngredientToMatch {
-  name: string;
-  category: string;
-  estimatedQuantity: string;
-  unit: string;
-}
+import { validateBody } from "@/lib/validations/validate";
+import { MatchIngredientsSchema } from "@/lib/validations";
 
 export async function POST(request: Request) {
   try {
@@ -17,14 +12,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { ingredients } = await request.json();
+    const body = await request.json();
+    const validation = validateBody(MatchIngredientsSchema, body);
+    if (!validation.success) return validation.response;
 
-    if (!ingredients || !Array.isArray(ingredients)) {
-      return NextResponse.json(
-        { error: "Ingredients array is required" },
-        { status: 400 }
-      );
-    }
+    const { ingredients } = validation.data;
 
     // Get all supplier products with their suppliers
     const supplierProducts = await prisma.supplierProduct.findMany({
@@ -46,7 +38,7 @@ export async function POST(request: Request) {
     });
 
     // Match each ingredient to potential products
-    const matchedIngredients = ingredients.map((ingredient: IngredientToMatch) => {
+    const matchedIngredients = ingredients.map((ingredient) => {
       const ingredientName = ingredient.name.toLowerCase();
       const ingredientWords = ingredientName.split(/\s+/);
 

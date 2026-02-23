@@ -1,6 +1,8 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { validateBody } from "@/lib/validations/validate";
+import { OnboardingSchema } from "@/lib/validations";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +17,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(OnboardingSchema, body);
+    if (!validation.success) return validation.response;
+
+    const data = validation.data;
 
     // Parse seating capacity to number
     let seatingCapacity: number | null = null;

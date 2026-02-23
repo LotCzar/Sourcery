@@ -51,7 +51,7 @@ describe("POST /api/ingredients/match", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Ingredients array is required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 400 when ingredients is not an array", async () => {
@@ -61,7 +61,7 @@ describe("POST /api/ingredients/match", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Ingredients array is required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("scores exact match as 100", async () => {
@@ -276,20 +276,14 @@ describe("POST /api/ingredients/match", () => {
     expect(data.data.summary.suppliersFound).toBe(2);
   });
 
-  it("handles empty ingredients array", async () => {
-    prismaMock.supplierProduct.findMany.mockResolvedValueOnce([] as any);
-
+  it("returns 400 for empty ingredients array", async () => {
     const response = await POST(
       createJsonRequest("http://localhost/api/ingredients/match", { ingredients: [] })
     );
     const { status, data } = await parseResponse(response);
 
-    expect(status).toBe(200);
-    expect(data.data.ingredients).toHaveLength(0);
-    expect(data.data.summary.total).toBe(0);
-    expect(data.data.summary.matched).toBe(0);
-    expect(data.data.summary.unmatched).toBe(0);
-    expect(data.data.summary.suppliersFound).toBe(0);
+    expect(status).toBe(400);
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns ingredient info in response", async () => {

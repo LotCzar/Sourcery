@@ -20,6 +20,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const integration = await prisma.accountingIntegration.findUnique({
       where: { restaurantId: user.restaurant.id },
     });

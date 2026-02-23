@@ -197,6 +197,79 @@ export const AccountingMappingSchema = z.object({
   accountingName: z.string().optional(),
 });
 
+// Supplier Products
+export const CreateSupplierProductSchema = z.object({
+  name: z.string().min(1),
+  category: ProductCategorySchema,
+  price: z.number().positive(),
+  unit: UnitTypeSchema,
+  description: z.string().optional(),
+  sku: z.string().optional(),
+  brand: z.string().optional(),
+  imageUrl: z.string().url().optional(),
+  packSize: z.number().positive().optional(),
+  inStock: z.boolean().optional(),
+  stockQuantity: z.number().int().min(0).optional(),
+});
+
+export const UpdateSupplierProductSchema = z.object({
+  name: z.string().min(1).optional(),
+  category: ProductCategorySchema.optional(),
+  price: z.number().positive().optional(),
+  unit: UnitTypeSchema.optional(),
+  description: z.string().nullable().optional(),
+  sku: z.string().nullable().optional(),
+  brand: z.string().nullable().optional(),
+  imageUrl: z.string().url().nullable().optional(),
+  packSize: z.number().positive().nullable().optional(),
+  inStock: z.boolean().optional(),
+  stockQuantity: z.number().int().min(0).nullable().optional(),
+});
+
+// Supplier Settings
+export const UpdateSupplierSettingsSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().nullable().optional(),
+  email: z.string().email().nullable().optional(),
+  phone: z.string().nullable().optional(),
+  address: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
+  zipCode: z.string().nullable().optional(),
+  website: z.string().url().nullable().optional(),
+  logoUrl: z.string().url().nullable().optional(),
+  taxId: z.string().nullable().optional(),
+  minimumOrder: z.number().min(0).nullable().optional(),
+  deliveryFee: z.number().min(0).nullable().optional(),
+  leadTimeDays: z.number().int().min(1).optional(),
+});
+
+// Onboarding
+export const OnboardingSchema = z.object({
+  restaurantName: z.string().min(1, "Restaurant name is required"),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  state: z.string().optional(),
+  zipCode: z.string().optional(),
+  phone: z.string().optional(),
+  email: z.string().email().optional(),
+  website: z.string().url().optional(),
+  cuisineType: z.string().optional(),
+  seatingCapacity: z.string().optional(),
+});
+
+// Ingredient Matching
+export const MatchIngredientsSchema = z.object({
+  ingredients: z.array(
+    z.object({
+      name: z.string().min(1),
+      category: z.string().min(1),
+      estimatedQuantity: z.string().min(1),
+      unit: z.string().min(1),
+    })
+  ).min(1).max(200),
+});
+
 // AI Parse Menu
 export const ParseMenuSchema = z.object({
   menuText: z.string().min(1, "Menu text is required"),

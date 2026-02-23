@@ -128,7 +128,7 @@ describe("PATCH /api/supplier/products/[id]", () => {
     prismaMock.supplierProduct.update.mockResolvedValueOnce(updated as any);
 
     await PATCH(
-      createJsonRequest("http://localhost/api/supplier/products/prod_1", { price: "5.99" }, "PATCH"),
+      createJsonRequest("http://localhost/api/supplier/products/prod_1", { price: 5.99 }, "PATCH"),
       mockParams
     );
 
