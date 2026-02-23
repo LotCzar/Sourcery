@@ -202,3 +202,57 @@ export const ParseMenuSchema = z.object({
   menuText: z.string().min(1, "Menu text is required"),
   menuType: z.string().optional(),
 });
+
+// Settings
+export const SettingsSectionSchema = z.enum([
+  "profile",
+  "restaurant",
+  "preferences",
+]);
+
+export const UpdateSettingsSchema = z.object({
+  section: SettingsSectionSchema,
+  data: z.record(z.string(), z.unknown()),
+});
+
+// Notification Update
+export const UpdateNotificationSchema = z.object({
+  isRead: z.boolean().optional(),
+});
+
+// Price Alert Update
+export const UpdatePriceAlertSchema = z.object({
+  isActive: z.boolean().optional(),
+  targetPrice: z.number().min(0).optional(),
+  alertType: AlertTypeSchema.optional(),
+});
+
+// Driver Delivery Update
+export const DriverDeliveryActionSchema = z.enum([
+  "out_for_delivery",
+  "update_eta",
+  "deliver",
+]);
+
+export const UpdateDeliverySchema = z.object({
+  action: DriverDeliveryActionSchema,
+  estimatedDeliveryAt: z.string().optional(),
+  trackingNotes: z.string().optional(),
+});
+
+// Accounting Mappings Update
+export const UpdateAccountingMappingsSchema = z.object({
+  mappings: z.array(AccountingMappingSchema).min(1),
+});
+
+// Invoice Creation
+export const CreateInvoiceSchema = z.object({
+  invoiceNumber: z.string().min(1, "Invoice number is required"),
+  supplierId: z.string().min(1, "Supplier ID is required"),
+  orderId: z.string().optional(),
+  subtotal: z.number().positive("Subtotal must be positive"),
+  tax: z.number().min(0).default(0),
+  dueDate: z.string().min(1, "Due date is required"),
+  notes: z.string().optional(),
+  fileUrl: z.string().url().optional(),
+});

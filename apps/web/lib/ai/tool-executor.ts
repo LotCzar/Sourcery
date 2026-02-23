@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import { inngest } from "@/lib/inngest/client";
 import { type PlanTier, getToolTier, hasTier } from "@/lib/tier";
+import { generateOrderNumber } from "@/lib/order-number";
 
 interface ToolContext {
   userId: string;
@@ -274,12 +275,9 @@ async function createDraftOrder(
   const deliveryFee = Number(supplier.deliveryFee) || 0;
   const total = subtotal + tax + deliveryFee;
 
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-
   const order = await prisma.order.create({
     data: {
-      orderNumber: `ORD-${timestamp}-${random}`,
+      orderNumber: generateOrderNumber(),
       status: "DRAFT",
       subtotal,
       tax,
@@ -712,12 +710,9 @@ async function reorderItem(
     : 0;
   const total = subtotal + tax + deliveryFee;
 
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-
   const order = await prisma.order.create({
     data: {
-      orderNumber: `ORD-${timestamp}-${random}`,
+      orderNumber: generateOrderNumber(),
       status: "DRAFT",
       subtotal,
       tax,
@@ -1113,12 +1108,10 @@ async function generateRestockList(
       const tax = subtotal * 0.0825;
       const deliveryFee = 0;
       const total = subtotal + tax + deliveryFee;
-      const timestamp = Date.now().toString(36).toUpperCase();
-      const random = Math.random().toString(36).substring(2, 6).toUpperCase();
 
       const order = await prisma.order.create({
         data: {
-          orderNumber: `ORD-${timestamp}-${random}`,
+          orderNumber: generateOrderNumber(),
           status: "DRAFT",
           subtotal,
           tax,
@@ -1810,12 +1803,9 @@ async function consolidateOrders(
   const deliveryFee = supplier.deliveryFee ? Number(supplier.deliveryFee) : 0;
   const total = subtotal + tax + deliveryFee;
 
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-
   const consolidatedOrder = await prisma.order.create({
     data: {
-      orderNumber: `ORD-${timestamp}-${random}`,
+      orderNumber: generateOrderNumber(),
       status: "DRAFT",
       subtotal,
       tax,

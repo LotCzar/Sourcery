@@ -3,13 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { CreateOrderSchema } from "@/lib/validations";
 import { validateBody } from "@/lib/validations/validate";
-
-// Generate a unique order number
-function generateOrderNumber(): string {
-  const timestamp = Date.now().toString(36).toUpperCase();
-  const random = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `ORD-${timestamp}-${random}`;
-}
+import { generateOrderNumber } from "@/lib/order-number";
 
 export async function GET(request: Request) {
   try {

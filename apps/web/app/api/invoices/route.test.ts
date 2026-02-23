@@ -233,7 +233,7 @@ describe("POST /api/invoices", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Missing required fields");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 404 when supplier not found", async () => {

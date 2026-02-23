@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { inngest } from "@/lib/inngest/client";
+import { UpdateDeliverySchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - Get delivery detail
 export async function GET(
@@ -145,7 +147,10 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { action } = body;
+    const validation = validateBody(UpdateDeliverySchema, body);
+    if (!validation.success) return validation.response;
+
+    const { action, estimatedDeliveryAt, trackingNotes } = validation.data;
     let updatedOrder;
 
     switch (action) {
@@ -161,11 +166,11 @@ export async function PATCH(
           status: "IN_TRANSIT",
           inTransitAt: new Date(),
         };
-        if (body.estimatedDeliveryAt) {
-          transitData.estimatedDeliveryAt = new Date(body.estimatedDeliveryAt);
+        if (estimatedDeliveryAt) {
+          transitData.estimatedDeliveryAt = new Date(estimatedDeliveryAt);
         }
-        if (body.trackingNotes) {
-          transitData.trackingNotes = body.trackingNotes;
+        if (trackingNotes) {
+          transitData.trackingNotes = trackingNotes;
         }
 
         updatedOrder = await prisma.order.update({
@@ -182,7 +187,7 @@ export async function PATCH(
             data: {
               type: "DELIVERY_UPDATE",
               title: "Order Out for Delivery",
-              message: `Your order ${order.orderNumber} is out for delivery!${body.estimatedDeliveryAt ? ` ETA: ${new Date(body.estimatedDeliveryAt).toLocaleString()}.` : ""}`,
+              message: `Your order ${order.orderNumber} is out for delivery!${estimatedDeliveryAt ? ` ETA: ${new Date(estimatedDeliveryAt).toLocaleString()}.` : ""}`,
               userId: transitUser.id,
               metadata: { orderId: id },
             },
@@ -193,7 +198,7 @@ export async function PATCH(
           const template = emailTemplates.orderOutForDelivery(
             order.orderNumber,
             order.supplier.name,
-            body.estimatedDeliveryAt ? new Date(body.estimatedDeliveryAt) : undefined
+            estimatedDeliveryAt ? new Date(estimatedDeliveryAt) : undefined
           );
           sendEmail({
             to: order.restaurant.email,
@@ -212,7 +217,7 @@ export async function PATCH(
           );
         }
 
-        if (!body.estimatedDeliveryAt) {
+        if (!estimatedDeliveryAt) {
           return NextResponse.json(
             { error: "estimatedDeliveryAt is required" },
             { status: 400 }
@@ -220,10 +225,10 @@ export async function PATCH(
         }
 
         const etaData: any = {
-          estimatedDeliveryAt: new Date(body.estimatedDeliveryAt),
+          estimatedDeliveryAt: new Date(estimatedDeliveryAt),
         };
-        if (body.trackingNotes) {
-          etaData.trackingNotes = body.trackingNotes;
+        if (trackingNotes) {
+          etaData.trackingNotes = trackingNotes;
         }
 
         updatedOrder = await prisma.order.update({
@@ -239,7 +244,7 @@ export async function PATCH(
             data: {
               type: "DELIVERY_UPDATE",
               title: "Delivery ETA Updated",
-              message: `The ETA for order ${order.orderNumber} has been updated to ${new Date(body.estimatedDeliveryAt).toLocaleString()}.`,
+              message: `The ETA for order ${order.orderNumber} has been updated to ${new Date(estimatedDeliveryAt).toLocaleString()}.`,
               userId: etaUser.id,
               metadata: { orderId: id },
             },
@@ -250,7 +255,7 @@ export async function PATCH(
           const template = emailTemplates.deliveryEtaUpdated(
             order.orderNumber,
             order.supplier.name,
-            new Date(body.estimatedDeliveryAt)
+            new Date(estimatedDeliveryAt)
           );
           sendEmail({
             to: order.restaurant.email,

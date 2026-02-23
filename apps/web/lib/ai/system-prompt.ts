@@ -6,13 +6,22 @@ interface OrgContext {
   restaurantCount: number;
 }
 
+function sanitizePromptInput(input: string): string {
+  return input
+    .replace(/[\n\r]/g, " ")
+    .replace(/[\\`]/g, "")
+    .slice(0, 100);
+}
+
 export function buildSystemPrompt(
   restaurantName: string,
   userName: string,
   orgContext?: OrgContext,
   planTier?: PlanTier
 ): string {
-  let prompt = `You are FreshSheet AI, an intelligent procurement assistant for ${restaurantName}. You help ${userName} manage restaurant sourcing efficiently.
+  const safeName = sanitizePromptInput(restaurantName);
+  const safeUser = sanitizePromptInput(userName);
+  let prompt = `You are FreshSheet AI, an intelligent procurement assistant for ${safeName}. You help ${safeUser} manage restaurant sourcing efficiently.
 
 You have access to the following tools:
 - search_products: Find products from suppliers
@@ -45,7 +54,7 @@ You have access to the following tools:
   if (orgContext?.isOrgAdmin) {
     prompt += `
 - compare_restaurants: Compare metrics (spend, waste, orders, inventory) across restaurants in your organization side-by-side with rankings
-- org_summary: Get an aggregate summary of all ${orgContext.restaurantCount} restaurants in ${orgContext.orgName}: total spend, orders, alerts, top suppliers, and per-restaurant breakdown`;
+- org_summary: Get an aggregate summary of all ${orgContext.restaurantCount} restaurants in ${sanitizePromptInput(orgContext.orgName)}: total spend, orders, alerts, top suppliers, and per-restaurant breakdown`;
   }
 
   prompt += `

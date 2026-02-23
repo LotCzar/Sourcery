@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateAccountingMappingsSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - Get category mappings
 export async function GET() {
@@ -71,11 +73,10 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { mappings } = body;
+    const validation = validateBody(UpdateAccountingMappingsSchema, body);
+    if (!validation.success) return validation.response;
 
-    if (!Array.isArray(mappings)) {
-      return NextResponse.json({ error: "mappings array is required" }, { status: 400 });
-    }
+    const { mappings } = validation.data;
 
     // Upsert each mapping
     const results = [];

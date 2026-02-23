@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdatePriceAlertSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // DELETE a price alert
 export async function DELETE(
@@ -86,7 +88,10 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { isActive, targetPrice, alertType } = body;
+    const validation = validateBody(UpdatePriceAlertSchema, body);
+    if (!validation.success) return validation.response;
+
+    const { isActive, targetPrice, alertType } = validation.data;
 
     const updateData: any = {};
     if (isActive !== undefined) updateData.isActive = isActive;

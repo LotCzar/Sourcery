@@ -460,8 +460,8 @@ model Order {
   supplierId    String
   supplier      Supplier    @relation(fields: [supplierId], references: [id])
 
-  createdById   String
-  createdBy     User        @relation(fields: [createdById], references: [id])
+  createdById   String?
+  createdBy     User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   driverId      String?
   driver        User?       @relation("DriverDeliveries", fields: [driverId], references: [id])
@@ -479,6 +479,8 @@ model Order {
   @@index([status])
   @@index([orderNumber])
   @@index([driverId])
+  @@index([restaurantId, status])
+  @@index([createdById])
 }
 
 model OrderItem {
@@ -556,13 +558,15 @@ model InventoryLog {
   inventoryItemId String
   inventoryItem   InventoryItem       @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
 
-  createdById     String
-  createdBy       User                @relation(fields: [createdById], references: [id])
+  createdById     String?
+  createdBy       User?               @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   createdAt       DateTime            @default(now())
 
   @@index([inventoryItemId])
   @@index([createdAt])
+  @@index([createdById])
+  @@index([inventoryItemId, createdAt])
 }
 
 // ============================================
@@ -659,6 +663,7 @@ model Invoice {
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
+  @@unique([restaurantId, invoiceNumber])
   @@index([restaurantId])
   @@index([supplierId])
   @@index([status])
@@ -779,6 +784,7 @@ model AiUsageLog {
   @@index([restaurantId, feature, periodStart])
   @@index([restaurantId, periodStart])
   @@index([createdAt])
+  @@index([restaurantId])
 }
 
 // ============================================
@@ -806,9 +812,9 @@ model OrderApproval {
   orderId       String
   order         Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
   requestedById String
-  requestedBy   User           @relation("ApprovalRequests", fields: [requestedById], references: [id])
+  requestedBy   User           @relation("ApprovalRequests", fields: [requestedById], references: [id], onDelete: Cascade)
   reviewedById  String?
-  reviewedBy    User?          @relation("ApprovalReviews", fields: [reviewedById], references: [id])
+  reviewedBy    User?          @relation("ApprovalReviews", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt    DateTime?
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
@@ -816,6 +822,8 @@ model OrderApproval {
   @@index([orderId])
   @@index([requestedById])
   @@index([status])
+  @@index([reviewedById])
+  @@index([orderId, status])
 }
 
 // ============================================
@@ -828,7 +836,7 @@ model OrderMessage {
   orderId     String
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
   senderId    String
-  sender      User     @relation(fields: [senderId], references: [id])
+  sender      User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
   isInternal  Boolean  @default(false)
   readAt      DateTime?
   createdAt   DateTime @default(now())
@@ -836,6 +844,7 @@ model OrderMessage {
   @@index([orderId])
   @@index([senderId])
   @@index([createdAt])
+  @@index([orderId, createdAt])
 }
 
 // ============================================

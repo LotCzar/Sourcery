@@ -1,5 +1,6 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { generateOrderNumber } from "@/lib/order-number";
 
 export const autoReorder = inngest.createFunction(
   { id: "auto-reorder", name: "Auto Reorder Low Stock" },
@@ -78,10 +79,7 @@ export const autoReorder = inngest.createFunction(
       const total = subtotal + tax + deliveryFee;
 
       // Generate order number
-      const orderCount = await prisma.order.count({
-        where: { restaurantId },
-      });
-      const orderNumber = `ORD-${String(orderCount + 1).padStart(5, "0")}`;
+      const orderNumber = generateOrderNumber();
 
       // Create draft order
       const order = await prisma.order.create({

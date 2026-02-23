@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateSettingsSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - Fetch user and restaurant settings
 export async function GET() {
@@ -90,7 +92,10 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
-    const { section, data } = body;
+    const validation = validateBody(UpdateSettingsSchema, body);
+    if (!validation.success) return validation.response;
+
+    const { section, data } = validation.data;
 
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
@@ -103,13 +108,15 @@ export async function PATCH(request: Request) {
 
     let result;
 
+    const settings = data as Record<string, string | undefined>;
+
     switch (section) {
       case "profile":
         result = await prisma.user.update({
           where: { id: user.id },
           data: {
-            firstName: data.firstName,
-            lastName: data.lastName,
+            firstName: settings.firstName,
+            lastName: settings.lastName,
           },
         });
         break;
@@ -125,14 +132,14 @@ export async function PATCH(request: Request) {
         result = await prisma.restaurant.update({
           where: { id: user.restaurant.id },
           data: {
-            name: data.name,
-            address: data.address,
-            city: data.city,
-            state: data.state,
-            zipCode: data.zipCode,
-            phone: data.phone,
-            website: data.website,
-            cuisineType: data.cuisineType,
+            name: settings.name,
+            address: settings.address,
+            city: settings.city,
+            state: settings.state,
+            zipCode: settings.zipCode,
+            phone: settings.phone,
+            website: settings.website,
+            cuisineType: settings.cuisineType,
           },
         });
         break;

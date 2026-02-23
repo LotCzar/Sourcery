@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateNotificationSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // PATCH mark notification as read
 export async function PATCH(
@@ -35,7 +37,10 @@ export async function PATCH(
     }
 
     const body = await request.json();
-    const { isRead } = body;
+    const validation = validateBody(UpdateNotificationSchema, body);
+    if (!validation.success) return validation.response;
+
+    const { isRead } = validation.data;
 
     const updated = await prisma.notification.update({
       where: { id: id },

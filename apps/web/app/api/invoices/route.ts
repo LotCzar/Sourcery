@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreateInvoiceSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET all invoices for user's restaurant
 export async function GET(request: Request) {
@@ -123,23 +125,19 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const validation = validateBody(CreateInvoiceSchema, body);
+    if (!validation.success) return validation.response;
+
     const {
       invoiceNumber,
       supplierId,
       orderId,
       subtotal,
-      tax = 0,
+      tax,
       dueDate,
       notes,
       fileUrl,
-    } = body;
-
-    if (!invoiceNumber || !supplierId || !subtotal || !dueDate) {
-      return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
-      );
-    }
+    } = validation.data;
 
     // Check if supplier exists
     const supplier = await prisma.supplier.findUnique({

@@ -1,6 +1,7 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getJobTier, hasTier, type PlanTier } from "@/lib/tier";
+import { generateOrderNumber } from "@/lib/order-number";
 
 export const proactiveOrdering = inngest.createFunction(
   { id: "proactive-ordering", name: "Proactive Ordering Autopilot" },
@@ -128,10 +129,7 @@ export const proactiveOrdering = inngest.createFunction(
             : 0;
           const total = subtotal + tax + deliveryFee;
 
-          const orderCount = await prisma.order.count({
-            where: { restaurantId: restaurant.id },
-          });
-          const orderNumber = `ORD-${String(orderCount + 1).padStart(5, "0")}`;
+          const orderNumber = generateOrderNumber();
 
           const belowMinimumOrder =
             supplier.minimumOrder && subtotal < Number(supplier.minimumOrder);

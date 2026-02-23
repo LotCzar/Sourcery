@@ -1,6 +1,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { generateOrderNumber } from "@/lib/order-number";
 
 // POST - Create a new order from an existing order's items
 export async function POST(
@@ -105,10 +106,7 @@ export async function POST(
     const total = subtotal + tax + deliveryFee;
 
     // Generate order number
-    const orderCount = await prisma.order.count({
-      where: { restaurantId: user.restaurant.id },
-    });
-    const orderNumber = `ORD-${String(orderCount + 1).padStart(5, "0")}`;
+    const orderNumber = generateOrderNumber();
 
     // Create new order
     const newOrder = await prisma.order.create({
