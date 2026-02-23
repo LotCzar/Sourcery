@@ -557,9 +557,9 @@ describe("Approval rules CRUD", () => {
     );
   });
 
-  // 9c. DELETE only allowed for OWNER
-  it("DELETE returns 403 for MANAGER role", async () => {
-    const user = createMockUserWithRestaurant({ role: "MANAGER" });
+  // 9c. DELETE only allowed for OWNER or MANAGER
+  it("DELETE returns 403 for STAFF role", async () => {
+    const user = createMockUserWithRestaurant({ role: "STAFF" });
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
     const req = createRequest("http://localhost/api/approval-rules/rule_1", {
@@ -571,7 +571,7 @@ describe("Approval rules CRUD", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(403);
-    expect(data.error).toContain("Only owners");
+    expect(data.error).toContain("Insufficient permissions");
   });
 
   it("DELETE succeeds for OWNER", async () => {

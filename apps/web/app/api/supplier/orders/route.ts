@@ -62,7 +62,6 @@ export async function GET(request: Request) {
             state: true,
             zipCode: true,
             phone: true,
-            email: true,
           },
         },
         items: {

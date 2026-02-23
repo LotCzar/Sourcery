@@ -290,6 +290,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     await prisma.inventoryItem.delete({
       where: { id: id },
     });

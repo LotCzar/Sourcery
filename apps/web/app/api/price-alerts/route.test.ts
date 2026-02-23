@@ -4,6 +4,7 @@ import { prismaMock } from "@/__tests__/mocks/prisma";
 import { mockAuth } from "@/__tests__/mocks/clerk";
 import {
   createMockUser,
+  createMockUserWithRestaurant,
   createMockPriceAlert,
   createMockProduct,
   createMockSupplier,
@@ -113,7 +114,7 @@ describe("POST /api/price-alerts", () => {
   };
 
   beforeEach(() => {
-    const user = createMockUser();
+    const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValue(user as any);
   });
 
@@ -170,6 +171,7 @@ describe("POST /api/price-alerts", () => {
   it("returns 400 when active alert already exists", async () => {
     const product = createMockProduct();
     prismaMock.supplierProduct.findUnique.mockResolvedValueOnce(product as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
 
     const existingAlert = createMockPriceAlert();
     prismaMock.priceAlert.findFirst.mockResolvedValueOnce(existingAlert as any);
@@ -188,6 +190,7 @@ describe("POST /api/price-alerts", () => {
   it("creates alert successfully", async () => {
     const product = createMockProduct();
     prismaMock.supplierProduct.findUnique.mockResolvedValueOnce(product as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
     prismaMock.priceAlert.findFirst.mockResolvedValueOnce(null);
 
     const createdAlert = {

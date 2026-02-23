@@ -1,6 +1,8 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { SupplierOnboardingSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +17,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(SupplierOnboardingSchema, body);
+    if (!validation.success) return validation.response;
+    const data = validation.data;
 
     // Check if user already has a supplier linked
     const existingUser = await prisma.user.findUnique({
@@ -35,9 +40,9 @@ export async function POST(request: Request) {
     }
 
     // Parse numeric fields
-    const minimumOrder = data.minimumOrder ? parseFloat(data.minimumOrder) : null;
-    const deliveryFee = data.deliveryFee ? parseFloat(data.deliveryFee) : null;
-    const leadTimeDays = data.leadTimeDays ? parseInt(data.leadTimeDays) : 1;
+    const minimumOrder = data.minimumOrder ? parseFloat(String(data.minimumOrder)) : null;
+    const deliveryFee = data.deliveryFee ? parseFloat(String(data.deliveryFee)) : null;
+    const leadTimeDays = data.leadTimeDays ? parseInt(String(data.leadTimeDays)) : 1;
 
     // Get user email - use supplier email from form, or fall back to user's Clerk email
     const supplierEmail = (data.email?.trim()) || user.emailAddresses[0]?.emailAddress || "";

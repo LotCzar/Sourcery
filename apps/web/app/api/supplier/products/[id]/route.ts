@@ -97,6 +97,10 @@ export async function PATCH(
       );
     }
 
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     // Check product belongs to supplier
     const existingProduct = await prisma.supplierProduct.findFirst({
       where: {
@@ -193,6 +197,10 @@ export async function DELETE(
         { error: "Supplier not found" },
         { status: 404 }
       );
+    }
+
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
     // Check product belongs to supplier

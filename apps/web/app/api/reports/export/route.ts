@@ -70,6 +70,7 @@ export async function GET(request: Request) {
           },
           include: { supplier: { select: { name: true } } },
           orderBy: { createdAt: "desc" },
+          take: 5000,
         });
 
         data = orders.map((o) => ({
@@ -105,6 +106,7 @@ export async function GET(request: Request) {
             },
           },
           orderBy: { createdAt: "desc" },
+          take: 5000,
         });
 
         data = orders.flatMap((o) =>
@@ -154,6 +156,7 @@ export async function GET(request: Request) {
               select: { total: true },
             },
           },
+          take: 5000,
         });
 
         data = suppliers.map((s) => ({
@@ -196,8 +199,14 @@ export async function GET(request: Request) {
         ...data.map((row) =>
           csvHeaders
             .map((h) => {
-              const val = String(row[h] ?? "");
-              return val.includes(",") ? `"${val}"` : val;
+              let val = String(row[h] ?? "");
+              // Prevent CSV formula injection
+              if (/^[=+\-@\t\r]/.test(val)) {
+                val = `'${val}`;
+              }
+              return val.includes(",") || val.includes('"')
+                ? `"${val.replace(/"/g, '""')}"`
+                : val;
             })
             .join(",")
         ),

@@ -136,6 +136,15 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
       });
     }
 
+    // Validate AI output has expected shape
+    if (!parsedResult || typeof parsedResult !== "object" || !Array.isArray(parsedResult.menuItems)) {
+      return NextResponse.json({
+        success: true,
+        rawResponse: responseText,
+        parsed: false,
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: parsedResult,

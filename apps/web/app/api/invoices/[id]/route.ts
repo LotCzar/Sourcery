@@ -257,6 +257,10 @@ export async function DELETE(
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const invoice = await prisma.invoice.findFirst({
       where: {
         id: id,

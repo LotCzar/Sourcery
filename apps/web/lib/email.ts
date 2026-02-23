@@ -1,5 +1,16 @@
 import { Resend } from 'resend';
 
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, (char) => map[char]);
+}
+
 let resend: Resend | null = null;
 
 function getResendClient(): Resend | null {
@@ -42,13 +53,13 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 
 export const emailTemplates = {
   orderPlaced: (orderNumber: string, restaurantName: string, total: number) => ({
-    subject: `New Order: ${orderNumber}`,
+    subject: `New Order: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">New Order Received</h1>
-        <p>You've received a new order from <strong>${restaurantName}</strong>.</p>
+        <p>You've received a new order from <strong>${escapeHtml(restaurantName)}</strong>.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>Total:</strong> $${total.toFixed(2)}</p>
         </div>
         <p>Log in to your FreshSheet dashboard to view and confirm this order.</p>
@@ -60,13 +71,13 @@ export const emailTemplates = {
   }),
 
   orderConfirmed: (orderNumber: string, supplierName: string, restaurantEmail: string) => ({
-    subject: `Order Confirmed: ${orderNumber}`,
+    subject: `Order Confirmed: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Order Confirmed</h1>
-        <p><strong>${supplierName}</strong> has confirmed your order.</p>
+        <p><strong>${escapeHtml(supplierName)}</strong> has confirmed your order.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
         </div>
         <p>Your order is being prepared and will be shipped soon.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
@@ -77,13 +88,13 @@ export const emailTemplates = {
   }),
 
   orderShipped: (orderNumber: string, supplierName: string, eta?: Date) => ({
-    subject: `Order Shipped: ${orderNumber}`,
+    subject: `Order Shipped: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Order Shipped</h1>
-        <p>Your order from <strong>${supplierName}</strong> is on the way!</p>
+        <p>Your order from <strong>${escapeHtml(supplierName)}</strong> is on the way!</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
           ${eta ? `<p style="margin: 8px 0 0;"><strong>Estimated Delivery:</strong> ${eta.toLocaleString()}</p>` : ''}
         </div>
         <p>Track your order status in your FreshSheet dashboard.</p>
@@ -95,13 +106,13 @@ export const emailTemplates = {
   }),
 
   orderOutForDelivery: (orderNumber: string, supplierName: string, eta?: Date) => ({
-    subject: `Out for Delivery: ${orderNumber}`,
+    subject: `Out for Delivery: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Out for Delivery</h1>
-        <p>Your order from <strong>${supplierName}</strong> is out for delivery!</p>
+        <p>Your order from <strong>${escapeHtml(supplierName)}</strong> is out for delivery!</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
           ${eta ? `<p style="margin: 8px 0 0;"><strong>Estimated Arrival:</strong> ${eta.toLocaleString()}</p>` : ''}
         </div>
         <p>Your delivery driver is on the way. Track updates in your FreshSheet dashboard.</p>
@@ -113,13 +124,13 @@ export const emailTemplates = {
   }),
 
   deliveryEtaUpdated: (orderNumber: string, supplierName: string, eta: Date) => ({
-    subject: `ETA Updated: ${orderNumber}`,
+    subject: `ETA Updated: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Delivery ETA Updated</h1>
-        <p>The estimated delivery time for your order from <strong>${supplierName}</strong> has been updated.</p>
+        <p>The estimated delivery time for your order from <strong>${escapeHtml(supplierName)}</strong> has been updated.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>New ETA:</strong> ${eta.toLocaleString()}</p>
         </div>
         <p>Track your order status in your FreshSheet dashboard.</p>
@@ -131,14 +142,14 @@ export const emailTemplates = {
   }),
 
   orderDelivered: (orderNumber: string, invoiceNumber: string, total: number) => ({
-    subject: `Order Delivered: ${orderNumber}`,
+    subject: `Order Delivered: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Order Delivered</h1>
         <p>Your order has been delivered successfully.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
-          <p style="margin: 8px 0 0;"><strong>Invoice Number:</strong> ${invoiceNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
+          <p style="margin: 8px 0 0;"><strong>Invoice Number:</strong> ${escapeHtml(invoiceNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>Total:</strong> $${total.toFixed(2)}</p>
         </div>
         <p>An invoice has been created and is available in your dashboard. Payment is due within 30 days.</p>
@@ -150,15 +161,15 @@ export const emailTemplates = {
   }),
 
   invoiceReminder: (invoiceNumber: string, supplierName: string, amount: number, dueDate: string, milestone: string) => ({
-    subject: `Invoice ${milestone}: ${invoiceNumber}`,
+    subject: `Invoice ${escapeHtml(milestone)}: ${escapeHtml(invoiceNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Invoice Payment Reminder</h1>
-        <p>This is a reminder about your invoice from <strong>${supplierName}</strong>.</p>
+        <p>This is a reminder about your invoice from <strong>${escapeHtml(supplierName)}</strong>.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Invoice:</strong> ${invoiceNumber}</p>
+          <p style="margin: 0;"><strong>Invoice:</strong> ${escapeHtml(invoiceNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>Amount:</strong> $${amount.toFixed(2)}</p>
-          <p style="margin: 8px 0 0;"><strong>Due Date:</strong> ${dueDate}</p>
+          <p style="margin: 8px 0 0;"><strong>Due Date:</strong> ${escapeHtml(dueDate)}</p>
         </div>
         <p>Please ensure payment is made by the due date to maintain your supplier relationship.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
@@ -169,13 +180,13 @@ export const emailTemplates = {
   }),
 
   invoiceOverdue: (invoiceNumber: string, supplierName: string, amount: number, daysPastDue: number) => ({
-    subject: `OVERDUE: Invoice ${invoiceNumber} (${daysPastDue} days past due)`,
+    subject: `OVERDUE: Invoice ${escapeHtml(invoiceNumber)} (${daysPastDue} days past due)`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #cc0000;">Invoice Overdue</h1>
-        <p>Your invoice from <strong>${supplierName}</strong> is <strong>${daysPastDue} days past due</strong>.</p>
+        <p>Your invoice from <strong>${escapeHtml(supplierName)}</strong> is <strong>${daysPastDue} days past due</strong>.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Invoice:</strong> ${invoiceNumber}</p>
+          <p style="margin: 0;"><strong>Invoice:</strong> ${escapeHtml(invoiceNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>Amount:</strong> $${amount.toFixed(2)}</p>
           <p style="margin: 8px 0 0;"><strong>Days Past Due:</strong> ${daysPastDue}</p>
         </div>
@@ -188,13 +199,13 @@ export const emailTemplates = {
   }),
 
   approvalRequested: (orderNumber: string, requesterName: string, total: number) => ({
-    subject: `Approval Required: Order ${orderNumber}`,
+    subject: `Approval Required: Order ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Order Requires Your Approval</h1>
-        <p><strong>${requesterName}</strong> has submitted an order that requires your approval.</p>
+        <p><strong>${escapeHtml(requesterName)}</strong> has submitted an order that requires your approval.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
           <p style="margin: 8px 0 0;"><strong>Total:</strong> $${total.toFixed(2)}</p>
         </div>
         <p>Log in to your FreshSheet dashboard to review and approve or reject this order.</p>
@@ -206,14 +217,14 @@ export const emailTemplates = {
   }),
 
   approvalDecision: (orderNumber: string, status: string, reviewerName: string, notes?: string) => ({
-    subject: `Order ${status === 'APPROVED' ? 'Approved' : 'Rejected'}: ${orderNumber}`,
+    subject: `Order ${status === 'APPROVED' ? 'Approved' : 'Rejected'}: ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: ${status === 'APPROVED' ? '#16a34a' : '#dc2626'};">Order ${status === 'APPROVED' ? 'Approved' : 'Rejected'}</h1>
-        <p>Your order has been <strong>${status === 'APPROVED' ? 'approved' : 'rejected'}</strong> by <strong>${reviewerName}</strong>.</p>
+        <p>Your order has been <strong>${status === 'APPROVED' ? 'approved' : 'rejected'}</strong> by <strong>${escapeHtml(reviewerName)}</strong>.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0;"><strong>Order Number:</strong> ${orderNumber}</p>
-          ${notes ? `<p style="margin: 8px 0 0;"><strong>Notes:</strong> ${notes}</p>` : ''}
+          <p style="margin: 0;"><strong>Order Number:</strong> ${escapeHtml(orderNumber)}</p>
+          ${notes ? `<p style="margin: 8px 0 0;"><strong>Notes:</strong> ${escapeHtml(notes)}</p>` : ''}
         </div>
         <p>${status === 'APPROVED' ? 'Your order has been submitted to the supplier.' : 'Please review and resubmit the order.'}</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
@@ -224,13 +235,13 @@ export const emailTemplates = {
   }),
 
   orderMessage: (orderNumber: string, senderName: string, messagePreview: string) => ({
-    subject: `New Message on Order ${orderNumber}`,
+    subject: `New Message on Order ${escapeHtml(orderNumber)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">New Message on Order</h1>
-        <p><strong>${senderName}</strong> sent a message on order <strong>${orderNumber}</strong>.</p>
+        <p><strong>${escapeHtml(senderName)}</strong> sent a message on order <strong>${escapeHtml(orderNumber)}</strong>.</p>
         <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0; color: #333;">"${messagePreview.length > 200 ? messagePreview.slice(0, 200) + '...' : messagePreview}"</p>
+          <p style="margin: 0; color: #333;">"${escapeHtml(messagePreview.length > 200 ? messagePreview.slice(0, 200) + '...' : messagePreview)}"</p>
         </div>
         <p>Log in to your FreshSheet dashboard to view and reply.</p>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
@@ -241,13 +252,13 @@ export const emailTemplates = {
   }),
 
   usageAlert: (restaurantName: string, featureName: string, used: number, limit: number, usagePercent: number) => ({
-    subject: `Usage Alert: ${featureName} at ${usagePercent}% - ${restaurantName}`,
+    subject: `Usage Alert: ${escapeHtml(featureName)} at ${usagePercent}% - ${escapeHtml(restaurantName)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #d97706;">Usage Alert</h1>
-        <p>Your <strong>${featureName}</strong> usage for <strong>${restaurantName}</strong> is approaching the limit.</p>
+        <p>Your <strong>${escapeHtml(featureName)}</strong> usage for <strong>${escapeHtml(restaurantName)}</strong> is approaching the limit.</p>
         <div style="background: #fffbeb; border: 1px solid #f59e0b; padding: 16px; border-radius: 8px; margin: 16px 0;">
-          <p style="margin: 0 0 12px;"><strong>${featureName}</strong></p>
+          <p style="margin: 0 0 12px;"><strong>${escapeHtml(featureName)}</strong></p>
           <div style="background: #e5e7eb; border-radius: 9999px; height: 12px; overflow: hidden;">
             <div style="background: ${usagePercent >= 90 ? '#ef4444' : '#f59e0b'}; height: 100%; width: ${Math.min(usagePercent, 100)}%; border-radius: 9999px;"></div>
           </div>
@@ -265,11 +276,11 @@ export const emailTemplates = {
   }),
 
   weeklyDigest: (restaurantName: string, aiSummary: string, metrics: { totalSpend: number; orderCount: number; lowStockCount: number; priceAlerts: number; wastePercent: number; overdueInvoices: number }) => ({
-    subject: `Weekly Digest: ${restaurantName}`,
+    subject: `Weekly Digest: ${escapeHtml(restaurantName)}`,
     html: `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #1a1a1a;">Weekly Digest</h1>
-        <p>${aiSummary}</p>
+        <p>${escapeHtml(aiSummary)}</p>
         <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
           <tr style="border-bottom: 1px solid #eee;">
             <td style="padding: 8px 0;"><strong>Total Spend</strong></td>

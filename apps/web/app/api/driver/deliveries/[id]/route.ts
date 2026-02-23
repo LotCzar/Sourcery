@@ -45,7 +45,6 @@ export async function GET(
             state: true,
             zipCode: true,
             phone: true,
-            email: true,
           },
         },
         supplier: {
@@ -131,7 +130,7 @@ export async function PATCH(
       },
       include: {
         restaurant: {
-          select: { name: true, email: true },
+          select: { id: true, name: true, email: true },
         },
         supplier: {
           select: { id: true, name: true },

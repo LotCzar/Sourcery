@@ -9,40 +9,48 @@ const updatePlanSchema = z.object({
 });
 
 export async function PATCH(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
-  const user = await prisma.user.findUnique({
-    where: { clerkId: userId },
-    include: { restaurant: true },
-  });
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { restaurant: true },
+    });
 
-  if (!user?.restaurant) {
+    if (!user?.restaurant) {
+      return NextResponse.json(
+        { error: "Restaurant not found" },
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== "OWNER" && user.role !== "ORG_ADMIN") {
+      return NextResponse.json(
+        { error: "Only owners and admins can change the plan" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const validation = validateBody(updatePlanSchema, body);
+    if (!validation.success) {
+      return validation.response;
+    }
+
+    await prisma.restaurant.update({
+      where: { id: user.restaurant.id },
+      data: { planTier: validation.data.planTier },
+    });
+
+    return NextResponse.json({ success: true, data: { planTier: validation.data.planTier } });
+  } catch (error: any) {
+    console.error("Update plan error:", error);
     return NextResponse.json(
-      { error: "Restaurant not found" },
-      { status: 404 }
+      { error: "Failed to update plan" },
+      { status: 500 }
     );
   }
-
-  if (user.role !== "OWNER" && user.role !== "ORG_ADMIN") {
-    return NextResponse.json(
-      { error: "Only owners and admins can change the plan" },
-      { status: 403 }
-    );
-  }
-
-  const body = await request.json();
-  const validation = validateBody(updatePlanSchema, body);
-  if (!validation.success) {
-    return validation.response;
-  }
-
-  await prisma.restaurant.update({
-    where: { id: user.restaurant.id },
-    data: { planTier: validation.data.planTier },
-  });
-
-  return NextResponse.json({ data: { planTier: validation.data.planTier } });
 }

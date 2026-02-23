@@ -90,8 +90,8 @@ export async function POST(request: Request) {
       include: { restaurant: true },
     });
 
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    if (!user?.restaurant) {
+      return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
     const body = await request.json();

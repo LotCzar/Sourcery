@@ -95,6 +95,10 @@ export async function PATCH(request: Request) {
       );
     }
 
+    if (user.role !== "SUPPLIER_ADMIN") {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = validateBody(UpdateSupplierSettingsSchema, body);
     if (!validation.success) return validation.response;

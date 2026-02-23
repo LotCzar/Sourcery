@@ -127,6 +127,10 @@ export async function PATCH(request: Request) {
           );
         }
 
+        if (!["OWNER", "MANAGER"].includes(user.role)) {
+          return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+        }
+
         result = await prisma.restaurant.update({
           where: { id: user.restaurant.id },
           data: {

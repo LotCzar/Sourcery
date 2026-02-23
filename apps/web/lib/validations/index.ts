@@ -418,6 +418,21 @@ export const AccountingSyncSchema = z.object({
   invoiceIds: z.array(z.string().min(1)).max(200).optional(),
 });
 
+// Supplier Onboarding
+export const SupplierOnboardingSchema = z.object({
+  companyName: z.string().min(1, "Company name is required").max(255),
+  email: z.string().max(255).optional(),
+  phone: z.string().max(50).optional(),
+  address: z.string().max(500).optional(),
+  city: z.string().max(255).optional(),
+  state: z.string().max(255).optional(),
+  zipCode: z.string().max(20).optional(),
+  website: z.string().max(500).optional(),
+  minimumOrder: z.union([z.string().max(20), z.number()]).optional(),
+  deliveryFee: z.union([z.string().max(20), z.number()]).optional(),
+  leadTimeDays: z.union([z.string().max(10), z.number()]).optional(),
+});
+
 // Invoice Creation
 export const CreateInvoiceSchema = z.object({
   invoiceNumber: z.string().min(1, "Invoice number is required").max(100),

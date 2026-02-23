@@ -72,7 +72,7 @@ export async function GET(request: Request) {
       });
 
       if (!tokenResponse.ok) {
-        console.error("QuickBooks token exchange failed:", await tokenResponse.text());
+        console.error("QuickBooks token exchange failed: status", tokenResponse.status);
         return NextResponse.redirect(new URL("/settings?tab=integrations&status=error&reason=token_exchange_failed", request.url));
       }
 
@@ -102,7 +102,7 @@ export async function GET(request: Request) {
       });
 
       if (!tokenResponse.ok) {
-        console.error("Xero token exchange failed:", await tokenResponse.text());
+        console.error("Xero token exchange failed: status", tokenResponse.status);
         return NextResponse.redirect(new URL("/settings?tab=integrations&status=error&reason=token_exchange_failed", request.url));
       }
 

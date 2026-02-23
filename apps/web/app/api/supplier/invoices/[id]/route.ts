@@ -137,6 +137,10 @@ export async function PATCH(
       );
     }
 
+    if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const invoice = await prisma.invoice.findUnique({
       where: { id },
     });
