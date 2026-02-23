@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef } from "react";
 import { MessageSquarePlus, Trash2, History, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
@@ -27,7 +27,7 @@ interface ConversationItem {
 }
 
 export function ChatSidebar() {
-  const { isOpen, closeChat, currentConversationId, setCurrentConversationId } =
+  const { isOpen, closeChat, currentConversationId, setCurrentConversationId, pendingMessage, clearPendingMessage } =
     useChat();
   const {
     messages,
@@ -69,6 +69,21 @@ export function ChatSidebar() {
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
     }
   }, [conversationId, setCurrentConversationId, queryClient]);
+
+  // Auto-send pending message when sidebar opens
+  const pendingHandled = useRef(false);
+  useEffect(() => {
+    if (isOpen && pendingMessage && !pendingHandled.current) {
+      pendingHandled.current = true;
+      clearMessages();
+      setConversationId(null);
+      sendMessage(pendingMessage, null);
+      clearPendingMessage();
+    }
+    if (!pendingMessage) {
+      pendingHandled.current = false;
+    }
+  }, [isOpen, pendingMessage, clearMessages, setConversationId, sendMessage, clearPendingMessage]);
 
   const handleNewChat = useCallback(() => {
     clearMessages();

@@ -9,6 +9,9 @@ interface ChatContextType {
   closeChat: () => void;
   currentConversationId: string | null;
   setCurrentConversationId: (id: string | null) => void;
+  pendingMessage: string | null;
+  openChatWithMessage: (message: string) => void;
+  clearPendingMessage: () => void;
 }
 
 const ChatContext = createContext<ChatContextType | null>(null);
@@ -18,10 +21,17 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
   const [currentConversationId, setCurrentConversationId] = useState<
     string | null
   >(null);
+  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
 
   const toggleChat = useCallback(() => setIsOpen((prev) => !prev), []);
   const openChat = useCallback(() => setIsOpen(true), []);
   const closeChat = useCallback(() => setIsOpen(false), []);
+  const openChatWithMessage = useCallback((message: string) => {
+    setPendingMessage(message);
+    setCurrentConversationId(null);
+    setIsOpen(true);
+  }, []);
+  const clearPendingMessage = useCallback(() => setPendingMessage(null), []);
 
   return (
     <ChatContext.Provider
@@ -32,6 +42,9 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         closeChat,
         currentConversationId,
         setCurrentConversationId,
+        pendingMessage,
+        openChatWithMessage,
+        clearPendingMessage,
       }}
     >
       {children}

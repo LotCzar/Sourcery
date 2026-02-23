@@ -49,6 +49,7 @@ import {
   CalendarDays,
 } from "lucide-react";
 import Link from "next/link";
+import { AiPromptChips } from "@/components/ai-prompt-chips";
 
 interface OrderItem {
   id: string;
@@ -259,6 +260,34 @@ export default function OrdersPage() {
           </Button>
         </div>
       </div>
+
+      {/* AI Prompt Chips */}
+      <AiPromptChips
+        prompts={[
+          ...(statusCounts["DRAFT"]
+            ? [
+                {
+                  label: "Consolidate draft orders",
+                  message:
+                    "Review my current draft orders and suggest how to consolidate them to save on delivery fees.",
+                  icon: <FileText className="h-3.5 w-3.5" />,
+                },
+              ]
+            : []),
+          {
+            label: "What orders need attention?",
+            message:
+              "Check my orders and tell me which ones need attention — any that are overdue, stuck, or need action from me.",
+            icon: <AlertCircle className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Create a restock order",
+            message:
+              "Help me create a restock order based on items that are running low in my inventory.",
+            icon: <ShoppingCart className="h-3.5 w-3.5" />,
+          },
+        ]}
+      />
 
       {/* Status Filter Pills */}
       <div className="flex flex-wrap gap-2">

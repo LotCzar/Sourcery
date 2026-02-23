@@ -33,6 +33,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
+import { AiPromptChips } from "@/components/ai-prompt-chips";
 import {
   AreaChart,
   Area,
@@ -161,6 +162,30 @@ export default function AnalyticsPage() {
           </SelectContent>
         </Select>
       </div>
+
+      {/* AI Prompt Chips */}
+      <AiPromptChips
+        prompts={[
+          {
+            label: "Analyze spending trends",
+            message:
+              "Analyze my spending trends over the last few months. Are costs going up or down? What categories are driving the change?",
+            icon: <TrendingUp className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Best value supplier?",
+            message:
+              "Which of my suppliers offers the best overall value considering price, reliability, and product range?",
+            icon: <Users className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "How to reduce costs?",
+            message:
+              "What are the most effective ways I can reduce my procurement costs based on my current ordering patterns?",
+            icon: <DollarSign className="h-3.5 w-3.5" />,
+          },
+        ]}
+      />
 
       {/* Overview Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

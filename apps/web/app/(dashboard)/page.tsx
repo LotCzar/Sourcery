@@ -32,8 +32,10 @@ import {
   BarChart3,
   Plus,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react";
 import { useDashboard } from "@/hooks/use-dashboard";
+import { useChat } from "@/lib/chat-context";
 import { PendingApprovals } from "@/components/dashboard/pending-approvals";
 import { UpcomingDeliveries } from "@/components/dashboard/upcoming-deliveries";
 import { useAnalytics } from "@/hooks/use-analytics";
@@ -106,6 +108,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const { openChatWithMessage } = useChat();
   const { data: result, isLoading, error } = useDashboard();
   const { data: analyticsResult } = useAnalytics("30");
 
@@ -231,6 +234,74 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* AI Assistant Widget */}
+      <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
+        <CardContent className="pt-6">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+              <Sparkles className="h-4 w-4 text-primary" />
+            </div>
+            <h3 className="font-semibold">Ask FreshSheet AI</h3>
+          </div>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            <button
+              onClick={() => openChatWithMessage("What items should I reorder based on current inventory levels and recent usage patterns?")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Package className="h-4 w-4 text-primary" />
+              </div>
+              What should I reorder?
+            </button>
+            <button
+              onClick={() => openChatWithMessage("Analyze my spending over the last 30 days. Break down by supplier and category, and highlight any trends.")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <DollarSign className="h-4 w-4 text-primary" />
+              </div>
+              Analyze my spending
+            </button>
+            <button
+              onClick={() => openChatWithMessage("Find cost savings opportunities by comparing supplier prices for items I frequently order.")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <TrendingDown className="h-4 w-4 text-primary" />
+              </div>
+              Find cost savings
+            </button>
+            <button
+              onClick={() => openChatWithMessage("Check my inventory for items that are low stock or running out soon and need to be reordered.")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+              </div>
+              Check low stock items
+            </button>
+            <button
+              onClick={() => openChatWithMessage("Compare my suppliers by price, delivery reliability, and product range. Which ones offer the best value?")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <Users className="h-4 w-4 text-primary" />
+              </div>
+              Compare suppliers
+            </button>
+            <button
+              onClick={() => openChatWithMessage("Forecast my budget for next month based on current ordering patterns and historical spending data.")}
+              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+            >
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
+                <BarChart3 className="h-4 w-4 text-primary" />
+              </div>
+              Forecast budget
+            </button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Upcoming Deliveries */}
       {data.upcomingDeliveries?.length > 0 && (

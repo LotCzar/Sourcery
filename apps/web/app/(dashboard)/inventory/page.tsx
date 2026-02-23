@@ -64,6 +64,7 @@ import {
   Brain,
   ArrowRight,
 } from "lucide-react";
+import { AiPromptChips } from "@/components/ai-prompt-chips";
 
 interface InventoryItem {
   id: string;
@@ -475,6 +476,30 @@ export default function InventoryPage() {
           </Card>
         </div>
       )}
+
+      {/* AI Prompt Chips */}
+      <AiPromptChips
+        prompts={[
+          {
+            label: "What items are running low?",
+            message:
+              "Check my inventory and list all items that are running low or below their par levels, sorted by urgency.",
+            icon: <AlertTriangle className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Optimize par levels",
+            message:
+              "Analyze my inventory usage patterns and suggest optimized par levels for my items.",
+            icon: <ClipboardList className="h-3.5 w-3.5" />,
+          },
+          {
+            label: "Generate restock list",
+            message:
+              "Generate a restock list of items I need to reorder based on current stock levels and consumption trends.",
+            icon: <Package className="h-3.5 w-3.5" />,
+          },
+        ]}
+      />
 
       {/* AI Consumption Insights */}
       {insightsResult?.data && insightsResult.data.length > 0 && (

@@ -67,7 +67,7 @@ export function useChatStream() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             message,
-            conversationId: existingConversationId || conversationId,
+            conversationId: existingConversationId ?? conversationId,
           }),
           signal: controller.signal,
         });
