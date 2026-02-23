@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { BulkUpdateProductsSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // POST - Bulk update supplier product prices
 export async function POST(request: Request) {
@@ -24,15 +26,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { updates } = body;
-
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return NextResponse.json({ error: "Updates array is required" }, { status: 400 });
-    }
-
-    if (updates.length > 100) {
-      return NextResponse.json({ error: "Maximum 100 items per batch" }, { status: 400 });
-    }
+    const validation = validateBody(BulkUpdateProductsSchema, body);
+    if (!validation.success) return validation.response;
+    const { updates } = validation.data;
 
     // Validate all products belong to this supplier
     const productIds = updates.map((u: any) => u.productId);
@@ -82,7 +78,7 @@ export async function POST(request: Request) {
         results.updated++;
       } catch (err: any) {
         results.failed++;
-        results.errors.push(`Failed to update product ${update.productId}: ${err?.message}`);
+        results.errors.push(`Failed to update product ${update.productId}`);
       }
     }
 

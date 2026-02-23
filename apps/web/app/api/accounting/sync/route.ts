@@ -2,6 +2,8 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAccountingService } from "@/lib/accounting";
+import { AccountingSyncSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // POST - Sync invoices to accounting system
 export async function POST(request: Request) {
@@ -33,7 +35,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json().catch(() => ({}));
-    const invoiceIds: string[] | undefined = body.invoiceIds;
+    const validation = validateBody(AccountingSyncSchema, body);
+    if (!validation.success) return validation.response;
+    const invoiceIds = validation.data.invoiceIds;
 
     // Find invoices to sync
     const whereClause: any = {
@@ -80,7 +84,7 @@ export async function POST(request: Request) {
         syncedCount++;
       } catch (err: any) {
         failedCount++;
-        errors.push(`Invoice ${invoice.invoiceNumber}: ${err?.message}`);
+        errors.push(`Invoice ${invoice.invoiceNumber}: sync failed`);
 
         await prisma.invoice.update({
           where: { id: invoice.id },

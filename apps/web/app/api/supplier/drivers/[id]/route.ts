@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateDriverSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // PATCH - Update driver info
 export async function PATCH(
@@ -44,11 +46,15 @@ export async function PATCH(
     }
 
     const body = await request.json();
+    const validation = validateBody(UpdateDriverSchema, body);
+    if (!validation.success) return validation.response;
+    const data = validation.data;
+
     const updateData: any = {};
 
-    if (body.firstName !== undefined) updateData.firstName = body.firstName;
-    if (body.lastName !== undefined) updateData.lastName = body.lastName;
-    if (body.phone !== undefined) updateData.phone = body.phone;
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+    if (data.phone !== undefined) updateData.phone = data.phone;
 
     const updatedDriver = await prisma.user.update({
       where: { id },

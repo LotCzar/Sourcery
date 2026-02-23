@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateInvoiceSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 const VALID_INVOICE_TRANSITIONS: Record<string, string[]> = {
   PENDING: ["PAID", "PARTIALLY_PAID", "CANCELLED"],
@@ -136,7 +138,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
-    const body = await request.json();
+    const rawBody = await request.json();
+    const validation = validateBody(UpdateInvoiceSchema, rawBody);
+    if (!validation.success) return validation.response;
     const {
       status,
       paidAmount,
@@ -144,7 +148,7 @@ export async function PATCH(
       paymentReference,
       notes,
       dueDate,
-    } = body;
+    } = validation.data;
 
     // Validate status transitions
     if (status) {

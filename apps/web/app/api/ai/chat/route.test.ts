@@ -101,7 +101,7 @@ describe("POST /api/ai/chat", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Message is required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("returns 400 when message is not a string", async () => {
@@ -112,7 +112,7 @@ describe("POST /api/ai/chat", () => {
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Message is required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("creates new conversation when no conversationId provided", async () => {

@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreateSupplierInvoiceSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - List invoices for supplier
 export async function GET(request: Request) {
@@ -33,7 +35,11 @@ export async function GET(request: Request) {
       supplierId: user.supplier.id,
     };
 
+    const VALID_STATUSES = ["PENDING", "PAID", "PARTIALLY_PAID", "OVERDUE", "DISPUTED", "CANCELLED"];
     if (status && status !== "ALL") {
+      if (!VALID_STATUSES.includes(status)) {
+        return NextResponse.json({ error: "Invalid status filter" }, { status: 400 });
+      }
       where.status = status;
     }
 
@@ -154,19 +160,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const data = await request.json();
+    const body = await request.json();
 
-    // Validate required fields
-    if (!data.orderId && (!data.restaurantId || !data.total)) {
-      return NextResponse.json(
-        { error: "Either orderId or (restaurantId and total) is required" },
-        { status: 400 }
-      );
-    }
+    // Add type discriminator based on presence of orderId
+    const typedBody = body.orderId
+      ? { type: "from_order" as const, ...body }
+      : { type: "manual" as const, ...body };
+
+    const validation = validateBody(CreateSupplierInvoiceSchema, typedBody);
+    if (!validation.success) return validation.response;
+    const data = validation.data;
 
     let invoiceData: any;
 
-    if (data.orderId) {
+    if (data.type === "from_order") {
       // Create invoice from order
       const order = await prisma.order.findUnique({
         where: { id: data.orderId },
@@ -222,7 +229,21 @@ export async function POST(request: Request) {
         notes: data.notes || null,
       };
     } else {
-      // Create manual invoice
+      // Create manual invoice — verify restaurant is linked to this supplier
+      const restaurantSupplier = await prisma.restaurantSupplier.findFirst({
+        where: {
+          restaurantId: data.restaurantId,
+          supplierId: user.supplier.id,
+        },
+      });
+
+      if (!restaurantSupplier) {
+        return NextResponse.json(
+          { error: "Restaurant not linked to this supplier" },
+          { status: 403 }
+        );
+      }
+
       const invoiceCount = await prisma.invoice.count({
         where: { supplierId: user.supplier.id },
       });
@@ -232,17 +253,13 @@ export async function POST(request: Request) {
         ? new Date(data.dueDate)
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-      const subtotal = parseFloat(data.subtotal || data.total);
-      const tax = parseFloat(data.tax || "0");
-      const total = parseFloat(data.total);
-
       invoiceData = {
         invoiceNumber,
         supplierId: user.supplier.id,
         restaurantId: data.restaurantId,
-        subtotal,
-        tax,
-        total,
+        subtotal: data.subtotal,
+        tax: data.tax,
+        total: data.total,
         dueDate,
         notes: data.notes || null,
       };

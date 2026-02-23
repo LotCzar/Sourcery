@@ -97,22 +97,25 @@ export async function POST(request: Request) {
       );
     }
 
-    // Verify supplier exists
-    const supplier = await prisma.supplier.findUnique({
-      where: { id: supplierId },
+    // Verify supplier is linked to this restaurant
+    const restaurantSupplier = await prisma.restaurantSupplier.findFirst({
+      where: { restaurantId: user.restaurant.id, supplierId },
+      include: { supplier: true },
     });
 
-    if (!supplier) {
+    if (!restaurantSupplier) {
       return NextResponse.json(
         { error: "Supplier not found" },
         { status: 404 }
       );
     }
 
-    // Get product details and calculate totals
+    const supplier = restaurantSupplier.supplier;
+
+    // Get product details scoped to supplier and calculate totals
     const productIds = items.map((item: any) => item.productId);
     const products = await prisma.supplierProduct.findMany({
-      where: { id: { in: productIds } },
+      where: { id: { in: productIds }, supplierId },
     });
 
     const productMap = new Map(products.map((p) => [p.id, p]));

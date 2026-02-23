@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
 import { inngest } from "@/lib/inngest/client";
+import { SupplierOrderActionSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - Get single order details
 export async function GET(
@@ -131,7 +133,10 @@ export async function PATCH(
       );
     }
 
-    const body = await request.json();
+    const rawBody = await request.json();
+    const validation = validateBody(SupplierOrderActionSchema, rawBody);
+    if (!validation.success) return validation.response;
+    const body = validation.data;
     const { action } = body;
 
     // Get the order with restaurant info

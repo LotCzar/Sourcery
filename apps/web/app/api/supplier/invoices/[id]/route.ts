@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { UpdateSupplierInvoiceSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - Get single invoice
 export async function GET(
@@ -153,7 +155,11 @@ export async function PATCH(
       );
     }
 
-    const data = await request.json();
+    const body = await request.json();
+    const validation = validateBody(UpdateSupplierInvoiceSchema, body);
+    if (!validation.success) return validation.response;
+    const data = validation.data;
+
     const updateData: any = {};
 
     // Handle status updates
@@ -179,7 +185,7 @@ export async function PATCH(
             );
           }
           updateData.status = "PARTIALLY_PAID";
-          updateData.paidAmount = parseFloat(data.paidAmount);
+          updateData.paidAmount = data.paidAmount;
           if (data.paymentMethod) {
             updateData.paymentMethod = data.paymentMethod;
           }
@@ -199,12 +205,6 @@ export async function PATCH(
         case "cancel":
           updateData.status = "CANCELLED";
           break;
-
-        default:
-          return NextResponse.json(
-            { error: "Invalid action" },
-            { status: 400 }
-          );
       }
     }
 

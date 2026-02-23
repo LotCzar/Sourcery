@@ -7,6 +7,8 @@ import { executeTool } from "@/lib/ai/tool-executor";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { AiChatSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 import type Anthropic from "@anthropic-ai/sdk";
 
 export const maxDuration = 60;
@@ -77,14 +79,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { message, conversationId } = await request.json();
-
-    if (!message || typeof message !== "string") {
-      return NextResponse.json(
-        { error: "Message is required" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validation = validateBody(AiChatSchema, body);
+    if (!validation.success) return validation.response;
+    const { message, conversationId } = validation.data;
 
     // Load or create conversation
     let conversation;

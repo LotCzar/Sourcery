@@ -4,6 +4,8 @@ import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { AiSearchSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 export async function POST(request: Request) {
   try {
@@ -45,13 +47,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const { query } = await request.json();
-    if (!query || typeof query !== "string" || query.trim().length < 2) {
-      return NextResponse.json(
-        { error: "Query must be at least 2 characters" },
-        { status: 400 }
-      );
-    }
+    const body = await request.json();
+    const validation = validateBody(AiSearchSchema, body);
+    if (!validation.success) return validation.response;
+    const { query } = validation.data;
 
     const restaurantId = user.restaurant.id;
 

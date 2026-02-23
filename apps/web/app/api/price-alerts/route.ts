@@ -86,6 +86,7 @@ export async function POST(request: Request) {
 
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
+      include: { restaurant: true },
     });
 
     if (!user) {
@@ -104,6 +105,23 @@ export async function POST(request: Request) {
 
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    // Verify the product's supplier is linked to the user's restaurant
+    if (user.restaurant) {
+      const restaurantSupplier = await prisma.restaurantSupplier.findFirst({
+        where: {
+          restaurantId: user.restaurant.id,
+          supplierId: product.supplierId,
+        },
+      });
+
+      if (!restaurantSupplier) {
+        return NextResponse.json(
+          { error: "Product not found" },
+          { status: 404 }
+        );
+      }
     }
 
     // Check if alert already exists for this product

@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { CreateDriverSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 // GET - List drivers for this supplier
 export async function GET() {
@@ -89,14 +91,9 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, email, phone } = body;
-
-    if (!firstName || !email) {
-      return NextResponse.json(
-        { error: "firstName and email are required" },
-        { status: 400 }
-      );
-    }
+    const validation = validateBody(CreateDriverSchema, body);
+    if (!validation.success) return validation.response;
+    const { firstName, lastName, email, phone } = validation.data;
 
     // Check if a user with this email already exists
     const existingUser = await prisma.user.findUnique({

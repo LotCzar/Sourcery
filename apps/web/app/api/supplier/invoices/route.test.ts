@@ -123,7 +123,7 @@ describe("POST /api/supplier/invoices", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toContain("required");
+    expect(data.error).toBe("Validation failed");
   });
 
   it("creates invoice from order", async () => {
@@ -159,6 +159,8 @@ describe("POST /api/supplier/invoices", () => {
     const user = createMockSupplierUserWithSupplier();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
+    // Verify restaurant is linked to this supplier
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
     prismaMock.invoice.count.mockResolvedValueOnce(5);
 
     const created = {
@@ -171,9 +173,9 @@ describe("POST /api/supplier/invoices", () => {
     const response = await POST(
       createJsonRequest("http://localhost/api/supplier/invoices", {
         restaurantId: "rest_1",
-        total: "250.00",
-        subtotal: "230.00",
-        tax: "20.00",
+        total: 250.00,
+        subtotal: 230.00,
+        tax: 20.00,
       })
     );
     const { status, data } = await parseResponse(response);

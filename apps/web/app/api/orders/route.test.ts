@@ -140,7 +140,7 @@ describe("POST /api/orders", () => {
   });
 
   it("returns 404 when supplier not found", async () => {
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(null);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce(null);
 
     const response = await POST(
       createJsonRequest("http://localhost/api/orders", validBody)
@@ -153,7 +153,7 @@ describe("POST /api/orders", () => {
 
   it("creates order with correct price calculations", async () => {
     const supplier = createMockSupplier();
-    prismaMock.supplier.findUnique.mockResolvedValueOnce(supplier as any);
+    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ supplier } as any);
 
     const product = createMockProduct({ price: new Decimal("5.00") });
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([product] as any);

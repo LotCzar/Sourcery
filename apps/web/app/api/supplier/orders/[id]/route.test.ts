@@ -299,12 +299,8 @@ describe("PATCH /api/supplier/orders/[id]", () => {
     const user = createMockSupplierUserWithSupplier();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
-    const order = {
-      ...createMockOrder({ status: "PENDING" }),
-      restaurant: { name: "Test Restaurant", email: "info@test.com" },
-    };
-    prismaMock.order.findFirst.mockResolvedValueOnce(order as any);
-
+    // "invalid" is not in the SupplierOrderActionSchema enum,
+    // so Zod validation rejects it before reaching the switch
     const response = await PATCH(
       createJsonRequest("http://localhost/api/supplier/orders/order_1", { action: "invalid" }, "PATCH"),
       mockParams
@@ -312,6 +308,6 @@ describe("PATCH /api/supplier/orders/[id]", () => {
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(400);
-    expect(data.error).toBe("Invalid action");
+    expect(data.error).toBe("Validation failed");
   });
 });

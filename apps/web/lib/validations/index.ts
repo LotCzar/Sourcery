@@ -318,6 +318,106 @@ export const UpdateAccountingMappingsSchema = z.object({
   mappings: z.array(AccountingMappingSchema).min(1),
 });
 
+// Supplier Invoice Creation (discriminated union)
+export const CreateSupplierInvoiceSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("from_order"),
+    orderId: z.string().min(1),
+    dueDate: z.string().optional(),
+    notes: z.string().max(2000).optional(),
+  }),
+  z.object({
+    type: z.literal("manual"),
+    restaurantId: z.string().min(1),
+    subtotal: z.number().positive(),
+    tax: z.number().min(0).default(0),
+    total: z.number().positive(),
+    dueDate: z.string().optional(),
+    notes: z.string().max(2000).optional(),
+  }),
+]);
+
+// Bulk Update Supplier Products
+export const BulkUpdateProductsSchema = z.object({
+  updates: z
+    .array(
+      z.object({
+        productId: z.string().min(1),
+        price: z.number().positive().optional(),
+        inStock: z.boolean().optional(),
+      })
+    )
+    .min(1)
+    .max(100),
+});
+
+// Supplier Order Action
+export const SupplierOrderActionSchema = z.object({
+  action: z.enum([
+    "confirm",
+    "ship",
+    "out_for_delivery",
+    "update_eta",
+    "deliver",
+    "reject",
+  ]),
+  estimatedDeliveryAt: z.string().max(255).optional(),
+  trackingNotes: z.string().max(2000).optional(),
+  driverId: z.string().optional(),
+});
+
+// Update Invoice (restaurant-side)
+export const UpdateInvoiceSchema = z.object({
+  status: z
+    .enum(["PAID", "PARTIALLY_PAID", "CANCELLED", "DISPUTED"])
+    .optional(),
+  paidAmount: z.number().positive().optional(),
+  paymentMethod: z.string().max(255).optional(),
+  paymentReference: z.string().max(255).optional(),
+  notes: z.string().max(2000).optional(),
+  dueDate: z.string().optional(),
+});
+
+// Supplier Invoice Update (supplier-side PATCH)
+export const UpdateSupplierInvoiceSchema = z.object({
+  action: z.enum(["markPaid", "markPartiallyPaid", "markOverdue", "markDisputed", "cancel"]).optional(),
+  paidAmount: z.number().positive().optional(),
+  paymentMethod: z.string().max(255).optional(),
+  paymentReference: z.string().max(255).optional(),
+  notes: z.string().max(2000).optional(),
+  dueDate: z.string().max(255).optional(),
+});
+
+// Supplier Drivers
+export const CreateDriverSchema = z.object({
+  firstName: z.string().min(1).max(255),
+  lastName: z.string().max(255).optional(),
+  email: z.string().email().max(255),
+  phone: z.string().max(50).optional(),
+});
+
+export const UpdateDriverSchema = z.object({
+  firstName: z.string().min(1).max(255).optional(),
+  lastName: z.string().max(255).optional(),
+  phone: z.string().max(50).optional(),
+});
+
+// AI Chat
+export const AiChatSchema = z.object({
+  message: z.string().min(1).max(10000),
+  conversationId: z.string().optional(),
+});
+
+// AI Search
+export const AiSearchSchema = z.object({
+  query: z.string().min(2).max(1000),
+});
+
+// Accounting Sync
+export const AccountingSyncSchema = z.object({
+  invoiceIds: z.array(z.string().min(1)).max(200).optional(),
+});
+
 // Invoice Creation
 export const CreateInvoiceSchema = z.object({
   invoiceNumber: z.string().min(1, "Invoice number is required").max(100),
