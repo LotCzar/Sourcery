@@ -36,7 +36,7 @@ export function AiPromptChips({ prompts, className }: AiPromptChipsProps) {
           return (
             <span
               key={prompt.label}
-              className="inline-flex items-center gap-1.5 rounded-full border border-purple-200/50 bg-purple-50/30 px-3 py-1.5 text-sm text-muted-foreground opacity-60 cursor-not-allowed"
+              className="inline-flex items-center gap-1.5 rounded-full border border-indigo-200/50 bg-indigo-50/30 px-3 py-1.5 text-sm text-muted-foreground opacity-60 cursor-not-allowed"
             >
               <Lock className="h-3 w-3" />
               {prompt.label}

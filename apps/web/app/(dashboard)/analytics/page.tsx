@@ -52,22 +52,22 @@ import {
 import { useAnalytics } from "@/hooks/use-analytics";
 
 const COLORS = [
-  "#22C55E", // green
-  "#3B82F6", // blue
-  "#F97316", // orange
+  "#2F7A5E", // green
+  "#4B7BE5", // blue
+  "#D97706", // orange
   "#8B5CF6", // purple
   "#EC4899", // pink
-  "#14B8A6", // teal
+  "#0D9488", // teal
   "#F59E0B", // amber
-  "#6366F1", // indigo
+  "#4F46E5", // indigo
 ];
 
 const categoryColors: Record<string, string> = {
-  PRODUCE: "#22C55E",
-  MEAT: "#EF4444",
-  SEAFOOD: "#3B82F6",
+  PRODUCE: "#2F7A5E",
+  MEAT: "#DC2626",
+  SEAFOOD: "#4B7BE5",
   DAIRY: "#F59E0B",
-  DRY_GOODS: "#F97316",
+  DRY_GOODS: "#D97706",
   BAKERY: "#D97706",
   BEVERAGES: "#8B5CF6",
   FROZEN: "#06B6D4",
@@ -75,13 +75,13 @@ const categoryColors: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-700",
-  PENDING: "bg-yellow-100 text-yellow-700",
-  CONFIRMED: "bg-blue-100 text-blue-700",
-  PROCESSING: "bg-purple-100 text-purple-700",
-  SHIPPED: "bg-indigo-100 text-indigo-700",
-  DELIVERED: "bg-green-100 text-green-700",
-  CANCELLED: "bg-red-100 text-red-700",
+  DRAFT: "bg-zinc-100 text-zinc-600",
+  PENDING: "bg-amber-50 text-amber-700",
+  CONFIRMED: "bg-blue-50 text-blue-700",
+  PROCESSING: "bg-indigo-50 text-indigo-700",
+  SHIPPED: "bg-indigo-50 text-indigo-700",
+  DELIVERED: "bg-emerald-50 text-emerald-700",
+  CANCELLED: "bg-red-50 text-red-700",
 };
 
 export default function AnalyticsPage() {
@@ -265,8 +265,8 @@ export default function AnalyticsPage() {
                     <AreaChart data={data.spendOverTime}>
                       <defs>
                         <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3} />
-                          <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                          <stop offset="5%" stopColor="#2F7A5E" stopOpacity={0.3} />
+                          <stop offset="95%" stopColor="#2F7A5E" stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -288,7 +288,7 @@ export default function AnalyticsPage() {
                       <Area
                         type="monotone"
                         dataKey="total"
-                        stroke="#22C55E"
+                        stroke="#2F7A5E"
                         strokeWidth={2}
                         fillOpacity={1}
                         fill="url(#colorSpend)"

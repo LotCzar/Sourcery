@@ -18,7 +18,6 @@ import {
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useOrg } from "@/lib/org-context";
 import { useUnreadCount } from "@/hooks/use-messages";
@@ -55,16 +54,16 @@ export function Sidebar() {
     <div className="flex h-full w-64 flex-col border-r bg-card">
       {/* Logo */}
       <div className="flex h-16 items-center border-b px-6">
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-            <span className="text-lg font-bold text-primary-foreground">F</span>
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+            <span className="text-sm font-bold text-primary-foreground">F</span>
           </div>
-          <span className="text-xl font-bold text-foreground">FreshSheet</span>
+          <span className="text-lg font-semibold text-foreground">FreshSheet</span>
         </Link>
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 space-y-1 px-3 py-4" data-tour="sidebar-nav">
+      <nav className="flex-1 space-y-0.5 px-3 py-3" data-tour="sidebar-nav">
         {navItems.map((item) => {
           const tourAttr =
             item.name === "Menu Parser"
@@ -79,39 +78,35 @@ export function Sidebar() {
             (item.href !== "/" && pathname.startsWith(item.href));
           return (
             <Link key={item.name} href={item.href} data-tour={tourAttr}>
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
+              <div
                 className={cn(
-                  "w-full justify-start gap-3",
-                  isActive && "bg-primary/10 text-primary hover:bg-primary/20"
+                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "border-l-2 border-primary bg-muted font-medium text-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className={cn("h-4 w-4", isActive ? "text-foreground" : "text-muted-foreground")} />
                 {item.name}
                 {item.name === "Orders" && unreadCount > 0 && (
                   <Badge variant="destructive" className="ml-auto h-5 min-w-[20px] px-1.5 text-xs">
                     {unreadCount > 99 ? "99+" : unreadCount}
                   </Badge>
                 )}
-              </Button>
+              </div>
             </Link>
           );
         })}
       </nav>
 
       {/* Footer */}
-      <div className="border-t p-4">
-        <div className="rounded-lg bg-muted p-4">
-          <p className="text-sm font-medium text-muted-foreground">
-            Need help?
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            Contact support or check our documentation.
-          </p>
-          <Button variant="outline" size="sm" className="mt-3 w-full">
-            Get Support
-          </Button>
-        </div>
+      <div className="border-t px-4 py-4">
+        <p className="text-xs text-muted-foreground">
+          Need help?{" "}
+          <a href="#" className="text-primary hover:underline">
+            Contact support
+          </a>
+        </p>
       </div>
     </div>
   );

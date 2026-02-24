@@ -114,26 +114,26 @@ interface MatchResult {
 }
 
 const categoryIcons: Record<string, React.ReactNode> = {
-  PRODUCE: <Leaf className="h-4 w-4 text-green-500" />,
+  PRODUCE: <Leaf className="h-4 w-4 text-emerald-600" />,
   MEAT: <Drumstick className="h-4 w-4 text-red-500" />,
   SEAFOOD: <Fish className="h-4 w-4 text-blue-500" />,
-  DAIRY: <Milk className="h-4 w-4 text-yellow-500" />,
-  DRY_GOODS: <Package className="h-4 w-4 text-orange-500" />,
-  BEVERAGES: <Coffee className="h-4 w-4 text-purple-500" />,
+  DAIRY: <Milk className="h-4 w-4 text-amber-600" />,
+  DRY_GOODS: <Package className="h-4 w-4 text-amber-600" />,
+  BEVERAGES: <Coffee className="h-4 w-4 text-indigo-500" />,
   BAKERY: <Package className="h-4 w-4 text-amber-500" />,
-  OTHER: <Package className="h-4 w-4 text-gray-500" />,
+  OTHER: <Package className="h-4 w-4 text-zinc-500" />,
 };
 
 const categoryColors: Record<string, string> = {
-  PRODUCE: "bg-green-100 text-green-700",
-  MEAT: "bg-red-100 text-red-700",
-  SEAFOOD: "bg-blue-100 text-blue-700",
-  DAIRY: "bg-yellow-100 text-yellow-700",
-  DRY_GOODS: "bg-orange-100 text-orange-700",
+  PRODUCE: "bg-emerald-50 text-emerald-700",
+  MEAT: "bg-red-50 text-red-700",
+  SEAFOOD: "bg-blue-50 text-blue-700",
+  DAIRY: "bg-amber-50 text-amber-700",
+  DRY_GOODS: "bg-amber-50 text-amber-700",
   BAKERY: "bg-amber-100 text-amber-700",
-  BEVERAGES: "bg-purple-100 text-purple-700",
+  BEVERAGES: "bg-indigo-50 text-indigo-700",
   FROZEN: "bg-cyan-100 text-cyan-700",
-  OTHER: "bg-gray-100 text-gray-700",
+  OTHER: "bg-zinc-100 text-zinc-600",
 };
 
 type ViewMode = "parse" | "source" | "cart";
@@ -410,23 +410,23 @@ export default function MenuParserPage() {
                   <p className="text-2xl font-bold">{matchResult.summary.total}</p>
                   <p className="text-sm text-muted-foreground">Ingredients</p>
                 </div>
-                <div className="rounded-lg bg-green-100 p-3 text-center">
-                  <p className="text-2xl font-bold text-green-700">
+                <div className="rounded-lg bg-emerald-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-emerald-700">
                     {matchResult.summary.matched}
                   </p>
-                  <p className="text-sm text-green-600">Matched</p>
+                  <p className="text-sm text-emerald-700">Matched</p>
                 </div>
-                <div className="rounded-lg bg-orange-100 p-3 text-center">
-                  <p className="text-2xl font-bold text-orange-700">
+                <div className="rounded-lg bg-amber-50 p-3 text-center">
+                  <p className="text-2xl font-bold text-amber-700">
                     {matchResult.summary.unmatched}
                   </p>
-                  <p className="text-sm text-orange-600">Unmatched</p>
+                  <p className="text-sm text-amber-700">Unmatched</p>
                 </div>
-                <div className="rounded-lg bg-blue-100 p-3 text-center">
+                <div className="rounded-lg bg-blue-50 p-3 text-center">
                   <p className="text-2xl font-bold text-blue-700">
                     {matchResult.summary.suppliersFound}
                   </p>
-                  <p className="text-sm text-blue-600">Suppliers</p>
+                  <p className="text-sm text-blue-700">Suppliers</p>
                 </div>
               </div>
             </CardContent>
@@ -456,7 +456,7 @@ export default function MenuParserPage() {
                         </Badge>
                       </div>
                       {item.matches.length === 0 && (
-                        <Badge variant="outline" className="bg-orange-100 text-orange-700">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700">
                           No matches found
                         </Badge>
                       )}
@@ -473,7 +473,7 @@ export default function MenuParserPage() {
                               <div className="flex items-center gap-2">
                                 <span className="font-medium">{match.product.name}</span>
                                 {matchIdx === 0 && (
-                                  <Badge className="bg-green-500 text-xs">Best Match</Badge>
+                                  <Badge className="bg-emerald-600 text-xs">Best Match</Badge>
                                 )}
                               </div>
                               <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -590,7 +590,7 @@ Chocolate Cake - Dark chocolate, raspberry coulis"
                 {/* Summary Card */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center gap-2 text-green-600">
+                    <CardTitle className="flex items-center gap-2 text-emerald-700">
                       <Check className="h-5 w-5" />
                       Analysis Complete
                     </CardTitle>

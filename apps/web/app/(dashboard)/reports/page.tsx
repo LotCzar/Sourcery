@@ -75,7 +75,7 @@ interface AnalyticsData {
   }[];
 }
 
-const COLORS = ["#22C55E", "#3B82F6", "#F97316", "#8B5CF6", "#EC4899", "#14B8A6", "#F59E0B", "#6366F1"];
+const COLORS = ["#2F7A5E", "#4B7BE5", "#D97706", "#8B5CF6", "#EC4899", "#0D9488", "#F59E0B", "#4F46E5"];
 
 const categoryLabels: Record<string, string> = {
   PRODUCE: "Produce",
@@ -90,12 +90,12 @@ const categoryLabels: Record<string, string> = {
 };
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  DRAFT: { label: "Draft", color: "bg-gray-100 text-gray-700" },
-  PENDING: { label: "Pending", color: "bg-yellow-100 text-yellow-700" },
-  CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700" },
-  SHIPPED: { label: "Shipped", color: "bg-indigo-100 text-indigo-700" },
-  DELIVERED: { label: "Delivered", color: "bg-green-100 text-green-700" },
-  CANCELLED: { label: "Cancelled", color: "bg-red-100 text-red-700" },
+  DRAFT: { label: "Draft", color: "bg-zinc-100 text-zinc-600" },
+  PENDING: { label: "Pending", color: "bg-amber-50 text-amber-700" },
+  CONFIRMED: { label: "Confirmed", color: "bg-blue-50 text-blue-700" },
+  SHIPPED: { label: "Shipped", color: "bg-indigo-50 text-indigo-700" },
+  DELIVERED: { label: "Delivered", color: "bg-emerald-50 text-emerald-700" },
+  CANCELLED: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
 export default function ReportsPage() {
@@ -221,8 +221,8 @@ export default function ReportsPage() {
                 </>
               ) : (
                 <>
-                  <ArrowDownRight className="h-3 w-3 text-green-500 mr-1" />
-                  <span className="text-green-500">{weekOverWeekChange.toFixed(1)}%</span>
+                  <ArrowDownRight className="h-3 w-3 text-emerald-600 mr-1" />
+                  <span className="text-emerald-600">{weekOverWeekChange.toFixed(1)}%</span>
                 </>
               )}
               <span className="ml-1">vs last week</span>
@@ -309,10 +309,10 @@ export default function ReportsPage() {
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="#22C55E"
+                    stroke="#2F7A5E"
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 6, fill: "#22C55E" }}
+                    activeDot={{ r: 6, fill: "#2F7A5E" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -402,7 +402,7 @@ export default function ReportsPage() {
                         borderRadius: "8px",
                       }}
                     />
-                    <Bar dataKey="total" fill="#3B82F6" radius={[0, 4, 4, 0]} />
+                    <Bar dataKey="total" fill="#4B7BE5" radius={[0, 4, 4, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
@@ -461,7 +461,7 @@ export default function ReportsPage() {
             <div className="space-y-4">
               {data.ordersByStatus.length > 0 ? (
                 data.ordersByStatus.map((item: { status: string; count: number }, index: number) => {
-                  const config = statusConfig[item.status] || { label: item.status, color: "bg-gray-100 text-gray-700" };
+                  const config = statusConfig[item.status] || { label: item.status, color: "bg-zinc-100 text-zinc-600" };
                   const percentage = (item.count / data.overview.totalOrders) * 100;
                   return (
                     <div key={index} className="space-y-2">
@@ -517,7 +517,7 @@ export default function ReportsPage() {
               <tbody>
                 {data.recentOrders.length > 0 ? (
                   data.recentOrders.map((order: { id: string; orderNumber: string; date: string; supplier: string; itemCount: number; total: number; status: string }) => {
-                    const config = statusConfig[order.status] || { label: order.status, color: "bg-gray-100 text-gray-700" };
+                    const config = statusConfig[order.status] || { label: order.status, color: "bg-zinc-100 text-zinc-600" };
                     return (
                       <tr key={order.id} className="border-b last:border-0">
                         <td className="py-3 px-4 font-medium">{order.orderNumber}</td>

@@ -31,8 +31,8 @@ export function PreferencesStep({
   return (
     <Card className="border-0 shadow-xl">
       <CardHeader className="text-center pb-2">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-orange-100">
-          <Settings className="h-6 w-6 text-orange-600" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-50">
+          <Settings className="h-6 w-6 text-amber-700" />
         </div>
         <CardTitle className="text-2xl">Your Preferences</CardTitle>
         <CardDescription>
@@ -54,8 +54,8 @@ export function PreferencesStep({
                 onClick={() => updateData({ deliveryPreference: option.value })}
                 className={`flex items-center justify-between rounded-lg border p-4 text-left transition-colors ${
                   data.deliveryPreference === option.value
-                    ? "border-green-500 bg-green-50"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
                 <div>
@@ -63,7 +63,7 @@ export function PreferencesStep({
                   <p className="text-sm text-muted-foreground">{option.desc}</p>
                 </div>
                 {data.deliveryPreference === option.value && (
-                  <Check className="h-5 w-5 text-green-500" />
+                  <Check className="h-5 w-5 text-emerald-600" />
                 )}
               </button>
             ))}
@@ -85,8 +85,8 @@ export function PreferencesStep({
                 onClick={() => updateData({ orderFrequency: option.value })}
                 className={`rounded-lg border p-3 text-sm transition-colors ${
                   data.orderFrequency === option.value
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
                 {option.label}
@@ -110,8 +110,8 @@ export function PreferencesStep({
                 onClick={() => updateData({ budgetRange: option.value })}
                 className={`rounded-lg border p-3 text-sm transition-colors ${
                   data.budgetRange === option.value
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
                 {option.label}

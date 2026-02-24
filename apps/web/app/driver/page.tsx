@@ -71,7 +71,7 @@ export default function DriverPage() {
         </Card>
         <Card>
           <CardContent className="p-3 text-center">
-            <CheckCircle className="h-5 w-5 mx-auto text-green-600" />
+            <CheckCircle className="h-5 w-5 mx-auto text-emerald-600" />
             <p className="text-2xl font-bold mt-1">
               {stats?.completedToday ?? 0}
             </p>
@@ -91,12 +91,12 @@ export default function DriverPage() {
 
       {/* Active Delivery */}
       {activeDelivery && (
-        <Card className="border-green-200 bg-green-50/50" data-tour="driver-active-delivery">
+        <Card className="border-emerald-200 bg-emerald-50/50" data-tour="driver-active-delivery">
           <CardHeader className="pb-2">
             <CardTitle className="text-base flex items-center gap-2">
               <span className="relative flex h-3 w-3">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600" />
               </span>
               Active Delivery
             </CardTitle>
@@ -109,14 +109,14 @@ export default function DriverPage() {
                   {activeDelivery.orderNumber} - {activeDelivery.itemCount} items
                 </p>
               </div>
-              <Badge variant="outline" className="bg-green-100 text-green-700">
+              <Badge variant="outline" className="bg-emerald-50 text-emerald-700">
                 <Truck className="h-3 w-3 mr-1" />
                 In Transit
               </Badge>
             </div>
             <div className="flex gap-2">
               <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
                 onClick={() => handleMarkDelivered(activeDelivery.id)}
                 disabled={updateDelivery.isPending}
               >
@@ -158,7 +158,7 @@ export default function DriverPage() {
         ) : pendingDeliveries.length === 0 && !activeDelivery ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-8">
-              <CheckCircle className="h-10 w-10 text-green-500" />
+              <CheckCircle className="h-10 w-10 text-emerald-600" />
               <p className="mt-3 font-medium">All caught up!</p>
               <p className="text-sm text-muted-foreground">
                 No pending deliveries right now

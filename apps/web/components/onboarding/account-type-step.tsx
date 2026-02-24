@@ -42,8 +42,8 @@ export function AccountTypeStep({
           )}
         >
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <Store className="h-6 w-6 text-green-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+              <Store className="h-6 w-6 text-emerald-700" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg">Restaurant</h3>
@@ -68,8 +68,8 @@ export function AccountTypeStep({
           )}
         >
           <div className="flex items-start gap-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-              <Truck className="h-6 w-6 text-blue-600" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+              <Truck className="h-6 w-6 text-blue-700" />
             </div>
             <div className="flex-1">
               <h3 className="font-semibold text-lg">Supplier</h3>

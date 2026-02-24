@@ -110,15 +110,15 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const categoryColors: Record<string, string> = {
-  PRODUCE: "bg-green-100 text-green-700 hover:bg-green-200",
-  MEAT: "bg-red-100 text-red-700 hover:bg-red-200",
-  SEAFOOD: "bg-blue-100 text-blue-700 hover:bg-blue-200",
-  DAIRY: "bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
-  DRY_GOODS: "bg-orange-100 text-orange-700 hover:bg-orange-200",
+  PRODUCE: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
+  MEAT: "bg-red-50 text-red-700 hover:bg-red-100",
+  SEAFOOD: "bg-blue-50 text-blue-700 hover:bg-blue-100",
+  DAIRY: "bg-amber-50 text-amber-700 hover:bg-amber-100",
+  DRY_GOODS: "bg-amber-50 text-amber-700 hover:bg-amber-100",
   BAKERY: "bg-amber-100 text-amber-700 hover:bg-amber-200",
-  BEVERAGES: "bg-purple-100 text-purple-700 hover:bg-purple-200",
+  BEVERAGES: "bg-indigo-50 text-indigo-700 hover:bg-indigo-100",
   FROZEN: "bg-cyan-100 text-cyan-700 hover:bg-cyan-200",
-  OTHER: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+  OTHER: "bg-zinc-100 text-zinc-600 hover:bg-zinc-200",
 };
 
 export default function SupplierDetailPage() {
@@ -218,7 +218,7 @@ export default function SupplierDetailPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-3xl font-bold">{supplier.name}</h1>
-              <Badge className="bg-green-100 text-green-700">Verified</Badge>
+              <Badge className="bg-emerald-50 text-emerald-700">Verified</Badge>
             </div>
             <p className="mt-1 max-w-xl text-muted-foreground">
               {supplier.description}
@@ -283,7 +283,7 @@ export default function SupplierDetailPage() {
                 <span>${supplierCartTotal.toFixed(2)}</span>
               </div>
               {supplier.minimumOrder && supplierCartTotal < supplier.minimumOrder && (
-                <p className="text-xs text-orange-600">
+                <p className="text-xs text-amber-700">
                   Minimum order: ${supplier.minimumOrder.toFixed(2)} (${(supplier.minimumOrder - supplierCartTotal).toFixed(2)} more needed)
                 </p>
               )}

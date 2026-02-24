@@ -86,22 +86,22 @@ const alertTypeConfig = {
     label: "Price Drop",
     description: "Alert when price drops below target",
     icon: TrendingDown,
-    color: "text-green-600",
-    bgColor: "bg-green-100",
+    color: "text-emerald-700",
+    bgColor: "bg-emerald-50",
   },
   PRICE_INCREASE: {
     label: "Price Increase",
     description: "Alert when price rises above target",
     icon: TrendingUp,
     color: "text-red-600",
-    bgColor: "bg-red-100",
+    bgColor: "bg-red-50",
   },
   PRICE_THRESHOLD: {
     label: "Price Threshold",
     description: "Alert when price crosses target",
     icon: Target,
-    color: "text-blue-600",
-    bgColor: "bg-blue-100",
+    color: "text-blue-700",
+    bgColor: "bg-blue-50",
   },
 };
 
@@ -361,7 +361,7 @@ export default function PriceAlertsPage() {
                       <>
                         Alert when price drops below {formatCurrency(parseFloat(targetPrice))}
                         {parseFloat(targetPrice) < selectedProduct.price && (
-                          <span className="text-green-600 ml-1">
+                          <span className="text-emerald-700 ml-1">
                             ({((1 - parseFloat(targetPrice) / selectedProduct.price) * 100).toFixed(1)}% below current)
                           </span>
                         )}
@@ -419,7 +419,7 @@ export default function PriceAlertsPage() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Triggered</CardTitle>
-            <AlertCircle className="h-4 w-4 text-orange-500" />
+            <AlertCircle className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{triggeredAlerts.length}</div>
@@ -445,7 +445,7 @@ export default function PriceAlertsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-green-600" />
+              <Bell className="h-5 w-5 text-emerald-700" />
               Active Alerts
             </CardTitle>
             <CardDescription>Currently monitoring these products</CardDescription>
@@ -511,7 +511,7 @@ export default function PriceAlertsPage() {
                               handleToggleAlert(alert.id, alert.isActive);
                             }}
                           >
-                            <CheckCircle className="h-4 w-4 text-green-600" />
+                            <CheckCircle className="h-4 w-4 text-emerald-700" />
                           </Button>
                           <Button
                             variant="ghost"
@@ -571,16 +571,16 @@ export default function PriceAlertsPage() {
                     <Line
                       type="monotone"
                       dataKey="price"
-                      stroke="#3B82F6"
+                      stroke="#4B7BE5"
                       strokeWidth={2}
                       dot={false}
-                      activeDot={{ r: 6, fill: "#3B82F6" }}
+                      activeDot={{ r: 6, fill: "#4B7BE5" }}
                     />
                     {/* Target price line */}
                     <Line
                       type="monotone"
                       dataKey={() => selectedAlert.targetPrice}
-                      stroke="#22C55E"
+                      stroke="#2F7A5E"
                       strokeWidth={2}
                       strokeDasharray="5 5"
                       dot={false}
@@ -589,11 +589,11 @@ export default function PriceAlertsPage() {
                 </ResponsiveContainer>
                 <div className="flex items-center justify-center gap-4 mt-4">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded bg-blue-500" />
+                    <div className="w-3 h-3 rounded bg-blue-600" />
                     <span className="text-sm text-muted-foreground">Actual Price</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-0.5 bg-green-500 border-dashed" style={{ borderStyle: "dashed" }} />
+                    <div className="w-3 h-0.5 bg-emerald-600 border-dashed" style={{ borderStyle: "dashed" }} />
                     <span className="text-sm text-muted-foreground">Target Price</span>
                   </div>
                 </div>
@@ -614,7 +614,7 @@ export default function PriceAlertsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
+              <AlertCircle className="h-5 w-5 text-amber-600" />
               Triggered Alerts
             </CardTitle>
             <CardDescription>Alerts that have been activated</CardDescription>
@@ -628,7 +628,7 @@ export default function PriceAlertsPage() {
                 return (
                   <div
                     key={alert.id}
-                    className="p-4 border rounded-lg bg-orange-50 dark:bg-orange-950/20"
+                    className="p-4 border rounded-lg bg-amber-50 dark:bg-amber-950/20"
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3">

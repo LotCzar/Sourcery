@@ -32,8 +32,8 @@ export function BusinessDetailsStep({
   return (
     <Card className="border-0 shadow-xl">
       <CardHeader className="text-center pb-2">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-          <Building className="h-6 w-6 text-green-600" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-50">
+          <Building className="h-6 w-6 text-emerald-700" />
         </div>
         <CardTitle className="text-2xl">Business Details</CardTitle>
         <CardDescription>

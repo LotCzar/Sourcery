@@ -87,31 +87,31 @@ const statusConfig: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    color: "bg-gray-100 text-gray-700 border-gray-300",
+    color: "bg-zinc-100 text-zinc-600 border-zinc-300",
     icon: <FileText className="h-4 w-4" />,
     step: 0,
   },
   AWAITING_APPROVAL: {
     label: "Awaiting Approval",
-    color: "bg-orange-100 text-orange-700 border-orange-300",
+    color: "bg-amber-50 text-amber-700 border-orange-300",
     icon: <Clock className="h-4 w-4" />,
     step: 0,
   },
   PENDING: {
     label: "Pending",
-    color: "bg-yellow-100 text-yellow-700 border-yellow-300",
+    color: "bg-amber-50 text-amber-700 border-yellow-300",
     icon: <Clock className="h-4 w-4" />,
     step: 1,
   },
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700 border-blue-300",
+    color: "bg-blue-50 text-blue-700 border-blue-300",
     icon: <CheckCircle className="h-4 w-4" />,
     step: 2,
   },
   SHIPPED: {
     label: "Shipped",
-    color: "bg-indigo-100 text-indigo-700 border-indigo-300",
+    color: "bg-indigo-50 text-indigo-700 border-indigo-300",
     icon: <Truck className="h-4 w-4" />,
     step: 3,
   },
@@ -123,13 +123,13 @@ const statusConfig: Record<
   },
   DELIVERED: {
     label: "Delivered",
-    color: "bg-green-100 text-green-700 border-green-300",
+    color: "bg-emerald-50 text-emerald-700 border-emerald-300",
     icon: <CheckCircle className="h-4 w-4" />,
     step: 5,
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "bg-red-100 text-red-700 border-red-300",
+    color: "bg-red-50 text-red-700 border-red-300",
     icon: <XCircle className="h-4 w-4" />,
     step: -1,
   },
@@ -362,7 +362,7 @@ export default function OrdersPage() {
                         {order.orderNumber}
                         <Badge
                           variant="outline"
-                          className={statusConfig[order.status]?.color || "bg-gray-100"}
+                          className={statusConfig[order.status]?.color || "bg-zinc-100"}
                         >
                           {statusConfig[order.status]?.icon}
                           <span className="ml-1">
@@ -387,7 +387,7 @@ export default function OrdersPage() {
                         </div>
                       )}
                       {order.deliveredAt && (
-                        <div className="mt-1 flex items-center gap-1 text-sm text-green-600">
+                        <div className="mt-1 flex items-center gap-1 text-sm text-emerald-700">
                           <CheckCircle className="h-4 w-4" />
                           Delivered: {formatShortDate(order.deliveredAt)}
                         </div>
@@ -419,7 +419,7 @@ export default function OrdersPage() {
                                   ? "bg-primary border-primary text-primary-foreground"
                                   : isCurrent
                                   ? "border-primary text-primary"
-                                  : "border-gray-300 text-gray-400"
+                                  : "border-zinc-300 text-zinc-400"
                               }`}
                             >
                               {stepConfig.icon}
@@ -429,7 +429,7 @@ export default function OrdersPage() {
                                 className={`flex-1 h-1 mx-1 rounded ${
                                   currentStep > stepConfig.step
                                     ? "bg-primary"
-                                    : "bg-gray-200"
+                                    : "bg-zinc-200"
                                 }`}
                               />
                             )}

@@ -40,10 +40,10 @@ import { useSupplierDrivers, useAddDriver, useRemoveDriver } from "@/hooks/use-s
 import { useTour } from "@/lib/tour-context";
 
 const supplierStatusConfig: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pending Verification", color: "bg-yellow-100 text-yellow-700" },
-  VERIFIED: { label: "Verified", color: "bg-green-100 text-green-700" },
-  SUSPENDED: { label: "Suspended", color: "bg-red-100 text-red-700" },
-  INACTIVE: { label: "Inactive", color: "bg-gray-100 text-gray-700" },
+  PENDING: { label: "Pending Verification", color: "bg-amber-50 text-amber-700" },
+  VERIFIED: { label: "Verified", color: "bg-emerald-50 text-emerald-700" },
+  SUSPENDED: { label: "Suspended", color: "bg-red-50 text-red-700" },
+  INACTIVE: { label: "Inactive", color: "bg-zinc-100 text-zinc-600" },
 };
 
 export default function SupplierSettingsPage() {

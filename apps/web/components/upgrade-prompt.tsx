@@ -33,12 +33,12 @@ export function UpgradePrompt({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center rounded-lg border border-dashed border-purple-200 bg-purple-50/30 p-8 text-center",
+        "flex flex-col items-center justify-center rounded-lg border border-dashed border-indigo-200 bg-indigo-50/30 p-8 text-center",
         className
       )}
     >
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-purple-100 mb-4">
-        <Lock className="h-5 w-5 text-purple-600" />
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-indigo-50 mb-4">
+        <Lock className="h-5 w-5 text-indigo-700" />
       </div>
       <div className="flex items-center gap-2 mb-2">
         <h3 className="font-semibold">{feature}</h3>
@@ -49,7 +49,7 @@ export function UpgradePrompt({
           {description}
         </p>
       )}
-      <Button asChild size="sm" className="bg-purple-600 hover:bg-purple-700">
+      <Button asChild size="sm" className="bg-indigo-500 hover:bg-indigo-600">
         <Link href="/settings">Upgrade to Professional</Link>
       </Button>
     </div>

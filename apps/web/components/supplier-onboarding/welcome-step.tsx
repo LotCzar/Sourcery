@@ -20,8 +20,8 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
   return (
     <Card className="border-0 shadow-xl">
       <CardHeader className="text-center pb-2">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-          <Truck className="h-8 w-8 text-green-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+          <Truck className="h-8 w-8 text-emerald-700" />
         </div>
         <CardTitle className="text-3xl">
           Welcome{userName ? `, ${userName}` : ""}!
@@ -36,8 +36,8 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
         </p>
         <div className="grid gap-3">
           <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-              <Package className="h-5 w-5 text-blue-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
+              <Package className="h-5 w-5 text-blue-700" />
             </div>
             <div>
               <p className="font-medium">List Your Products</p>
@@ -47,8 +47,8 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-              <TrendingUp className="h-5 w-5 text-green-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+              <TrendingUp className="h-5 w-5 text-emerald-700" />
             </div>
             <div>
               <p className="font-medium">Receive Orders</p>
@@ -58,8 +58,8 @@ export function WelcomeStep({ onNext, userName }: WelcomeStepProps) {
             </div>
           </div>
           <div className="flex items-center gap-3 rounded-lg border p-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
-              <Zap className="h-5 w-5 text-orange-600" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50">
+              <Zap className="h-5 w-5 text-amber-700" />
             </div>
             <div>
               <p className="font-medium">Grow Your Business</p>

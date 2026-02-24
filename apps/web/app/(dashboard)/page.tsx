@@ -56,55 +56,55 @@ import {
 } from "recharts";
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "#9CA3AF",
-  AWAITING_APPROVAL: "#F97316",
-  PENDING: "#EAB308",
-  CONFIRMED: "#3B82F6",
-  SHIPPED: "#6366F1",
-  IN_TRANSIT: "#10B981",
-  DELIVERED: "#22C55E",
-  CANCELLED: "#EF4444",
+  DRAFT: "#71717A",
+  AWAITING_APPROVAL: "#D97706",
+  PENDING: "#D97706",
+  CONFIRMED: "#2563EB",
+  SHIPPED: "#4F46E5",
+  IN_TRANSIT: "#0D9488",
+  DELIVERED: "#2F7A5E",
+  CANCELLED: "#DC2626",
 };
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   DRAFT: {
     label: "Draft",
-    color: "bg-gray-100 text-gray-700",
+    color: "bg-zinc-100 text-zinc-600",
     icon: <FileText className="h-3 w-3" />,
   },
   AWAITING_APPROVAL: {
     label: "Awaiting Approval",
-    color: "bg-orange-100 text-orange-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <Clock className="h-3 w-3" />,
   },
   PENDING: {
     label: "Pending",
-    color: "bg-yellow-100 text-yellow-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <Clock className="h-3 w-3" />,
   },
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   SHIPPED: {
     label: "Shipped",
-    color: "bg-indigo-100 text-indigo-700",
+    color: "bg-indigo-50 text-indigo-700",
     icon: <Truck className="h-3 w-3" />,
   },
   IN_TRANSIT: {
     label: "In Transit",
-    color: "bg-emerald-100 text-emerald-700",
+    color: "bg-sky-50 text-sky-700",
     icon: <Truck className="h-3 w-3" />,
   },
   DELIVERED: {
     label: "Delivered",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "bg-red-100 text-red-700",
+    color: "bg-red-50 text-red-700",
     icon: <XCircle className="h-3 w-3" />,
   },
 };
@@ -202,7 +202,7 @@ export default function DashboardPage() {
 
       {/* AI Briefing */}
       {data.briefing?.summary && (
-        <Card className="border-primary/20 bg-primary/5" data-tour="ai-briefing">
+        <Card className="border-border bg-muted" data-tour="ai-briefing">
           <CardContent className="pt-6">
             <div className="flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
@@ -221,14 +221,14 @@ export default function DashboardPage() {
                   )}
                   {data.briefing.overdueInvoiceCount > 0 && (
                     <Link href="/invoices">
-                      <Badge variant="outline" className="cursor-pointer hover:bg-red-100 text-red-700 border-red-200">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-red-50 text-red-700 border-red-200">
                         {data.briefing.overdueInvoiceCount} overdue
                       </Badge>
                     </Link>
                   )}
                   {data.briefing.criticalItems?.length > 0 && (
                     <Link href="/inventory">
-                      <Badge variant="outline" className="cursor-pointer hover:bg-orange-100 text-orange-700 border-orange-200">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-amber-50 text-amber-700 border-amber-200">
                         {data.briefing.criticalItems.length} critical
                       </Badge>
                     </Link>
@@ -241,7 +241,7 @@ export default function DashboardPage() {
       )}
 
       {/* AI Assistant Widget */}
-      <Card className="bg-gradient-to-r from-primary/10 to-purple-500/10 border-primary/20">
+      <Card className="bg-card border">
         <CardContent className="pt-6">
           <div className="flex items-center gap-2 mb-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -262,7 +262,7 @@ export default function DashboardPage() {
             <button
               onClick={isPro ? () => openChatWithMessage("Analyze my spending over the last 30 days. Break down by supplier and category, and highlight any trends.") : undefined}
               disabled={!isPro}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <DollarSign className="h-4 w-4 text-primary" />
@@ -275,7 +275,7 @@ export default function DashboardPage() {
             <button
               onClick={isPro ? () => openChatWithMessage("Find cost savings opportunities by comparing supplier prices for items I frequently order.") : undefined}
               disabled={!isPro}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <TrendingDown className="h-4 w-4 text-primary" />
@@ -297,7 +297,7 @@ export default function DashboardPage() {
             <button
               onClick={isPro ? () => openChatWithMessage("Compare my suppliers by price, delivery reliability, and product range. Which ones offer the best value?") : undefined}
               disabled={!isPro}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Users className="h-4 w-4 text-primary" />
@@ -310,7 +310,7 @@ export default function DashboardPage() {
             <button
               onClick={isPro ? () => openChatWithMessage("Forecast my budget for next month based on current ordering patterns and historical spending data.") : undefined}
               disabled={!isPro}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-purple-200/50 bg-purple-50/20 opacity-60 cursor-not-allowed"}`}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <BarChart3 className="h-4 w-4 text-primary" />
@@ -351,7 +351,7 @@ export default function DashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
                   <Search className="h-6 w-6 text-blue-600" />
                 </div>
                 <div>
@@ -367,8 +367,8 @@ export default function DashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                  <Users className="h-6 w-6 text-purple-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                  <Users className="h-6 w-6 text-indigo-600" />
                 </div>
                 <div>
                   <p className="font-semibold">Suppliers</p>
@@ -383,8 +383,8 @@ export default function DashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-orange-100">
-                  <ShoppingCart className="h-6 w-6 text-orange-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-muted">
+                  <ShoppingCart className="h-6 w-6 text-amber-600" />
                 </div>
                 <div>
                   <p className="font-semibold">Orders</p>
@@ -413,11 +413,11 @@ export default function DashboardPage() {
             </div>
             <div className="flex items-center text-xs text-muted-foreground">
               {data.stats.spendChange >= 0 ? (
-                <TrendingUp className="mr-1 h-3 w-3 text-red-500" />
+                <TrendingUp className="mr-1 h-3 w-3 text-red-600" />
               ) : (
-                <TrendingDown className="mr-1 h-3 w-3 text-green-500" />
+                <TrendingDown className="mr-1 h-3 w-3 text-emerald-600" />
               )}
-              <span className={data.stats.spendChange >= 0 ? "text-red-500" : "text-green-500"}>
+              <span className={data.stats.spendChange >= 0 ? "text-red-600" : "text-emerald-600"}>
                 {data.stats.spendChange >= 0 ? "+" : ""}
                 {data.stats.spendChange.toFixed(1)}%
               </span>
@@ -436,7 +436,7 @@ export default function DashboardPage() {
           <CardContent>
             <div className="text-2xl font-bold">{data.stats.totalOrders}</div>
             <div className="flex items-center text-xs text-muted-foreground">
-              <span className="text-yellow-600 font-medium">
+              <span className="text-amber-600 font-medium">
                 {data.stats.pendingOrders} pending
               </span>
             </div>
@@ -466,7 +466,7 @@ export default function DashboardPage() {
             <SavingsIcon className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-primary">
               {formatCurrency(
                 data.savingsOpportunities.reduce((sum, s) => sum + s.potentialSavings, 0)
               )}
@@ -522,10 +522,10 @@ export default function DashboardPage() {
                   <Line
                     type="monotone"
                     dataKey="total"
-                    stroke="#22C55E"
+                    stroke="#2F7A5E"
                     strokeWidth={2}
                     dot={false}
-                    activeDot={{ r: 6, fill: "#22C55E" }}
+                    activeDot={{ r: 6, fill: "#2F7A5E" }}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -603,7 +603,7 @@ export default function DashboardPage() {
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <SavingsIcon className="h-5 w-5 text-green-600" />
+                <SavingsIcon className="h-5 w-5 text-primary" />
                 Savings Opportunities
               </CardTitle>
               <CardDescription>Products available from multiple suppliers</CardDescription>
@@ -636,7 +636,7 @@ export default function DashboardPage() {
                         {item.supplierCount} suppliers • {formatCurrency(item.lowestPrice)} - {formatCurrency(item.highestPrice)}
                       </p>
                     </div>
-                    <Badge className="bg-green-100 text-green-700">
+                    <Badge className="bg-primary/10 text-primary">
                       Save {formatCurrency(item.potentialSavings)}
                     </Badge>
                   </div>

@@ -35,41 +35,41 @@ const statusConfig: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    color: "bg-gray-100 text-gray-700",
+    color: "bg-zinc-100 text-zinc-600",
     icon: <FileText className="h-3 w-3" />,
   },
   PENDING: {
     label: "Pending",
-    color: "bg-yellow-100 text-yellow-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <Clock className="h-3 w-3" />,
   },
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   SHIPPED: {
     label: "Shipped",
-    color: "bg-indigo-100 text-indigo-700",
+    color: "bg-indigo-50 text-indigo-700",
     icon: <Truck className="h-3 w-3" />,
   },
   DELIVERED: {
     label: "Delivered",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "bg-red-100 text-red-700",
+    color: "bg-red-50 text-red-700",
     icon: <XCircle className="h-3 w-3" />,
   },
 };
 
 const supplierStatusConfig: Record<string, { label: string; color: string }> = {
-  PENDING: { label: "Pending Verification", color: "bg-yellow-100 text-yellow-700" },
-  VERIFIED: { label: "Verified", color: "bg-green-100 text-green-700" },
-  SUSPENDED: { label: "Suspended", color: "bg-red-100 text-red-700" },
-  INACTIVE: { label: "Inactive", color: "bg-gray-100 text-gray-700" },
+  PENDING: { label: "Pending Verification", color: "bg-amber-50 text-amber-700" },
+  VERIFIED: { label: "Verified", color: "bg-emerald-50 text-emerald-700" },
+  SUSPENDED: { label: "Suspended", color: "bg-red-50 text-red-700" },
+  INACTIVE: { label: "Inactive", color: "bg-zinc-100 text-zinc-600" },
 };
 
 export default function SupplierDashboardPage() {
@@ -161,14 +161,14 @@ export default function SupplierDashboardPage() {
 
       {/* Pending Verification Banner */}
       {data.supplier.status === "PENDING" && (
-        <Card className="border-yellow-200 bg-yellow-50">
+        <Card className="border-amber-200 bg-amber-50">
           <CardContent className="pt-6 flex items-center gap-3">
-            <AlertCircle className="h-5 w-5 text-yellow-600" />
+            <AlertCircle className="h-5 w-5 text-amber-700" />
             <div>
-              <p className="font-medium text-yellow-800">
+              <p className="font-medium text-amber-800">
                 Account Pending Verification
               </p>
-              <p className="text-sm text-yellow-700">
+              <p className="text-sm text-amber-700">
                 Your supplier account is being reviewed. You can add products while
                 we verify your business details.
               </p>
@@ -183,12 +183,12 @@ export default function SupplierDashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-100">
-                  <Clock className="h-6 w-6 text-yellow-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-amber-50">
+                  <Clock className="h-6 w-6 text-amber-700" />
                 </div>
                 <div>
                   <p className="font-semibold">Pending Orders</p>
-                  <p className="text-2xl font-bold text-yellow-600">
+                  <p className="text-2xl font-bold text-amber-700">
                     {data.stats.pendingOrders}
                   </p>
                 </div>
@@ -201,12 +201,12 @@ export default function SupplierDashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                  <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
+                  <CheckCircle className="h-6 w-6 text-blue-700" />
                 </div>
                 <div>
                   <p className="font-semibold">To Ship</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                  <p className="text-2xl font-bold text-blue-700">
                     {data.stats.confirmedOrders}
                   </p>
                 </div>
@@ -219,12 +219,12 @@ export default function SupplierDashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-100">
-                  <Truck className="h-6 w-6 text-indigo-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-indigo-50">
+                  <Truck className="h-6 w-6 text-indigo-700" />
                 </div>
                 <div>
                   <p className="font-semibold">In Transit</p>
-                  <p className="text-2xl font-bold text-indigo-600">
+                  <p className="text-2xl font-bold text-indigo-700">
                     {data.stats.shippedOrders}
                   </p>
                 </div>
@@ -237,12 +237,12 @@ export default function SupplierDashboardPage() {
           <Card className="cursor-pointer transition-all hover:shadow-md hover:border-primary/50">
             <CardContent className="pt-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                  <Package className="h-6 w-6 text-green-600" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-emerald-50">
+                  <Package className="h-6 w-6 text-emerald-700" />
                 </div>
                 <div>
                   <p className="font-semibold">Products</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-2xl font-bold text-emerald-700">
                     {data.stats.totalProducts}
                   </p>
                 </div>
@@ -409,7 +409,7 @@ export default function SupplierDashboardPage() {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-green-600">
+                      <p className="font-semibold text-emerald-700">
                         {formatCurrency(product.totalRevenue)}
                       </p>
                       <p className="text-xs text-muted-foreground">

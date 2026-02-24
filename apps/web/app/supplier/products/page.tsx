@@ -408,7 +408,7 @@ export default function SupplierProductsPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, inStock: e.target.checked })
                       }
-                      className="h-4 w-4 rounded border-gray-300"
+                      className="h-4 w-4 rounded border-zinc-300"
                     />
                     <span>In Stock</span>
                   </label>
@@ -511,8 +511,8 @@ export default function SupplierProductsPage() {
                     variant={product.inStock ? "default" : "secondary"}
                     className={
                       product.inStock
-                        ? "bg-green-100 text-green-700"
-                        : "bg-red-100 text-red-700"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-red-50 text-red-700"
                     }
                   >
                     {product.inStock ? "In Stock" : "Out of Stock"}

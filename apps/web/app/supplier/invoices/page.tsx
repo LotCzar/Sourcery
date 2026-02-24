@@ -68,32 +68,32 @@ const statusConfig: Record<
 > = {
   PENDING: {
     label: "Pending",
-    color: "bg-yellow-100 text-yellow-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <Clock className="h-3 w-3" />,
   },
   PAID: {
     label: "Paid",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   OVERDUE: {
     label: "Overdue",
-    color: "bg-red-100 text-red-700",
+    color: "bg-red-50 text-red-700",
     icon: <AlertTriangle className="h-3 w-3" />,
   },
   PARTIALLY_PAID: {
     label: "Partially Paid",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <DollarSign className="h-3 w-3" />,
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "bg-gray-100 text-gray-700",
+    color: "bg-zinc-100 text-zinc-600",
     icon: <XCircle className="h-3 w-3" />,
   },
   DISPUTED: {
     label: "Disputed",
-    color: "bg-orange-100 text-orange-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <AlertCircle className="h-3 w-3" />,
   },
 };
@@ -211,7 +211,7 @@ export default function SupplierInvoicesPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Pending
             </CardTitle>
-            <Clock className="h-4 w-4 text-yellow-500" />
+            <Clock className="h-4 w-4 text-amber-600" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.pendingCount}</div>
@@ -239,10 +239,10 @@ export default function SupplierInvoicesPage() {
             <CardTitle className="text-sm font-medium text-muted-foreground">
               Paid This Month
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-500" />
+            <CheckCircle className="h-4 w-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-2xl font-bold text-emerald-700">
               {formatCurrency(stats.paidThisMonth)}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -410,7 +410,7 @@ export default function SupplierInvoicesPage() {
                   <span>{formatCurrency(selectedInvoice.total)}</span>
                 </div>
                 {selectedInvoice.paidAmount !== null && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-emerald-700">
                     <span>Paid</span>
                     <span>{formatCurrency(selectedInvoice.paidAmount)}</span>
                   </div>
@@ -435,7 +435,7 @@ export default function SupplierInvoicesPage() {
                 {selectedInvoice.paidAt && (
                   <div>
                     <p className="text-muted-foreground">Paid Date</p>
-                    <p className="font-medium text-green-600">
+                    <p className="font-medium text-emerald-700">
                       {formatDate(selectedInvoice.paidAt)}
                     </p>
                   </div>
@@ -465,7 +465,7 @@ export default function SupplierInvoicesPage() {
                 <Button
                   onClick={() => handleAction(selectedInvoice.id, "markPaid")}
                   disabled={updateInvoice.isPending}
-                  className="bg-green-600 hover:bg-green-700"
+                  className="bg-emerald-600 hover:bg-emerald-700"
                 >
                   {updateInvoice.isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -480,7 +480,7 @@ export default function SupplierInvoicesPage() {
               <Button
                 onClick={() => handleAction(selectedInvoice.id, "markPaid")}
                 disabled={updateInvoice.isPending}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-emerald-600 hover:bg-emerald-700"
               >
                 {updateInvoice.isPending ? (
                   <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -494,7 +494,7 @@ export default function SupplierInvoicesPage() {
               <Button
                 onClick={() => handleAction(selectedInvoice.id, "markPaid")}
                 disabled={updateInvoice.isPending}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-emerald-600 hover:bg-emerald-700"
               >
                 Mark Fully Paid
               </Button>

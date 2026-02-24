@@ -82,7 +82,7 @@ export function OrderMessages({ orderId, isSupplierUser = false }: OrderMessages
                 key={msg.id}
                 className={`rounded-lg p-3 ${
                   msg.isInternal
-                    ? "bg-yellow-50 border border-yellow-200"
+                    ? "bg-amber-50 border border-amber-200"
                     : "bg-muted/50"
                 }`}
               >
@@ -94,7 +94,7 @@ export function OrderMessages({ orderId, isSupplierUser = false }: OrderMessages
                       : msg.sender.role.charAt(0) + msg.sender.role.slice(1).toLowerCase()}
                   </Badge>
                   {msg.isInternal && (
-                    <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-300">
+                    <Badge variant="outline" className="text-xs text-amber-700 border-amber-300">
                       <Lock className="mr-1 h-3 w-3" />
                       Internal
                     </Badge>

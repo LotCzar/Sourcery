@@ -48,8 +48,8 @@ export function BusinessInfoStep({
   return (
     <Card className="border-0 shadow-xl">
       <CardHeader className="text-center pb-2">
-        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-100">
-          <ChefHat className="h-6 w-6 text-blue-600" />
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
+          <ChefHat className="h-6 w-6 text-blue-700" />
         </div>
         <CardTitle className="text-2xl">Business Info</CardTitle>
         <CardDescription>
@@ -67,8 +67,8 @@ export function BusinessInfoStep({
                 onClick={() => updateData({ cuisineType: cuisine })}
                 className={`rounded-lg border p-2 text-sm transition-colors ${
                   data.cuisineType === cuisine
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
                 {cuisine}
@@ -87,8 +87,8 @@ export function BusinessInfoStep({
                 onClick={() => updateData({ seatingCapacity: capacity })}
                 className={`rounded-lg border p-3 text-sm transition-colors ${
                   data.seatingCapacity === capacity
-                    ? "border-green-500 bg-green-50 text-green-700"
-                    : "border-gray-200 hover:border-gray-300"
+                    ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                    : "border-zinc-200 hover:border-zinc-300"
                 }`}
               >
                 {capacity}

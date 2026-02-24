@@ -17,7 +17,7 @@ export function SupplierHeader() {
       <div className="flex items-center gap-4 relative z-50">
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-orange-500" />
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-600" />
         </Button>
 
         <div className="h-8 w-px bg-border" />

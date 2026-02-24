@@ -82,7 +82,7 @@ export default function OrgAdminPage() {
                       {summary.spendChangePercent > 0 ? (
                         <TrendingUp className="h-3 w-3 text-red-500" />
                       ) : (
-                        <TrendingDown className="h-3 w-3 text-green-500" />
+                        <TrendingDown className="h-3 w-3 text-emerald-600" />
                       )}
                       {Math.abs(summary.spendChangePercent)}% vs last month
                     </p>

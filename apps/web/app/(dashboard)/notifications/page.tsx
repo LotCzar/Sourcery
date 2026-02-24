@@ -35,28 +35,28 @@ import {
 const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   ORDER_UPDATE: {
     icon: Package,
-    color: "text-blue-600",
-    bg: "bg-blue-100",
+    color: "text-blue-700",
+    bg: "bg-blue-50",
   },
   PRICE_ALERT: {
     icon: TrendingDown,
-    color: "text-green-600",
-    bg: "bg-green-100",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
   },
   DELIVERY_UPDATE: {
     icon: Truck,
-    color: "text-purple-600",
-    bg: "bg-purple-100",
+    color: "text-indigo-700",
+    bg: "bg-indigo-50",
   },
   SYSTEM: {
     icon: Info,
-    color: "text-gray-600",
-    bg: "bg-gray-100",
+    color: "text-zinc-600",
+    bg: "bg-zinc-100",
   },
   PROMOTION: {
     icon: Megaphone,
-    color: "text-orange-600",
-    bg: "bg-orange-100",
+    color: "text-amber-700",
+    bg: "bg-amber-50",
   },
 };
 

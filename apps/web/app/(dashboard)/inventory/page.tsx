@@ -138,12 +138,12 @@ const unitLabels: Record<string, string> = {
 };
 
 const changeTypeConfig: Record<string, { label: string; color: string; icon: any }> = {
-  RECEIVED: { label: "Received", color: "text-green-600", icon: PackagePlus },
-  USED: { label: "Used", color: "text-blue-600", icon: PackageMinus },
-  ADJUSTED: { label: "Adjusted", color: "text-yellow-600", icon: Edit },
+  RECEIVED: { label: "Received", color: "text-emerald-700", icon: PackagePlus },
+  USED: { label: "Used", color: "text-blue-700", icon: PackageMinus },
+  ADJUSTED: { label: "Adjusted", color: "text-amber-700", icon: Edit },
   WASTE: { label: "Waste", color: "text-red-600", icon: Trash2 },
-  TRANSFERRED: { label: "Transferred", color: "text-purple-600", icon: RotateCcw },
-  COUNT: { label: "Count", color: "text-gray-600", icon: ClipboardList },
+  TRANSFERRED: { label: "Transferred", color: "text-indigo-700", icon: RotateCcw },
+  COUNT: { label: "Count", color: "text-zinc-600", icon: ClipboardList },
 };
 
 export default function InventoryPage() {
@@ -443,10 +443,10 @@ export default function InventoryPage() {
             </CardContent>
           </Card>
 
-          <Card className={summary.lowStockCount > 0 ? "border-yellow-200 bg-yellow-50/50" : ""}>
+          <Card className={summary.lowStockCount > 0 ? "border-amber-200 bg-amber-50/50" : ""}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <TrendingDown className="h-4 w-4 text-yellow-500" />
+              <TrendingDown className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{summary.lowStockCount}</div>
@@ -510,10 +510,10 @@ export default function InventoryPage() {
         description="Get AI-powered consumption forecasting, stockout predictions, and par level recommendations. Upgrade to Professional to unlock."
       >
       {insightsResult?.data && insightsResult.data.length > 0 && (
-        <Card className="border-purple-200 bg-purple-50/30">
+        <Card className="border-indigo-200 bg-indigo-50/30">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Brain className="h-5 w-5 text-purple-600" />
+              <Brain className="h-5 w-5 text-indigo-700" />
               <CardTitle className="text-lg">AI Consumption Insights</CardTitle>
             </div>
             <CardDescription>
@@ -524,7 +524,7 @@ export default function InventoryPage() {
                 </Badge>
               )}
               {insightsResult.summary.parMismatchCount > 0 && (
-                <Badge variant="outline" className="ml-2 bg-yellow-100 text-yellow-700">
+                <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700">
                   {insightsResult.summary.parMismatchCount} par adjustments
                 </Badge>
               )}
@@ -578,10 +578,10 @@ export default function InventoryPage() {
                 .map((insight: ConsumptionInsight) => (
                   <div
                     key={`par-${insight.id}`}
-                    className="flex items-center justify-between p-3 rounded-lg border border-yellow-200 bg-yellow-50/50"
+                    className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50/50"
                   >
                     <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-700">
+                      <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
                         Par
                       </Badge>
                       <p className="font-medium text-sm">{insight.itemName}</p>
@@ -591,7 +591,7 @@ export default function InventoryPage() {
                         {insight.currentParLevel?.toFixed(1)}
                       </span>
                       <ArrowRight className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium text-yellow-700">
+                      <span className="font-medium text-amber-700">
                         {insight.suggestedParLevel?.toFixed(1)}
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -716,11 +716,11 @@ export default function InventoryPage() {
                       {item.isOutOfStock ? (
                         <Badge variant="destructive">Out of Stock</Badge>
                       ) : item.isLowStock ? (
-                        <Badge variant="outline" className="bg-yellow-100 text-yellow-700">
+                        <Badge variant="outline" className="bg-amber-50 text-amber-700">
                           Low Stock
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="bg-green-100 text-green-700">
+                        <Badge variant="outline" className="bg-emerald-50 text-emerald-700">
                           In Stock
                         </Badge>
                       )}
@@ -742,7 +742,7 @@ export default function InventoryPage() {
                             setAdjustType("RECEIVED");
                           }}
                         >
-                          <TrendingUp className="h-4 w-4 text-green-600" />
+                          <TrendingUp className="h-4 w-4 text-emerald-700" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -752,7 +752,7 @@ export default function InventoryPage() {
                             setAdjustType("USED");
                           }}
                         >
-                          <TrendingDown className="h-4 w-4 text-blue-600" />
+                          <TrendingDown className="h-4 w-4 text-blue-700" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -892,7 +892,7 @@ export default function InventoryPage() {
                           </div>
                           <p className="text-sm">
                             {log.previousQuantity} → {log.newQuantity} {unitLabels[viewItem.unit]}
-                            <span className={`ml-2 ${log.quantity >= 0 ? "text-green-600" : "text-red-600"}`}>
+                            <span className={`ml-2 ${log.quantity >= 0 ? "text-emerald-700" : "text-red-600"}`}>
                               ({log.quantity >= 0 ? "+" : ""}{log.quantity})
                             </span>
                           </p>

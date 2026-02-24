@@ -28,9 +28,9 @@ import { useDriverDelivery, useUpdateDelivery } from "@/hooks/use-driver";
 import { useToast } from "@/hooks/use-toast";
 
 const statusConfig: Record<string, { label: string; color: string }> = {
-  CONFIRMED: { label: "Confirmed", color: "bg-blue-100 text-blue-700" },
+  CONFIRMED: { label: "Confirmed", color: "bg-blue-50 text-blue-700" },
   SHIPPED: { label: "Ready for Pickup", color: "bg-indigo-100 text-indigo-700" },
-  IN_TRANSIT: { label: "In Transit", color: "bg-green-100 text-green-700" },
+  IN_TRANSIT: { label: "In Transit", color: "bg-emerald-50 text-emerald-700" },
 };
 
 export default function DeliveryDetailPage() {
@@ -254,7 +254,7 @@ export default function DeliveryDetailPage() {
               </Button>
             )}
             <Button
-              className="w-full bg-green-600 hover:bg-green-700"
+              className="w-full bg-emerald-600 hover:bg-emerald-700"
               onClick={() => handleAction("deliver")}
               disabled={updateDelivery.isPending}
             >

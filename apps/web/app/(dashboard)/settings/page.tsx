@@ -794,11 +794,11 @@ export default function SettingsPage() {
                   ) : (
                     <>
                       {[
-                        { key: "SQUARE", name: "Square", letter: "S", bg: "bg-gray-100", text: "text-gray-600", desc: "Sync your menu items automatically" },
-                        { key: "TOAST", name: "Toast", letter: "T", bg: "bg-orange-100", text: "text-orange-600", desc: "Import products and track inventory" },
-                        { key: "CLOVER", name: "Clover", letter: "C", bg: "bg-green-100", text: "text-green-600", desc: "Manage orders and inventory" },
-                        { key: "LIGHTSPEED", name: "Lightspeed", letter: "L", bg: "bg-blue-100", text: "text-blue-600", desc: "Full POS integration for restaurants" },
-                        { key: "MANUAL", name: "Manual", letter: "M", bg: "bg-purple-100", text: "text-purple-600", desc: "Track integration status manually" },
+                        { key: "SQUARE", name: "Square", letter: "S", bg: "bg-zinc-100", text: "text-zinc-600", desc: "Sync your menu items automatically" },
+                        { key: "TOAST", name: "Toast", letter: "T", bg: "bg-amber-50", text: "text-amber-700", desc: "Import products and track inventory" },
+                        { key: "CLOVER", name: "Clover", letter: "C", bg: "bg-emerald-50", text: "text-emerald-700", desc: "Manage orders and inventory" },
+                        { key: "LIGHTSPEED", name: "Lightspeed", letter: "L", bg: "bg-blue-50", text: "text-blue-700", desc: "Full POS integration for restaurants" },
+                        { key: "MANUAL", name: "Manual", letter: "M", bg: "bg-indigo-50", text: "text-indigo-700", desc: "Track integration status manually" },
                       ].map((provider) => {
                         const currentIntegration = integrationData?.data;
                         const isConnected = currentIntegration?.provider === provider.key && currentIntegration?.isActive;
@@ -807,7 +807,7 @@ export default function SettingsPage() {
                         return (
                           <div
                             key={provider.key}
-                            className={`flex items-center justify-between rounded-lg border p-4 ${isConnected ? "border-green-200 bg-green-50/50" : ""}`}
+                            className={`flex items-center justify-between rounded-lg border p-4 ${isConnected ? "border-emerald-200 bg-emerald-50/50" : ""}`}
                           >
                             <div className="flex items-center gap-4">
                               <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${provider.bg}`}>
@@ -817,7 +817,7 @@ export default function SettingsPage() {
                                 <div className="flex items-center gap-2">
                                   <p className="font-medium">{provider.name}</p>
                                   {isConnected && (
-                                    <Badge variant="outline" className="border-green-300 text-green-700 text-xs">
+                                    <Badge variant="outline" className="border-emerald-300 text-emerald-700 text-xs">
                                       <CheckCircle2 className="mr-1 h-3 w-3" />
                                       Connected
                                     </Badge>
@@ -919,7 +919,7 @@ export default function SettingsPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
+                  <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-4">
                     <p className="text-sm text-blue-800">
                       <strong>Note:</strong> The seed function creates sample orders, invoices,
                       inventory items, and price alerts for your restaurant. This allows you to
@@ -949,11 +949,11 @@ export default function SettingsPage() {
                     </div>
 
                     {seedResult && (
-                      <div className={`rounded-lg border p-4 ${seedResult.errors?.length > 0 ? 'border-yellow-200 bg-yellow-50' : 'border-green-200 bg-green-50'}`}>
-                        <p className={`font-medium mb-2 ${seedResult.errors?.length > 0 ? 'text-yellow-800' : 'text-green-800'}`}>
+                      <div className={`rounded-lg border p-4 ${seedResult.errors?.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                        <p className={`font-medium mb-2 ${seedResult.errors?.length > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
                           Data Created:
                         </p>
-                        <ul className={`text-sm space-y-1 ${seedResult.errors?.length > 0 ? 'text-yellow-700' : 'text-green-700'}`}>
+                        <ul className={`text-sm space-y-1 ${seedResult.errors?.length > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
                           <li>Orders: {seedResult.orders}</li>
                           <li>Invoices: {seedResult.invoices}</li>
                           <li>Inventory Items: {seedResult.inventoryItems}</li>
@@ -966,9 +966,9 @@ export default function SettingsPage() {
                           )}
                         </ul>
                         {seedResult.errors?.length > 0 && (
-                          <div className="mt-3 pt-3 border-t border-yellow-300">
-                            <p className="font-medium text-yellow-800 mb-1">Errors:</p>
-                            <ul className="text-xs text-yellow-700 space-y-1">
+                          <div className="mt-3 pt-3 border-t border-amber-300">
+                            <p className="font-medium text-amber-800 mb-1">Errors:</p>
+                            <ul className="text-xs text-amber-700 space-y-1">
                               {seedResult.errors.map((err: string, idx: number) => (
                                 <li key={idx}>{err}</li>
                               ))}
@@ -1305,8 +1305,8 @@ function AccountingSection() {
           <div className="rounded-lg border p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${integration.provider === "QUICKBOOKS" ? "bg-green-100" : "bg-blue-100"}`}>
-                  <span className={`font-bold ${integration.provider === "QUICKBOOKS" ? "text-green-600" : "text-blue-600"}`}>
+                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${integration.provider === "QUICKBOOKS" ? "bg-emerald-50" : "bg-blue-50"}`}>
+                  <span className={`font-bold ${integration.provider === "QUICKBOOKS" ? "text-emerald-700" : "text-blue-700"}`}>
                     {integration.provider === "QUICKBOOKS" ? "QB" : "X"}
                   </span>
                 </div>
@@ -1319,7 +1319,7 @@ function AccountingSection() {
                   </p>
                 </div>
               </div>
-              <Badge variant="outline" className="text-green-600">Connected</Badge>
+              <Badge variant="outline" className="text-emerald-700">Connected</Badge>
             </div>
             <div className="flex gap-2">
               <Button
@@ -1338,8 +1338,8 @@ function AccountingSection() {
           <>
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-100">
-                  <span className="font-bold text-green-600">QB</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50">
+                  <span className="font-bold text-emerald-700">QB</span>
                 </div>
                 <div>
                   <p className="font-medium">QuickBooks</p>
@@ -1355,8 +1355,8 @@ function AccountingSection() {
 
             <div className="flex items-center justify-between rounded-lg border p-4">
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100">
-                  <span className="font-bold text-blue-600">X</span>
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50">
+                  <span className="font-bold text-blue-700">X</span>
                 </div>
                 <div>
                   <p className="font-medium">Xero</p>
@@ -1392,7 +1392,7 @@ function UsageSection() {
     const pct = (used / limit) * 100;
     if (pct >= 90) return "bg-red-500";
     if (pct >= 70) return "bg-amber-500";
-    return "bg-green-500";
+    return "bg-emerald-600";
   };
 
   const handlePlanChange = (tier: string) => {
@@ -1575,10 +1575,10 @@ function UsageSection() {
 }
 
 const FEATURE_COLORS: Record<string, string> = {
-  CHAT: "#3B82F6",
-  PARSE_MENU: "#22C55E",
-  PARSE_RECEIPT: "#14B8A6",
-  SEARCH: "#F97316",
+  CHAT: "#4B7BE5",
+  PARSE_MENU: "#2F7A5E",
+  PARSE_RECEIPT: "#0D9488",
+  SEARCH: "#D97706",
   WEEKLY_DIGEST: "#8B5CF6",
 };
 
@@ -1590,7 +1590,7 @@ const FEATURE_LABELS: Record<string, string> = {
   WEEKLY_DIGEST: "Weekly Digest",
 };
 
-const USER_COLORS = ["#3B82F6", "#22C55E", "#F97316", "#8B5CF6", "#EC4899", "#14B8A6", "#F59E0B", "#6366F1"];
+const USER_COLORS = ["#4B7BE5", "#2F7A5E", "#D97706", "#8B5CF6", "#EC4899", "#0D9488", "#F59E0B", "#4F46E5"];
 
 function UsageAnalyticsCharts() {
   const [analyticsRange, setAnalyticsRange] = useState("30");
@@ -1714,8 +1714,8 @@ function UsageAnalyticsCharts() {
               <AreaChart data={analytics.timeSeries}>
                 <defs>
                   <linearGradient id="gradient-cost" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#22C55E" stopOpacity={0} />
+                    <stop offset="5%" stopColor="#2F7A5E" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#2F7A5E" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
@@ -1743,7 +1743,7 @@ function UsageAnalyticsCharts() {
                   type="monotone"
                   dataKey="totalCost"
                   name="Cost"
-                  stroke="#22C55E"
+                  stroke="#2F7A5E"
                   fill="url(#gradient-cost)"
                 />
               </AreaChart>

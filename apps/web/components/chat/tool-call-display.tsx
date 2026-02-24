@@ -38,7 +38,7 @@ export function ToolCallDisplay({ toolCall }: ToolCallDisplayProps) {
         {isRunning ? (
           <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
         ) : (
-          <CheckCircle2 className="h-4 w-4 text-green-500" />
+          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
         )}
         <span className="flex-1 font-medium">{label}</span>
         <Badge variant={isRunning ? "info" : "success"} className="text-[10px]">

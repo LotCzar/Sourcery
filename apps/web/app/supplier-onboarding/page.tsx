@@ -100,7 +100,7 @@ export default function SupplierOnboardingPage() {
   ];
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-green-50 to-white p-4">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-emerald-50 to-white p-4">
       {/* Progress indicator */}
       {step > 0 && step < 3 && (
         <div className="mb-8 flex items-center gap-2">
@@ -108,7 +108,7 @@ export default function SupplierOnboardingPage() {
             <div
               key={i}
               className={`h-2 w-16 rounded-full transition-colors ${
-                i <= step ? "bg-green-500" : "bg-gray-200"
+                i <= step ? "bg-primary" : "bg-zinc-200"
               }`}
             />
           ))}

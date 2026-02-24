@@ -123,15 +123,15 @@ const categoryIcons: Record<string, React.ReactNode> = {
 };
 
 const categoryColors: Record<string, string> = {
-  PRODUCE: "bg-green-100 text-green-700",
-  MEAT: "bg-red-100 text-red-700",
-  SEAFOOD: "bg-blue-100 text-blue-700",
-  DAIRY: "bg-yellow-100 text-yellow-700",
-  DRY_GOODS: "bg-orange-100 text-orange-700",
+  PRODUCE: "bg-emerald-50 text-emerald-700",
+  MEAT: "bg-red-50 text-red-700",
+  SEAFOOD: "bg-blue-50 text-blue-700",
+  DAIRY: "bg-amber-50 text-amber-700",
+  DRY_GOODS: "bg-amber-50 text-amber-700",
   BAKERY: "bg-amber-100 text-amber-700",
-  BEVERAGES: "bg-purple-100 text-purple-700",
+  BEVERAGES: "bg-indigo-50 text-indigo-700",
   FROZEN: "bg-cyan-100 text-cyan-700",
-  OTHER: "bg-gray-100 text-gray-700",
+  OTHER: "bg-zinc-100 text-zinc-600",
 };
 
 export default function ProductsPage() {
@@ -284,9 +284,9 @@ export default function ProductsPage() {
 
       {/* Price Comparison Highlights */}
       {priceComparisons.length > 0 && viewMode !== "compare" && (
-        <Card className="border-green-200 bg-green-50">
+        <Card className="border-emerald-200 bg-emerald-50">
           <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-green-700">
+            <CardTitle className="flex items-center gap-2 text-emerald-700">
               <TrendingDown className="h-5 w-5" />
               Price Comparison Opportunities
             </CardTitle>
@@ -303,7 +303,7 @@ export default function ProductsPage() {
                 >
                   <p className="font-medium truncate">{item.name}</p>
                   <div className="mt-2 flex items-center justify-between text-sm">
-                    <span className="text-green-600 font-semibold">
+                    <span className="text-emerald-700 font-semibold">
                       ${item.lowestPrice.toFixed(2)}
                     </span>
                     <span className="text-muted-foreground">to</span>
@@ -311,7 +311,7 @@ export default function ProductsPage() {
                       ${item.highestPrice.toFixed(2)}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-green-600">
+                  <p className="mt-1 text-xs text-emerald-700">
                     Save up to ${item.savings.toFixed(2)}
                   </p>
                 </div>
@@ -479,7 +479,7 @@ export default function ProductsPage() {
                             Available from {comparison.suppliers.length} suppliers
                           </CardDescription>
                         </div>
-                        <Badge className="bg-green-100 text-green-700">
+                        <Badge className="bg-emerald-50 text-emerald-700">
                           Save up to ${comparison.savings.toFixed(2)}
                         </Badge>
                       </div>
@@ -511,7 +511,7 @@ export default function ProductsPage() {
                                 <span
                                   className={
                                     pIdx === 0
-                                      ? "font-bold text-green-600"
+                                      ? "font-bold text-emerald-700"
                                       : ""
                                   }
                                 >
@@ -519,7 +519,7 @@ export default function ProductsPage() {
                                   {unitLabels[product.unit] || product.unit.toLowerCase()}
                                 </span>
                                 {pIdx === 0 && (
-                                  <Badge className="ml-2 bg-green-500 text-xs">
+                                  <Badge className="ml-2 bg-emerald-600 text-xs">
                                     Lowest
                                   </Badge>
                                 )}
@@ -681,7 +681,7 @@ export default function ProductsPage() {
                           </TableCell>
                           <TableCell>
                             {product.inStock ? (
-                              <Badge className="bg-green-100 text-green-700">
+                              <Badge className="bg-emerald-50 text-emerald-700">
                                 In Stock
                               </Badge>
                             ) : (

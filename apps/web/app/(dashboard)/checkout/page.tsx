@@ -80,8 +80,8 @@ export default function CheckoutPage() {
     return (
       <div className="flex h-[60vh] items-center justify-center">
         <div className="text-center space-y-4">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100">
-            <Check className="h-8 w-8 text-green-600" />
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
+            <Check className="h-8 w-8 text-emerald-700" />
           </div>
           <h2 className="text-2xl font-bold">Orders Placed Successfully!</h2>
           <p className="text-muted-foreground">

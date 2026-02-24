@@ -51,7 +51,7 @@ export function PendingApprovals() {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Clock className="h-5 w-5 text-yellow-500" />
+          <Clock className="h-5 w-5 text-amber-600" />
           Pending Approvals
           <Badge variant="secondary">{approvals.length}</Badge>
         </CardTitle>

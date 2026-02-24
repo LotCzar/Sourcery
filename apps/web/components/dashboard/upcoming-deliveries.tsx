@@ -45,7 +45,7 @@ const statusConfig: Record<
 > = {
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   SHIPPED: {
@@ -55,7 +55,7 @@ const statusConfig: Record<
   },
   IN_TRANSIT: {
     label: "In Transit",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <Truck className="h-3 w-3" />,
   },
 };
@@ -146,8 +146,8 @@ export function UpcomingDeliveries({ deliveries }: UpcomingDeliveriesProps) {
                 <div className="flex items-center gap-3 flex-1 min-w-0">
                   {delivery.status === "IN_TRANSIT" ? (
                     <div className="relative">
-                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75" />
-                      <span className="relative inline-flex h-3 w-3 rounded-full bg-green-500" />
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-600" />
                     </div>
                   ) : (
                     <div className="h-3 w-3" />

@@ -37,7 +37,7 @@ interface DeliveryCardProps {
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   SHIPPED: {
@@ -47,7 +47,7 @@ const statusConfig: Record<string, { label: string; color: string; icon: React.R
   },
   IN_TRANSIT: {
     label: "In Transit",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <Truck className="h-3 w-3" />,
   },
 };

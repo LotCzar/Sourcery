@@ -64,22 +64,22 @@ export function MobileNav() {
             <div className="flex h-16 items-center border-b px-6">
               <Link
                 href="/"
-                className="flex items-center gap-2"
+                className="flex items-center gap-2.5"
                 onClick={() => setIsOpen(false)}
               >
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <span className="text-lg font-bold text-primary-foreground">
+                <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+                  <span className="text-sm font-bold text-primary-foreground">
                     F
                   </span>
                 </div>
-                <span className="text-xl font-bold text-foreground">
+                <span className="text-lg font-semibold text-foreground">
                   FreshSheet
                 </span>
               </Link>
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1 px-3 py-4">
+            <nav className="space-y-0.5 px-3 py-3">
               {navigation.map((item) => {
                 const isActive =
                   pathname === item.href ||
@@ -90,17 +90,17 @@ export function MobileNav() {
                     href={item.href}
                     onClick={() => setIsOpen(false)}
                   >
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
+                    <div
                       className={cn(
-                        "w-full justify-start gap-3",
-                        isActive &&
-                          "bg-primary/10 text-primary hover:bg-primary/20"
+                        "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                        isActive
+                          ? "border-l-2 border-primary bg-muted font-medium text-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className={cn("h-4 w-4", isActive ? "text-foreground" : "text-muted-foreground")} />
                       {item.name}
-                    </Button>
+                    </div>
                   </Link>
                 );
               })}

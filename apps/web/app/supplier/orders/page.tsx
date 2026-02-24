@@ -95,22 +95,22 @@ const statusConfig: Record<
 > = {
   DRAFT: {
     label: "Draft",
-    color: "bg-gray-100 text-gray-700",
+    color: "bg-zinc-100 text-zinc-600",
     icon: <FileText className="h-3 w-3" />,
   },
   PENDING: {
     label: "Pending",
-    color: "bg-yellow-100 text-yellow-700",
+    color: "bg-amber-50 text-amber-700",
     icon: <Clock className="h-3 w-3" />,
   },
   CONFIRMED: {
     label: "Confirmed",
-    color: "bg-blue-100 text-blue-700",
+    color: "bg-blue-50 text-blue-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   SHIPPED: {
     label: "Shipped",
-    color: "bg-indigo-100 text-indigo-700",
+    color: "bg-indigo-50 text-indigo-700",
     icon: <Truck className="h-3 w-3" />,
   },
   IN_TRANSIT: {
@@ -120,12 +120,12 @@ const statusConfig: Record<
   },
   DELIVERED: {
     label: "Delivered",
-    color: "bg-green-100 text-green-700",
+    color: "bg-emerald-50 text-emerald-700",
     icon: <CheckCircle className="h-3 w-3" />,
   },
   CANCELLED: {
     label: "Cancelled",
-    color: "bg-red-100 text-red-700",
+    color: "bg-red-50 text-red-700",
     icon: <XCircle className="h-3 w-3" />,
   },
 };
@@ -140,10 +140,10 @@ const statusActions: Record<string, { action: string; label: string; color: stri
   ],
   SHIPPED: [
     { action: "out_for_delivery", label: "Out for Delivery", color: "bg-emerald-600 hover:bg-emerald-700" },
-    { action: "deliver", label: "Mark Delivered", color: "bg-green-600 hover:bg-green-700" },
+    { action: "deliver", label: "Mark Delivered", color: "bg-emerald-600 hover:bg-emerald-700" },
   ],
   IN_TRANSIT: [
-    { action: "deliver", label: "Mark Delivered", color: "bg-green-600 hover:bg-green-700" },
+    { action: "deliver", label: "Mark Delivered", color: "bg-emerald-600 hover:bg-emerald-700" },
   ],
 };
 
@@ -492,7 +492,7 @@ export default function SupplierOrdersPage() {
                       </div>
                     )}
                     {selectedOrder.discount > 0 && (
-                      <div className="flex justify-between text-sm text-green-600">
+                      <div className="flex justify-between text-sm text-emerald-700">
                         <span>Discount</span>
                         <span>-{formatCurrency(selectedOrder.discount)}</span>
                       </div>

@@ -84,8 +84,8 @@ export default async function SuppliersPage({
         <div className="grid gap-4 sm:grid-cols-3">
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-100">
-                <Star className="h-5 w-5 text-green-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-50">
+                <Star className="h-5 w-5 text-emerald-700" />
               </div>
               <div>
                 <p className="text-2xl font-bold">{suppliers.length}</p>
@@ -95,8 +95,8 @@ export default async function SuppliersPage({
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100">
-                <Truck className="h-5 w-5 text-blue-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
+                <Truck className="h-5 w-5 text-blue-700" />
               </div>
               <div>
                 <p className="text-2xl font-bold">Same Day</p>
@@ -106,8 +106,8 @@ export default async function SuppliersPage({
           </Card>
           <Card>
             <CardContent className="flex items-center gap-4 p-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-orange-100">
-                <DollarSign className="h-5 w-5 text-orange-600" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-50">
+                <DollarSign className="h-5 w-5 text-amber-700" />
               </div>
               <div>
                 <p className="text-2xl font-bold">Best Prices</p>

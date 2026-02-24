@@ -87,12 +87,12 @@ interface Summary {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: any }> = {
-  PENDING: { label: "Pending", color: "bg-yellow-100 text-yellow-700", icon: Clock },
-  PAID: { label: "Paid", color: "bg-green-100 text-green-700", icon: CheckCircle },
-  OVERDUE: { label: "Overdue", color: "bg-red-100 text-red-700", icon: AlertTriangle },
-  PARTIALLY_PAID: { label: "Partial", color: "bg-blue-100 text-blue-700", icon: DollarSign },
-  CANCELLED: { label: "Cancelled", color: "bg-gray-100 text-gray-700", icon: FileText },
-  DISPUTED: { label: "Disputed", color: "bg-orange-100 text-orange-700", icon: AlertTriangle },
+  PENDING: { label: "Pending", color: "bg-amber-50 text-amber-700", icon: Clock },
+  PAID: { label: "Paid", color: "bg-emerald-50 text-emerald-700", icon: CheckCircle },
+  OVERDUE: { label: "Overdue", color: "bg-red-50 text-red-700", icon: AlertTriangle },
+  PARTIALLY_PAID: { label: "Partial", color: "bg-blue-50 text-blue-700", icon: DollarSign },
+  CANCELLED: { label: "Cancelled", color: "bg-zinc-100 text-zinc-600", icon: FileText },
+  DISPUTED: { label: "Disputed", color: "bg-amber-50 text-amber-700", icon: AlertTriangle },
 };
 
 const paymentMethods: Record<string, string> = {
@@ -547,7 +547,7 @@ export default function InvoicesPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Pending</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-500" />
+              <Clock className="h-4 w-4 text-amber-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(summary.totalPending)}</div>
@@ -558,7 +558,7 @@ export default function InvoicesPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Paid</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
+              <CheckCircle className="h-4 w-4 text-emerald-600" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{formatCurrency(summary.totalPaid)}</div>
@@ -683,7 +683,7 @@ export default function InvoicesPage() {
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span>{formatDate(invoice.dueDate)}</span>
                           {invoice.status === "PENDING" && daysUntilDue <= 7 && daysUntilDue > 0 && (
-                            <Badge variant="outline" className="text-xs bg-yellow-50 text-yellow-700">
+                            <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
                               {daysUntilDue}d left
                             </Badge>
                           )}
@@ -697,7 +697,7 @@ export default function InvoicesPage() {
                       <TableCell className="text-right font-medium">
                         {formatCurrency(invoice.total)}
                         {invoice.paidAmount && invoice.status === "PARTIALLY_PAID" && (
-                          <span className="block text-xs text-green-600">
+                          <span className="block text-xs text-emerald-700">
                             Paid: {formatCurrency(invoice.paidAmount)}
                           </span>
                         )}
@@ -717,7 +717,7 @@ export default function InvoicesPage() {
                               size="icon"
                               onClick={() => setPaymentInvoice(invoice)}
                             >
-                              <CreditCard className="h-4 w-4 text-green-600" />
+                              <CreditCard className="h-4 w-4 text-emerald-700" />
                             </Button>
                           )}
                           <Button
@@ -791,7 +791,7 @@ export default function InvoicesPage() {
             <Button
               onClick={handleMarkAsPaid}
               disabled={!paymentMethod || markPaidMutation.isPending}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-emerald-600 hover:bg-emerald-700"
             >
               {markPaidMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
               Mark as Paid
@@ -858,7 +858,7 @@ export default function InvoicesPage() {
                   <span>{formatCurrency(viewInvoice.total)}</span>
                 </div>
                 {viewInvoice.paidAmount && viewInvoice.paidAmount !== viewInvoice.total && (
-                  <div className="flex justify-between text-green-600">
+                  <div className="flex justify-between text-emerald-700">
                     <span>Paid</span>
                     <span>{formatCurrency(viewInvoice.paidAmount)}</span>
                   </div>
