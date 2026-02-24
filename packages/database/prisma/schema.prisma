@@ -64,6 +64,7 @@ enum POSProvider {
   TOAST
   CLOVER
   LIGHTSPEED
+  SPOTON
   MANUAL
 }
 

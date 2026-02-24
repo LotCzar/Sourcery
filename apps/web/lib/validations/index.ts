@@ -152,6 +152,7 @@ export const POSProviderSchema = z.enum([
   "TOAST",
   "CLOVER",
   "LIGHTSPEED",
+  "SPOTON",
   "MANUAL",
 ]);
 

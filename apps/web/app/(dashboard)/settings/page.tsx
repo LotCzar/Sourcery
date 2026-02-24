@@ -798,6 +798,7 @@ export default function SettingsPage() {
                         { key: "TOAST", name: "Toast", letter: "T", bg: "bg-amber-50", text: "text-amber-700", desc: "Import products and track inventory" },
                         { key: "CLOVER", name: "Clover", letter: "C", bg: "bg-emerald-50", text: "text-emerald-700", desc: "Manage orders and inventory" },
                         { key: "LIGHTSPEED", name: "Lightspeed", letter: "L", bg: "bg-blue-50", text: "text-blue-700", desc: "Full POS integration for restaurants" },
+                        { key: "SPOTON", name: "SpotOn", letter: "S", bg: "bg-sky-50", text: "text-sky-700", desc: "Sync menu items from SpotOn Restaurant POS" },
                         { key: "MANUAL", name: "Manual", letter: "M", bg: "bg-indigo-50", text: "text-indigo-700", desc: "Track integration status manually" },
                       ].map((provider) => {
                         const currentIntegration = integrationData?.data;

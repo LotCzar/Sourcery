@@ -40,6 +40,13 @@ const providerEnvMap: Record<
     tokenUrl: "https://cloud.lightspeedapp.com/oauth/token",
     scopes: ["employee:inventory"],
   },
+  SPOTON: {
+    clientId: "SPOTON_CLIENT_ID",
+    clientSecret: "SPOTON_CLIENT_SECRET",
+    authUrl: "https://api.spoton.com/oauth2/v1/authorize",
+    tokenUrl: "https://api.spoton.com/oauth2/v1/token",
+    scopes: ["menu:all:read", "reporting:orders:read"],
+  },
 };
 
 export function getPOSProviderConfig(
