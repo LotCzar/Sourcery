@@ -103,7 +103,7 @@ export function Sidebar() {
       <div className="border-t px-4 py-4">
         <p className="text-xs text-muted-foreground">
           Need help?{" "}
-          <a href="#" className="text-primary hover:underline">
+          <a href="mailto:support@freshsheet.ai" className="text-primary hover:underline">
             Contact support
           </a>
         </p>
