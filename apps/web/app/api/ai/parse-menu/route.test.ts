@@ -114,7 +114,7 @@ describe("POST /api/ai/parse-menu", () => {
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: JSON.stringify(parsedResult) }],
       usage: { input_tokens: 300, output_tokens: 200 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createParseMenuRequest({
@@ -149,7 +149,7 @@ describe("POST /api/ai/parse-menu", () => {
         },
       ],
       usage: { input_tokens: 300, output_tokens: 200 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createParseMenuRequest({
@@ -178,7 +178,7 @@ describe("POST /api/ai/parse-menu", () => {
         },
       ],
       usage: { input_tokens: 300, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createParseMenuRequest({

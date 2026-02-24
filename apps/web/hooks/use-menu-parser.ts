@@ -22,3 +22,13 @@ export function useMatchIngredients() {
       }),
   });
 }
+
+export function useSaveMenuItems() {
+  return useMutation({
+    mutationFn: (data: { items: Array<{ name: string; description?: string; price: number; category?: string; ingredients: Array<{ name: string; quantity: number; unit: string; notes?: string }> }> }) =>
+      apiFetch<{ success: boolean; count: number }>("/api/menu-items", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+  });
+}

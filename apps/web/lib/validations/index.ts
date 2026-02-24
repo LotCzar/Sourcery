@@ -403,6 +403,24 @@ export const UpdateDriverSchema = z.object({
   phone: z.string().max(50).optional(),
 });
 
+// Save Menu Items (from AI parser)
+export const SaveMenuItemSchema = z.object({
+  name: z.string().min(1).max(255),
+  description: z.string().max(2000).optional(),
+  price: z.number().min(0),
+  category: z.string().max(255).optional(),
+  ingredients: z.array(z.object({
+    name: z.string().min(1).max(255),
+    quantity: z.number().min(0).default(0),
+    unit: UnitTypeSchema.default("EACH"),
+    notes: z.string().max(2000).optional(),
+  })).default([]),
+});
+
+export const SaveMenuItemsSchema = z.object({
+  items: z.array(SaveMenuItemSchema).min(1).max(200),
+});
+
 // AI Chat
 export const AiChatSchema = z.object({
   message: z.string().min(1).max(10000),

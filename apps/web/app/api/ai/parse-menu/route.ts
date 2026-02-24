@@ -92,12 +92,12 @@ Return your analysis as a JSON object with this structure:
 Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
 
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 16384,
       messages: [
         {
           role: "user",
-          content: `Please analyze this ${menuType || "restaurant"} menu and extract all ingredients:\n\n<user_menu_text>\n${menuText}\n</user_menu_text>`,
+          content: `Please analyze this ${menuType || "restaurant"} menu and extract all ingredients. Return ONLY the JSON object, no markdown fences or extra text.\n\n<user_menu_text>\n${menuText}\n</user_menu_text>`,
         },
       ],
       system: systemPrompt,
@@ -120,14 +120,22 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
     // Try to parse the JSON from the response
     let parsedResult;
     try {
-      // Find JSON in the response (it might be wrapped in markdown code blocks)
-      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      // Strip markdown code fences if present
+      let cleaned = responseText.trim();
+      const fenceMatch = cleaned.match(/```(?:json)?\s*\n?([\s\S]*?)\n?\s*```/);
+      if (fenceMatch) {
+        cleaned = fenceMatch[1].trim();
+      }
+
+      // Find the outermost JSON object
+      const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         parsedResult = JSON.parse(jsonMatch[0]);
       } else {
         throw new Error("No JSON found in response");
       }
     } catch (parseError) {
+      console.error("Menu parse JSON extraction failed:", parseError, "Response:", responseText.slice(0, 500));
       // If parsing fails, return the raw text
       return NextResponse.json({
         success: true,
@@ -138,6 +146,7 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
 
     // Validate AI output has expected shape
     if (!parsedResult || typeof parsedResult !== "object" || !Array.isArray(parsedResult.menuItems)) {
+      console.error("Menu parse validation failed. Keys:", Object.keys(parsedResult || {}));
       return NextResponse.json({
         success: true,
         rawResponse: responseText,

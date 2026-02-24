@@ -56,7 +56,7 @@ export async function POST(request: Request) {
 
     // Ask Claude to parse the search intent
     const response = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       max_tokens: 500,
       system: `You are a search intent parser for a restaurant procurement platform. Parse the user's natural language query into structured search parameters. Return ONLY valid JSON with this schema:
 {

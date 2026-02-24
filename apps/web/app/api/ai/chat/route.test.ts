@@ -123,7 +123,7 @@ describe("POST /api/ai/chat", () => {
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello!" }],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -150,7 +150,7 @@ describe("POST /api/ai/chat", () => {
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello!" }],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createChatRequest({
@@ -175,7 +175,7 @@ describe("POST /api/ai/chat", () => {
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hi" }],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -201,7 +201,7 @@ describe("POST /api/ai/chat", () => {
       stop_reason: "end_turn",
       content: [{ type: "text", text: "Hello there!" }],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const request = createChatRequest({ message: "Hello" });
@@ -236,13 +236,13 @@ describe("POST /api/ai/chat", () => {
           },
         ],
         usage: { input_tokens: 150, output_tokens: 80 },
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
       })
       .mockResolvedValueOnce({
         stop_reason: "end_turn",
         content: [{ type: "text", text: "I found tomatoes for you." }],
         usage: { input_tokens: 200, output_tokens: 100 },
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
       });
 
     const request = createChatRequest({ message: "Find tomatoes" });

@@ -402,7 +402,7 @@ export function createMockAiUsageLog(overrides?: Record<string, unknown>) {
     outputTokens: 200,
     cacheReadTokens: 0,
     cacheWriteTokens: 0,
-    model: "claude-sonnet-4-20250514",
+    model: "claude-sonnet-4-6",
     durationMs: null,
     periodStart: new Date("2026-02-01T00:00:00.000Z"),
     createdAt: new Date("2026-02-15"),

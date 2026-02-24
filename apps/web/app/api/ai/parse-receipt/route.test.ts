@@ -75,7 +75,7 @@ describe("POST /api/ai/parse-receipt", () => {
         },
       ],
       usage: { input_tokens: 500, output_tokens: 200 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const response = await POST(
@@ -135,7 +135,7 @@ describe("POST /api/ai/parse-receipt", () => {
         },
       ],
       usage: { input_tokens: 500, output_tokens: 200 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const response = await POST(
@@ -194,7 +194,7 @@ describe("POST /api/ai/parse-receipt", () => {
         },
       ],
       usage: { input_tokens: 500, output_tokens: 200 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const response = await POST(
@@ -223,7 +223,7 @@ describe("POST /api/ai/parse-receipt", () => {
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: "I cannot read this image clearly" }],
       usage: { input_tokens: 500, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const response = await POST(

@@ -56,7 +56,7 @@ describe("POST /api/ai/search", () => {
         },
       ],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const product = {
@@ -84,7 +84,7 @@ describe("POST /api/ai/search", () => {
         },
       ],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const supplier = {
@@ -107,7 +107,7 @@ describe("POST /api/ai/search", () => {
     mockAnthropicCreate.mockResolvedValue({
       content: [{ type: "text", text: "I cannot parse this query" }],
       usage: { input_tokens: 100, output_tokens: 50 },
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const response = await POST(

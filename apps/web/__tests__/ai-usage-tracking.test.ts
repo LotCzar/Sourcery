@@ -30,7 +30,7 @@ describe("trackAiUsage", () => {
       outputTokens: 200,
       cacheReadTokens: 10,
       cacheWriteTokens: 5,
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
       durationMs: 1500,
     });
 
@@ -43,7 +43,7 @@ describe("trackAiUsage", () => {
         outputTokens: 200,
         cacheReadTokens: 10,
         cacheWriteTokens: 5,
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
         durationMs: 1500,
         periodStart: expect.any(Date),
       }),
@@ -59,7 +59,7 @@ describe("trackAiUsage", () => {
       userId: "user_1",
       inputTokens: 100,
       outputTokens: 50,
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     const call = prismaMock.aiUsageLog.create.mock.calls[0][0];
@@ -83,7 +83,7 @@ describe("trackAiUsage", () => {
         userId: "user_1",
         inputTokens: 100,
         outputTokens: 50,
-        model: "claude-sonnet-4-20250514",
+        model: "claude-sonnet-4-6",
       })
     ).resolves.toBeUndefined();
 
@@ -103,7 +103,7 @@ describe("trackAiUsage", () => {
       userId: null,
       inputTokens: 200,
       outputTokens: 100,
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-6",
     });
 
     expect(prismaMock.aiUsageLog.create).toHaveBeenCalledWith({

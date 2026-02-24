@@ -46,9 +46,12 @@ import {
   Plus,
   Minus,
   Store,
+  Save,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/lib/cart-context";
-import { useParseMenu, useMatchIngredients } from "@/hooks/use-menu-parser";
+import { useParseMenu, useMatchIngredients, useSaveMenuItems } from "@/hooks/use-menu-parser";
 
 interface Ingredient {
   name: string;
@@ -147,14 +150,20 @@ export default function MenuParserPage() {
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("parse");
 
+  const [prices, setPrices] = useState<Record<string, number>>({});
+
   // Shared cart
   const { addItem, updateQuantity, removeItem, getCartBySupplier, getCartTotal, cart } = useCart();
+
+  const { toast } = useToast();
 
   // Mutations
   const parseMenu = useParseMenu();
   const matchIngredients = useMatchIngredients();
+  const saveMenuItems = useSaveMenuItems();
   const isLoading = parseMenu.isPending;
   const isMatching = matchIngredients.isPending;
+  const isSaving = saveMenuItems.isPending;
 
   const handleAddToCart = (match: ProductMatch) => {
     addItem({
@@ -184,11 +193,20 @@ export default function MenuParserPage() {
 
       if (data.parsed && data.data) {
         setResult(data.data);
+        const initialPrices: Record<string, number> = {};
+        data.data.menuItems?.forEach((item: MenuItem) => {
+          initialPrices[item.name] = 0;
+        });
+        setPrices(initialPrices);
         if (data.data.menuItems?.length > 0) {
           setSelectedDish(data.data.menuItems[0].name);
         }
       } else {
-        setError("Could not parse the menu. Please try again with more details.");
+        setError(
+          data.rawResponse
+            ? "AI returned an unexpected format. Please try again."
+            : "Could not parse the menu. Please try again with more details."
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
@@ -220,6 +238,37 @@ export default function MenuParserPage() {
       setViewMode("source");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
+    }
+  };
+
+  const handleSaveToMenu = async () => {
+    if (!result) return;
+
+    const items = result.menuItems.map((item) => ({
+      name: item.name,
+      description: item.description || undefined,
+      price: prices[item.name] ?? 0,
+      category: undefined as string | undefined,
+      ingredients: item.ingredients.map((ing) => ({
+        name: ing.name,
+        quantity: parseFloat(ing.estimatedQuantity) || 0,
+        unit: ing.unit || "EACH",
+        notes: ing.notes || undefined,
+      })),
+    }));
+
+    try {
+      const data = await saveMenuItems.mutateAsync({ items });
+      toast({
+        title: "Menu saved",
+        description: `${data.count} item${data.count === 1 ? "" : "s"} saved to your menu.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Error",
+        description: err instanceof Error ? err.message : "Failed to save menu items",
+        variant: "destructive",
+      });
     }
   };
 
@@ -639,24 +688,59 @@ Chocolate Cake - Dark chocolate, raspberry coulis"
                   </CardContent>
                 </Card>
 
-                {/* Dishes List */}
+                {/* Dishes List with Prices */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle>Menu Items</CardTitle>
+                    <CardDescription>Set prices for each dish, then save to your menu.</CardDescription>
                   </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {result.menuItems.map((item) => (
-                        <Button
-                          key={item.name}
-                          variant={selectedDish === item.name ? "default" : "outline"}
-                          size="sm"
-                          onClick={() => setSelectedDish(item.name)}
-                        >
-                          {item.name}
-                        </Button>
-                      ))}
-                    </div>
+                  <CardContent className="space-y-2">
+                    {result.menuItems.map((item) => (
+                      <div
+                        key={item.name}
+                        className={`flex items-center justify-between rounded-md border p-2 cursor-pointer transition-colors ${
+                          selectedDish === item.name ? "border-primary bg-primary/5" : "hover:bg-muted/50"
+                        }`}
+                        onClick={() => setSelectedDish(item.name)}
+                      >
+                        <span className="font-medium text-sm truncate mr-2">{item.name}</span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <span className="text-muted-foreground text-sm">$</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={prices[item.name] ?? 0}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              setPrices((prev) => ({
+                                ...prev,
+                                [item.name]: parseFloat(e.target.value) || 0,
+                              }));
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="w-20 h-8 text-sm"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    <Button
+                      className="w-full mt-3"
+                      onClick={handleSaveToMenu}
+                      disabled={isSaving}
+                    >
+                      {isSaving ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="mr-2 h-4 w-4" />
+                          Save to Menu
+                        </>
+                      )}
+                    </Button>
                   </CardContent>
                 </Card>
 
