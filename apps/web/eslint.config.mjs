@@ -28,8 +28,10 @@ export default [
         { argsIgnorePattern: "^_" },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unsafe-function-type": "warn",
       "@typescript-eslint/no-empty-object-type": "off",
       "@typescript-eslint/no-require-imports": "off",
+      "@next/next/no-assign-module-variable": "warn",
     },
     settings: {
       react: { version: "detect" },
