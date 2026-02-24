@@ -405,7 +405,7 @@ export const UpdateDriverSchema = z.object({
 // AI Chat
 export const AiChatSchema = z.object({
   message: z.string().min(1).max(10000),
-  conversationId: z.string().optional(),
+  conversationId: z.string().nullable().optional(),
 });
 
 // AI Search
