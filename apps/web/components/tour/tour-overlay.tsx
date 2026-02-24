@@ -16,6 +16,7 @@ interface Rect {
 
 const PADDING = 8;
 const TOOLTIP_GAP = 12;
+const TOOLTIP_HEIGHT_ESTIMATE = 220;
 
 export function TourOverlay() {
   const { isActive, currentStep, totalSteps, currentStepData, nextStep, prevStep, endTour } =
@@ -23,6 +24,7 @@ export function TourOverlay() {
   const [targetRect, setTargetRect] = useState<Rect | null>(null);
   const [mounted, setMounted] = useState(false);
   const rafRef = useRef<number>(0);
+  const tooltipRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -54,15 +56,77 @@ export function TourOverlay() {
   useEffect(() => {
     if (!isActive || !currentStepData) return;
 
-    const el = document.querySelector(currentStepData.target);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      // Delay position calculation to let scroll finish
-      const timeout = setTimeout(updatePosition, 350);
-      return () => clearTimeout(timeout);
-    } else {
+    const el = document.querySelector(currentStepData.target) as HTMLElement | null;
+    if (!el) {
       setTargetRect(null);
+      return;
     }
+
+    // Calculate how much extra space we need for the tooltip below/above
+    const placement = currentStepData.placement;
+    const needsSpaceBelow = placement === "bottom" || !placement;
+    const extraSpace = needsSpaceBelow
+      ? PADDING + TOOLTIP_GAP + TOOLTIP_HEIGHT_ESTIMATE
+      : 0;
+    const extraSpaceAbove = placement === "top"
+      ? PADDING + TOOLTIP_GAP + TOOLTIP_HEIGHT_ESTIMATE
+      : 0;
+
+    // Use scrollIntoView with "nearest" to avoid unnecessary scrolling,
+    // then adjust if tooltip would be clipped
+    const rect = el.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+
+    // Check if element + tooltip space fits in viewport
+    const elementBottom = rect.bottom + extraSpace;
+    const elementTop = rect.top - extraSpaceAbove;
+
+    if (elementBottom > viewportHeight || elementTop < 0) {
+      // Find the scrollable parent (usually main content area)
+      const scrollParent = findScrollParent(el);
+      if (scrollParent) {
+        const scrollRect = scrollParent.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const targetScrollTop =
+          scrollParent.scrollTop +
+          (elRect.top - scrollRect.top) -
+          Math.max(80, (viewportHeight - rect.height - extraSpace) / 3);
+
+        scrollParent.scrollTo({
+          top: Math.max(0, targetScrollTop),
+          behavior: "smooth",
+        });
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+
+    // Wait for scroll to settle, then update position
+    // Use a polling approach instead of a fixed timeout
+    let attempts = 0;
+    const maxAttempts = 20;
+    let lastTop = rect.top;
+
+    const pollPosition = () => {
+      attempts++;
+      const currentRect = el.getBoundingClientRect();
+
+      if (attempts >= maxAttempts || Math.abs(currentRect.top - lastTop) < 1) {
+        // Scroll has settled
+        updatePosition();
+        return;
+      }
+
+      lastTop = currentRect.top;
+      requestAnimationFrame(pollPosition);
+    };
+
+    // Start polling after a short initial delay
+    const timeout = setTimeout(() => {
+      requestAnimationFrame(pollPosition);
+    }, 50);
+
+    return () => clearTimeout(timeout);
   }, [isActive, currentStepData, updatePosition]);
 
   // Reposition on scroll/resize
@@ -88,7 +152,7 @@ export function TourOverlay() {
   const progress = ((currentStep + 1) / totalSteps) * 100;
   const isLastStep = currentStep === totalSteps - 1;
 
-  // Compute tooltip position
+  // Compute tooltip position with viewport clamping
   const tooltipStyle = getTooltipStyle(targetRect, currentStepData.placement);
 
   const overlay = (
@@ -156,6 +220,7 @@ export function TourOverlay() {
 
       {/* Tooltip */}
       <div
+        ref={tooltipRef}
         className="fixed transition-all duration-300"
         style={{
           ...tooltipStyle,
@@ -220,6 +285,25 @@ export function TourOverlay() {
   return createPortal(overlay, document.body);
 }
 
+/**
+ * Walk up the DOM to find the nearest scrollable ancestor.
+ */
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let parent = el.parentElement;
+  while (parent) {
+    const style = window.getComputedStyle(parent);
+    const overflow = style.overflowY;
+    if (
+      (overflow === "auto" || overflow === "scroll") &&
+      parent.scrollHeight > parent.clientHeight
+    ) {
+      return parent;
+    }
+    parent = parent.parentElement;
+  }
+  return null;
+}
+
 function getTooltipStyle(
   rect: Rect | null,
   placement: string
@@ -234,44 +318,71 @@ function getTooltipStyle(
   }
 
   const tooltipWidth = 320; // w-80
+  const viewportHeight = window.innerHeight;
+  const viewportWidth = window.innerWidth;
+  const margin = 16;
+
+  // Horizontal clamping helper
+  const clampLeft = (idealLeft: number) =>
+    Math.max(margin, Math.min(idealLeft, viewportWidth - tooltipWidth - margin));
 
   switch (placement) {
-    case "bottom":
+    case "bottom": {
+      let top = rect.top + rect.height + PADDING + TOOLTIP_GAP;
+      // If tooltip would overflow bottom, flip to top
+      if (top + TOOLTIP_HEIGHT_ESTIMATE > viewportHeight - margin) {
+        top = Math.max(margin, rect.top - PADDING - TOOLTIP_GAP - TOOLTIP_HEIGHT_ESTIMATE);
+      }
       return {
-        top: rect.top + rect.height + PADDING + TOOLTIP_GAP,
-        left: Math.max(
-          16,
-          Math.min(
-            rect.left + rect.width / 2 - tooltipWidth / 2,
-            window.innerWidth - tooltipWidth - 16
-          )
-        ),
+        top: Math.max(margin, top),
+        left: clampLeft(rect.left + rect.width / 2 - tooltipWidth / 2),
       };
-    case "top":
+    }
+    case "top": {
+      let top = rect.top - PADDING - TOOLTIP_GAP - TOOLTIP_HEIGHT_ESTIMATE;
+      // If tooltip would overflow top, flip to bottom
+      if (top < margin) {
+        top = rect.top + rect.height + PADDING + TOOLTIP_GAP;
+      }
       return {
-        bottom: window.innerHeight - rect.top + PADDING + TOOLTIP_GAP,
-        left: Math.max(
-          16,
-          Math.min(
-            rect.left + rect.width / 2 - tooltipWidth / 2,
-            window.innerWidth - tooltipWidth - 16
-          )
-        ),
+        top: Math.max(margin, top),
+        left: clampLeft(rect.left + rect.width / 2 - tooltipWidth / 2),
       };
-    case "right":
-      return {
-        top: rect.top + rect.height / 2 - 80,
-        left: rect.left + rect.width + PADDING + TOOLTIP_GAP,
-      };
-    case "left":
-      return {
-        top: rect.top + rect.height / 2 - 80,
-        right: window.innerWidth - rect.left + PADDING + TOOLTIP_GAP,
-      };
+    }
+    case "right": {
+      const idealLeft = rect.left + rect.width + PADDING + TOOLTIP_GAP;
+      const top = Math.max(
+        margin,
+        Math.min(rect.top + rect.height / 2 - 80, viewportHeight - TOOLTIP_HEIGHT_ESTIMATE - margin)
+      );
+      // If overflows right, flip to bottom
+      if (idealLeft + tooltipWidth > viewportWidth - margin) {
+        return {
+          top: Math.min(rect.top + rect.height + PADDING + TOOLTIP_GAP, viewportHeight - TOOLTIP_HEIGHT_ESTIMATE - margin),
+          left: clampLeft(rect.left + rect.width / 2 - tooltipWidth / 2),
+        };
+      }
+      return { top, left: idealLeft };
+    }
+    case "left": {
+      const idealRight = viewportWidth - rect.left + PADDING + TOOLTIP_GAP;
+      const top = Math.max(
+        margin,
+        Math.min(rect.top + rect.height / 2 - 80, viewportHeight - TOOLTIP_HEIGHT_ESTIMATE - margin)
+      );
+      // If overflows left, flip to bottom
+      if (rect.left - PADDING - TOOLTIP_GAP - tooltipWidth < margin) {
+        return {
+          top: Math.min(rect.top + rect.height + PADDING + TOOLTIP_GAP, viewportHeight - TOOLTIP_HEIGHT_ESTIMATE - margin),
+          left: clampLeft(rect.left + rect.width / 2 - tooltipWidth / 2),
+        };
+      }
+      return { top, right: idealRight };
+    }
     default:
       return {
-        top: rect.top + rect.height + PADDING + TOOLTIP_GAP,
-        left: rect.left,
+        top: Math.max(margin, Math.min(rect.top + rect.height + PADDING + TOOLTIP_GAP, viewportHeight - TOOLTIP_HEIGHT_ESTIMATE - margin)),
+        left: clampLeft(rect.left),
       };
   }
 }
