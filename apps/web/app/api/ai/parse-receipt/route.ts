@@ -129,18 +129,27 @@ export async function POST(request: Request) {
         {
           role: "user",
           content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType as
-                  | "image/jpeg"
-                  | "image/png"
-                  | "image/gif"
-                  | "image/webp",
-                data: imageBase64,
-              },
-            },
+            mediaType === "application/pdf"
+              ? {
+                  type: "document" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: "application/pdf" as const,
+                    data: imageBase64,
+                  },
+                }
+              : {
+                  type: "image" as const,
+                  source: {
+                    type: "base64" as const,
+                    media_type: mediaType as
+                      | "image/jpeg"
+                      | "image/png"
+                      | "image/gif"
+                      | "image/webp",
+                    data: imageBase64,
+                  },
+                },
             {
               type: "text",
               text: `Extract the following information from this receipt/invoice image and return ONLY valid JSON:

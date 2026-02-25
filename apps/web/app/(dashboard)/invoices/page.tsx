@@ -257,21 +257,58 @@ export default function InvoicesPage() {
         scanResult.supplierName &&
         s.name.toLowerCase().includes(scanResult.supplierName.toLowerCase())
     );
-    setNewInvoice({
-      invoiceNumber: scanResult.invoiceNumber || "",
-      supplierId: matchedSupplier?.id || "",
-      subtotal: scanResult.subtotal?.toString() || "",
-      tax: scanResult.tax?.toString() || "",
-      dueDate: "",
-      notes: scanResult.lineItems
-        ?.map((li: any) => `${li.name}: ${li.quantity} x $${li.unitPrice?.toFixed(2)}`)
-        .join("\n") || "",
-    });
-    setIsScanOpen(false);
-    setIsCreateOpen(true);
-    setScanFile(null);
-    setScanPreview(null);
-    setScanResult(null);
+
+    // Calculate due date: 30 days from scanned date or 30 days from today
+    const baseDate = scanResult.date ? new Date(scanResult.date) : new Date();
+    const dueDate = new Date(baseDate);
+    dueDate.setDate(dueDate.getDate() + 30);
+    const dueDateStr = dueDate.toISOString().split("T")[0];
+
+    const notes = scanResult.lineItems
+      ?.map((li: any) => `${li.name}: ${li.quantity} x $${li.unitPrice?.toFixed(2)}`)
+      .join("\n") || "";
+
+    if (matchedSupplier) {
+      // Auto-create invoice directly
+      createInvoiceMutation.mutate(
+        {
+          invoiceNumber: scanResult.invoiceNumber || `SCAN-${Date.now()}`,
+          supplierId: matchedSupplier.id,
+          subtotal: scanResult.subtotal || scanResult.total || 0,
+          tax: scanResult.tax || 0,
+          dueDate: dueDateStr,
+          notes: notes || null,
+        },
+        {
+          onSuccess: () => {
+            toast({ title: "Invoice created from scanned receipt" });
+            setIsScanOpen(false);
+            setScanFile(null);
+            setScanPreview(null);
+            setScanResult(null);
+          },
+        }
+      );
+    } else {
+      // Fallback: open create form with pre-filled data
+      toast({
+        title: "Supplier not matched",
+        description: "Please select the supplier manually",
+      });
+      setNewInvoice({
+        invoiceNumber: scanResult.invoiceNumber || "",
+        supplierId: "",
+        subtotal: scanResult.subtotal?.toString() || "",
+        tax: scanResult.tax?.toString() || "",
+        dueDate: dueDateStr,
+        notes,
+      });
+      setIsScanOpen(false);
+      setIsCreateOpen(true);
+      setScanFile(null);
+      setScanPreview(null);
+      setScanResult(null);
+    }
   };
 
   const formatCurrency = (amount: number) => {
@@ -343,13 +380,20 @@ export default function InvoicesPage() {
               <div className="space-y-4 py-4">
                 <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6">
                   {scanPreview ? (
-                    <img src={scanPreview} alt="Receipt preview" className="max-h-48 rounded-lg mb-3" />
+                    scanFile?.type === "application/pdf" ? (
+                      <div className="flex items-center gap-2 mb-3 p-3 bg-muted rounded-lg">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate max-w-[200px]">{scanFile.name}</span>
+                      </div>
+                    ) : (
+                      <img src={scanPreview} alt="Receipt preview" className="max-h-48 rounded-lg mb-3" />
+                    )
                   ) : (
                     <Upload className="h-10 w-10 text-muted-foreground mb-3" />
                   )}
                   <input
                     type="file"
-                    accept="image/*"
+                    accept="image/*,.pdf,application/pdf"
                     onChange={handleScanFileChange}
                     className="text-sm"
                   />
@@ -387,7 +431,8 @@ export default function InvoicesPage() {
                     {isScanning ? "Scanning..." : "Scan"}
                   </Button>
                 ) : (
-                  <Button onClick={handleCreateFromScan}>
+                  <Button onClick={handleCreateFromScan} disabled={createInvoiceMutation.isPending}>
+                    {createInvoiceMutation.isPending && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
                     Create Invoice from Scan
                   </Button>
                 )}
