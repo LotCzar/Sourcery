@@ -13,13 +13,16 @@ import { OrgProvider } from "@/lib/org-context";
 import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
-async function checkOnboarding(userId: string) {
+async function checkOnboarding(userId: string): Promise<"ok" | "supplier" | "onboarding"> {
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
-    include: { restaurant: true },
+    include: { restaurant: true, supplier: true },
   });
 
-  if (!user) return false;
+  if (!user) return "onboarding";
+
+  // Supplier users should go to the supplier dashboard, not the restaurant dashboard
+  if (user.supplier) return "supplier";
 
   // ORG_ADMIN users may not have a personal restaurant but should be allowed
   // if they have an organization with restaurants
@@ -27,11 +30,11 @@ async function checkOnboarding(userId: string) {
     const orgRestaurantCount = await prisma.restaurant.count({
       where: { organizationId: user.organizationId },
     });
-    if (orgRestaurantCount > 0) return true;
+    if (orgRestaurantCount > 0) return "ok";
   }
 
   // Standard users must have a restaurant to be considered onboarded
-  return user.restaurant !== null;
+  return user.restaurant !== null ? "ok" : "onboarding";
 }
 
 export default async function DashboardLayout({
@@ -45,9 +48,13 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const hasCompletedOnboarding = await checkOnboarding(userId);
+  const onboardingStatus = await checkOnboarding(userId);
 
-  if (!hasCompletedOnboarding) {
+  if (onboardingStatus === "supplier") {
+    redirect("/supplier");
+  }
+
+  if (onboardingStatus === "onboarding") {
     redirect("/onboarding");
   }
 

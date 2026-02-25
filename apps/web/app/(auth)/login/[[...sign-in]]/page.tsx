@@ -1,6 +1,50 @@
-import { SignIn } from "@clerk/nextjs";
+"use client";
+
+import { SignIn, useAuth, useClerk } from "@clerk/nextjs";
+import { useState } from "react";
 
 export default function LoginPage() {
+  const { isSignedIn, isLoaded } = useAuth();
+  const { signOut } = useClerk();
+  const [signedOut, setSignedOut] = useState(false);
+
+  if (!isLoaded) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  // User is signed in but landed on /login — show switch-account screen
+  // Don't render <SignIn> at all (it would auto-redirect)
+  if (isSignedIn && !signedOut) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <div className="w-full max-w-sm rounded-lg border bg-card p-8 text-center shadow-lg">
+          <div className="flex h-10 w-10 mx-auto items-center justify-center rounded-md bg-primary">
+            <span className="text-sm font-bold text-primary-foreground">F</span>
+          </div>
+          <h2 className="mt-4 text-lg font-semibold text-foreground">
+            You&apos;re already signed in
+          </h2>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Sign out to switch to a different account.
+          </p>
+          <button
+            onClick={async () => {
+              await signOut();
+              setSignedOut(true);
+            }}
+            className="mt-6 w-full rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Sign Out &amp; Switch Account
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Left brand panel — hidden on mobile */}
