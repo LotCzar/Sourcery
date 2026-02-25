@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 
 export function useParseMenu() {
   return useMutation({
@@ -24,11 +25,16 @@ export function useMatchIngredients() {
 }
 
 export function useSaveMenuItems() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: (data: { items: Array<{ name: string; description?: string; price: number; category?: string; ingredients: Array<{ name: string; quantity: number; unit: string; notes?: string }> }> }) =>
       apiFetch<{ success: boolean; count: number }>("/api/menu-items", {
         method: "POST",
         body: JSON.stringify(data),
       }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.menuItems.all });
+    },
   });
 }

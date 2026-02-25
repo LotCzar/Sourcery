@@ -28,8 +28,26 @@ describe("GET /api/suppliers/[id]", () => {
     expect(data.error).toBe("Unauthorized");
   });
 
-  it("returns 404 when supplier not linked to restaurant", async () => {
-    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce(null);
+  it("returns 404 when supplier not found", async () => {
+    prismaMock.supplier.findUnique.mockResolvedValueOnce(null);
+
+    const response = await GET(
+      createRequest("http://localhost/api/suppliers/sup_1"),
+      mockParams
+    );
+    const { status, data } = await parseResponse(response);
+
+    expect(status).toBe(404);
+    expect(data.error).toBe("Supplier not found");
+  });
+
+  it("returns 404 when supplier is not verified", async () => {
+    const supplier = {
+      ...createMockSupplier({ status: "PENDING" }),
+      products: [],
+      _count: { products: 0 },
+    };
+    prismaMock.supplier.findUnique.mockResolvedValueOnce(supplier as any);
 
     const response = await GET(
       createRequest("http://localhost/api/suppliers/sup_1"),
@@ -42,8 +60,6 @@ describe("GET /api/suppliers/[id]", () => {
   });
 
   it("returns supplier with products and Decimal-to-Number conversion", async () => {
-    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
-
     const supplier = {
       ...createMockSupplier(),
       products: [
@@ -74,8 +90,6 @@ describe("GET /api/suppliers/[id]", () => {
   });
 
   it("handles null optional Decimal fields", async () => {
-    prismaMock.restaurantSupplier.findFirst.mockResolvedValueOnce({ id: "rs_1" } as any);
-
     const supplier = {
       ...createMockSupplier({
         minimumOrder: null,

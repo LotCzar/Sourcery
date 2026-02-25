@@ -20,6 +20,10 @@ export async function POST() {
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const restaurantId = user.restaurant.id;
 
     // Get some suppliers and products
@@ -54,11 +58,36 @@ export async function POST() {
       );
     }
 
+    // Create RestaurantSupplier relationships for all suppliers
+    let restaurantSuppliersCount = 0;
+    for (const supplier of suppliers) {
+      try {
+        await prisma.restaurantSupplier.upsert({
+          where: {
+            restaurantId_supplierId: {
+              restaurantId,
+              supplierId: supplier.id,
+            },
+          },
+          update: {},
+          create: {
+            restaurantId,
+            supplierId: supplier.id,
+            isPreferred: restaurantSuppliersCount === 0,
+          },
+        });
+        restaurantSuppliersCount++;
+      } catch (rsError: any) {
+        console.error(`RestaurantSupplier link error for ${supplier.name}:`, rsError);
+      }
+    }
+
     const results = {
       orders: 0,
       invoices: 0,
       inventoryItems: 0,
       priceAlerts: 0,
+      restaurantSuppliers: restaurantSuppliersCount,
       errors: [] as string[],
     };
 
@@ -361,6 +390,10 @@ export async function DELETE() {
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const restaurantId = user.restaurant.id;
     const deleted: Record<string, number> = {};
 
@@ -434,6 +467,15 @@ export async function DELETE() {
       deleted.notifications = result.count;
     } catch (e: any) {
       console.error("Failed to delete notifications:", e.message);
+    }
+
+    try {
+      const result = await prisma.restaurantSupplier.deleteMany({
+        where: { restaurantId },
+      });
+      deleted.restaurantSuppliers = result.count;
+    } catch (e: any) {
+      console.error("Failed to delete restaurant suppliers:", e.message);
     }
 
     return NextResponse.json({

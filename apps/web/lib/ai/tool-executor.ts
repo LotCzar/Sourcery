@@ -86,6 +86,28 @@ export async function executeTool(
         return await orgSummary(input, context);
       case "send_order_message":
         return await sendOrderMessage(input, context);
+      case "submit_order":
+        return await submitOrder(input, context);
+      case "cancel_order":
+        return await cancelOrder(input, context);
+      case "update_order_status":
+        return await updateOrderStatus(input, context);
+      case "get_menu_items":
+        return await getMenuItems(input, context);
+      case "mark_invoice_paid":
+        return await markInvoicePaid(input, context);
+      case "add_inventory_item":
+        return await addInventoryItem(input, context);
+      case "get_delivery_status":
+        return await getDeliveryStatus(input, context);
+      case "duplicate_order":
+        return await duplicateOrder(input, context);
+      case "get_notifications":
+        return await getNotifications(input, context);
+      case "mark_notifications_read":
+        return await markNotificationsRead(input, context);
+      case "schedule_order":
+        return await scheduleOrder(input, context);
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -3279,5 +3301,727 @@ async function sendOrderMessage(
     confirmation: is_internal
       ? `Internal note added to order ${order.orderNumber}`
       : `Message sent on order ${order.orderNumber} to the supplier`,
+  };
+}
+
+// ============================================
+// Submit / Cancel / Status Tools
+// ============================================
+
+const ROLE_HIERARCHY: Record<string, number> = {
+  STAFF: 0,
+  MANAGER: 1,
+  OWNER: 2,
+  ORG_ADMIN: 2,
+};
+
+async function submitOrderCore(
+  order: any,
+  context: ToolContext
+) {
+  const orderTotal = Number(order.total);
+
+  // Check approval rules
+  const approvalRules = await prisma.approvalRule.findMany({
+    where: { restaurantId: context.restaurantId, isActive: true },
+  });
+
+  const matchingRule = approvalRules.find((rule) => {
+    const min = Number(rule.minAmount);
+    const max = rule.maxAmount ? Number(rule.maxAmount) : Infinity;
+    return orderTotal >= min && orderTotal <= max;
+  });
+
+  if (
+    matchingRule &&
+    (ROLE_HIERARCHY[context.userRole] ?? 0) < (ROLE_HIERARCHY[matchingRule.requiredRole] ?? 0)
+  ) {
+    // Needs approval
+    const updatedOrder = await prisma.order.update({
+      where: { id: order.id },
+      data: { status: "AWAITING_APPROVAL" },
+      include: { supplier: { select: { name: true } }, items: true },
+    });
+
+    await prisma.orderApproval.create({
+      data: {
+        orderId: order.id,
+        requestedById: context.userId,
+        status: "PENDING",
+      },
+    });
+
+    inngest
+      .send({
+        name: "order/approval.requested",
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          requestedById: context.userId,
+          total: orderTotal,
+          restaurantId: context.restaurantId,
+          requiredRole: matchingRule.requiredRole,
+        },
+      })
+      .catch(() => {});
+
+    return updatedOrder;
+  }
+
+  // No approval needed — go directly to PENDING
+  const deliveryDate = new Date();
+  deliveryDate.setDate(deliveryDate.getDate() + order.supplier.leadTimeDays);
+
+  const updatedOrder = await prisma.order.update({
+    where: { id: order.id },
+    data: {
+      status: "PENDING",
+      deliveryDate: order.deliveryDate || deliveryDate,
+    },
+    include: { supplier: { select: { name: true } }, items: true },
+  });
+
+  inngest
+    .send({
+      name: "order/status.changed",
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        previousStatus: "DRAFT",
+        newStatus: "PENDING",
+        restaurantId: context.restaurantId,
+      },
+    })
+    .catch(() => {});
+
+  return updatedOrder;
+}
+
+async function submitOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    include: {
+      supplier: true,
+      items: true,
+      restaurant: { include: { approvalRules: true } },
+    },
+  });
+
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+  if (order.status !== "DRAFT") return { error: `Order is ${order.status}, not DRAFT. Only draft orders can be submitted.` };
+  if (order.supplier.status !== "VERIFIED") return { error: `Cannot submit: supplier is ${order.supplier.status.toLowerCase()}.` };
+
+  if (order.supplier.minimumOrder) {
+    const minAmount = Number(order.supplier.minimumOrder);
+    if (Number(order.subtotal) < minAmount) {
+      return { error: `Order subtotal ($${Number(order.subtotal).toFixed(2)}) is below supplier minimum ($${minAmount.toFixed(2)}).` };
+    }
+  }
+
+  const updatedOrder = await submitOrderCore(order, context);
+
+  return {
+    success: true,
+    order: {
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      status: updatedOrder.status,
+      supplier: updatedOrder.supplier.name,
+      total: Number(order.total),
+    },
+    message: updatedOrder.status === "AWAITING_APPROVAL"
+      ? `Order ${updatedOrder.orderNumber} requires approval before processing.`
+      : `Order ${updatedOrder.orderNumber} submitted successfully and is now pending.`,
+  };
+}
+
+async function cancelOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    select: { id: true, orderNumber: true, status: true },
+  });
+
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+
+  const nonCancellable = ["SHIPPED", "IN_TRANSIT", "DELIVERED", "CANCELLED", "RETURNED"];
+  if (nonCancellable.includes(order.status)) {
+    return { error: `Cannot cancel order with status ${order.status}. Only DRAFT, AWAITING_APPROVAL, PENDING, CONFIRMED, or PROCESSING orders can be cancelled.` };
+  }
+
+  const previousStatus = order.status;
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { status: "CANCELLED" },
+  });
+
+  inngest
+    .send({
+      name: "order/status.changed",
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        previousStatus,
+        newStatus: "CANCELLED",
+        restaurantId: context.restaurantId,
+        reason: input.reason,
+      },
+    })
+    .catch(() => {});
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      previousStatus,
+      status: "CANCELLED",
+    },
+    message: `Order ${order.orderNumber} has been cancelled.`,
+  };
+}
+
+const VALID_ORDER_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["CONFIRMED"],
+  CONFIRMED: ["PROCESSING", "SHIPPED"],
+  PROCESSING: ["SHIPPED"],
+  SHIPPED: ["IN_TRANSIT", "DELIVERED"],
+  IN_TRANSIT: ["DELIVERED"],
+};
+
+async function updateOrderStatus(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    select: { id: true, orderNumber: true, status: true },
+  });
+
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+
+  const allowedStatuses = VALID_ORDER_TRANSITIONS[order.status];
+  if (!allowedStatuses || !allowedStatuses.includes(input.status)) {
+    return {
+      error: `Cannot transition from ${order.status} to ${input.status}. Valid transitions: ${allowedStatuses?.join(", ") || "none"}.`,
+    };
+  }
+
+  const previousStatus = order.status;
+  const data: any = { status: input.status };
+
+  // Set timestamp fields
+  if (input.status === "SHIPPED") data.shippedAt = new Date();
+  if (input.status === "IN_TRANSIT") data.inTransitAt = new Date();
+  if (input.status === "DELIVERED") data.deliveredAt = new Date();
+  if (input.tracking_notes) data.trackingNotes = input.tracking_notes;
+
+  await prisma.order.update({ where: { id: order.id }, data });
+
+  // Emit events
+  inngest
+    .send({
+      name: "order/status.changed",
+      data: {
+        orderId: order.id,
+        orderNumber: order.orderNumber,
+        previousStatus,
+        newStatus: input.status,
+        restaurantId: context.restaurantId,
+      },
+    })
+    .catch(() => {});
+
+  if (input.status === "DELIVERED") {
+    inngest
+      .send({
+        name: "order/delivered",
+        data: {
+          orderId: order.id,
+          orderNumber: order.orderNumber,
+          restaurantId: context.restaurantId,
+        },
+      })
+      .catch(() => {});
+  }
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      previousStatus,
+      status: input.status,
+    },
+    message: `Order ${order.orderNumber} updated from ${previousStatus} to ${input.status}.`,
+  };
+}
+
+// ============================================
+// Menu & Inventory Tools
+// ============================================
+
+async function getMenuItems(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const where: any = { restaurantId: context.restaurantId };
+
+  if (input.category) {
+    where.category = { equals: input.category, mode: "insensitive" };
+  }
+  if (input.search) {
+    where.name = { contains: input.search, mode: "insensitive" };
+  }
+  if (input.active_only !== false) {
+    where.isActive = true;
+  }
+
+  const menuItems = await prisma.menuItem.findMany({
+    where,
+    include: { ingredients: true },
+    orderBy: { name: "asc" },
+    take: 50,
+  });
+
+  return {
+    success: true,
+    menuItems: menuItems.map((item) => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      price: Number(item.price),
+      category: item.category,
+      isActive: item.isActive,
+      ingredients: item.ingredients.map((ing) => ({
+        name: ing.name,
+        quantity: Number(ing.quantity),
+        unit: ing.unit,
+      })),
+    })),
+    count: menuItems.length,
+  };
+}
+
+async function addInventoryItem(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  // Check for duplicate name
+  const existing = await prisma.inventoryItem.findFirst({
+    where: {
+      restaurantId: context.restaurantId,
+      name: { equals: input.name, mode: "insensitive" },
+    },
+  });
+
+  if (existing) {
+    return { error: `An inventory item named "${existing.name}" already exists.` };
+  }
+
+  const initialQty = input.current_quantity || 0;
+
+  const item = await prisma.inventoryItem.create({
+    data: {
+      name: input.name,
+      category: input.category,
+      unit: input.unit,
+      currentQuantity: initialQty,
+      parLevel: input.par_level ?? null,
+      costPerUnit: input.cost_per_unit ?? null,
+      location: input.location ?? null,
+      notes: input.notes ?? null,
+      restaurantId: context.restaurantId,
+    },
+  });
+
+  // Create initial inventory log if quantity > 0
+  if (initialQty > 0) {
+    await prisma.inventoryLog.create({
+      data: {
+        changeType: "RECEIVED",
+        quantity: initialQty,
+        previousQuantity: 0,
+        newQuantity: initialQty,
+        notes: "Initial inventory via AI chat",
+        inventoryItemId: item.id,
+      },
+    });
+  }
+
+  return {
+    success: true,
+    item: {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      unit: item.unit,
+      currentQuantity: Number(item.currentQuantity),
+      parLevel: item.parLevel ? Number(item.parLevel) : null,
+      costPerUnit: item.costPerUnit ? Number(item.costPerUnit) : null,
+    },
+    message: `Inventory item "${item.name}" added${initialQty > 0 ? ` with initial quantity of ${initialQty} ${item.unit}` : ""}.`,
+  };
+}
+
+// ============================================
+// Invoice Tools
+// ============================================
+
+async function markInvoicePaid(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: input.invoice_id, restaurantId: context.restaurantId },
+  });
+
+  if (!invoice) return { error: "Invoice not found or does not belong to your restaurant." };
+
+  const payableStatuses = ["PENDING", "OVERDUE", "PARTIALLY_PAID", "DISPUTED"];
+  if (!payableStatuses.includes(invoice.status)) {
+    return { error: `Cannot mark invoice as paid — current status is ${invoice.status}.` };
+  }
+
+  const invoiceTotal = Number(invoice.total);
+  const paidAmount = input.paid_amount ?? invoiceTotal;
+  const targetStatus = paidAmount < invoiceTotal ? "PARTIALLY_PAID" : "PAID";
+
+  const updated = await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: {
+      status: targetStatus,
+      paidAt: new Date(),
+      paidAmount,
+      paymentMethod: input.payment_method ?? null,
+      paymentReference: input.payment_reference ?? null,
+    },
+  });
+
+  inngest
+    .send({
+      name: "invoice/status.changed",
+      data: {
+        invoiceId: invoice.id,
+        invoiceNumber: invoice.invoiceNumber,
+        previousStatus: invoice.status,
+        newStatus: targetStatus,
+        restaurantId: context.restaurantId,
+      },
+    })
+    .catch(() => {});
+
+  return {
+    success: true,
+    invoice: {
+      id: updated.id,
+      invoiceNumber: updated.invoiceNumber,
+      status: updated.status,
+      total: Number(updated.total),
+      paidAmount: updated.paidAmount ? Number(updated.paidAmount) : null,
+      paidAt: updated.paidAt?.toISOString() ?? null,
+    },
+    message: targetStatus === "PARTIALLY_PAID"
+      ? `Invoice ${updated.invoiceNumber} marked as partially paid ($${paidAmount.toFixed(2)} of $${invoiceTotal.toFixed(2)}).`
+      : `Invoice ${updated.invoiceNumber} marked as paid.`,
+  };
+}
+
+// ============================================
+// Delivery & Order Duplication Tools
+// ============================================
+
+async function getDeliveryStatus(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  let order;
+
+  if (input.order_id) {
+    order = await prisma.order.findFirst({
+      where: { id: input.order_id, restaurantId: context.restaurantId },
+      include: {
+        supplier: { select: { name: true } },
+        driver: { select: { firstName: true, lastName: true } },
+      },
+    });
+  } else if (input.order_number) {
+    order = await prisma.order.findFirst({
+      where: { orderNumber: input.order_number, restaurantId: context.restaurantId },
+      include: {
+        supplier: { select: { name: true } },
+        driver: { select: { firstName: true, lastName: true } },
+      },
+    });
+  } else {
+    return { error: "Please provide either order_id or order_number." };
+  }
+
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+
+  return {
+    success: true,
+    delivery: {
+      orderNumber: order.orderNumber,
+      status: order.status,
+      supplier: order.supplier.name,
+      driver: order.driver
+        ? `${order.driver.firstName || ""} ${order.driver.lastName || ""}`.trim()
+        : null,
+      deliveryDate: order.deliveryDate?.toISOString() ?? null,
+      estimatedDeliveryAt: order.estimatedDeliveryAt?.toISOString() ?? null,
+      shippedAt: order.shippedAt?.toISOString() ?? null,
+      inTransitAt: order.inTransitAt?.toISOString() ?? null,
+      deliveredAt: order.deliveredAt?.toISOString() ?? null,
+      trackingNotes: order.trackingNotes,
+      deliveryNotes: order.deliveryNotes,
+    },
+  };
+}
+
+async function duplicateOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const sourceOrder = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    include: {
+      items: { include: { product: true } },
+      supplier: true,
+    },
+  });
+
+  if (!sourceOrder) return { error: "Order not found or does not belong to your restaurant." };
+  if (sourceOrder.supplier.status !== "VERIFIED") {
+    return { error: `Supplier is ${sourceOrder.supplier.status.toLowerCase()} — cannot create new orders from this supplier.` };
+  }
+
+  // Build quantity adjustments map
+  const adjustments = new Map<string, number>();
+  if (input.adjust_quantities) {
+    for (const adj of input.adjust_quantities) {
+      adjustments.set(adj.product_id, adj.quantity);
+    }
+  }
+
+  // Build items using current catalog prices
+  let subtotal = 0;
+  const orderItems: { productId: string; quantity: number; unitPrice: any; subtotal: number }[] = [];
+
+  for (const item of sourceOrder.items) {
+    // Fetch current price from catalog
+    const currentProduct = await prisma.supplierProduct.findUnique({
+      where: { id: item.productId },
+    });
+
+    if (!currentProduct || !currentProduct.inStock) continue;
+
+    const quantity = adjustments.get(item.productId) ?? Number(item.quantity);
+    if (quantity <= 0) continue;
+
+    const unitPrice = currentProduct.price;
+    const itemSubtotal = Number(unitPrice) * quantity;
+    subtotal += itemSubtotal;
+
+    orderItems.push({
+      productId: item.productId,
+      quantity,
+      unitPrice,
+      subtotal: itemSubtotal,
+    });
+  }
+
+  if (orderItems.length === 0) {
+    return { error: "No available items to duplicate — all products may be out of stock." };
+  }
+
+  const tax = subtotal * 0.0825;
+  const deliveryFee = Number(sourceOrder.supplier.deliveryFee) || 0;
+  const total = subtotal + tax + deliveryFee;
+
+  const newOrder = await prisma.order.create({
+    data: {
+      orderNumber: generateOrderNumber(),
+      status: "DRAFT",
+      subtotal,
+      tax,
+      deliveryFee,
+      total,
+      restaurantId: context.restaurantId,
+      supplierId: sourceOrder.supplierId,
+      createdById: context.userId,
+      items: { create: orderItems },
+    },
+    include: {
+      items: { include: { product: { select: { name: true } } } },
+      supplier: { select: { name: true } },
+    },
+  });
+
+  return {
+    success: true,
+    order: {
+      id: newOrder.id,
+      orderNumber: newOrder.orderNumber,
+      status: newOrder.status,
+      supplier: newOrder.supplier.name,
+      total: Math.round(total * 100) / 100,
+      items: newOrder.items.map((i) => ({
+        product: i.product.name,
+        quantity: Number(i.quantity),
+        subtotal: Number(i.subtotal),
+      })),
+      copiedFrom: sourceOrder.orderNumber,
+    },
+    message: `Draft order ${newOrder.orderNumber} created from ${sourceOrder.orderNumber}. Review and submit from the Orders page.`,
+  };
+}
+
+// ============================================
+// Notification Tools
+// ============================================
+
+async function getNotifications(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const where: any = { userId: context.userId };
+
+  if (input.unread_only) {
+    where.isRead = false;
+  }
+  if (input.type) {
+    where.type = input.type;
+  }
+
+  const [notifications, unreadCount] = await Promise.all([
+    prisma.notification.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+    prisma.notification.count({
+      where: { userId: context.userId, isRead: false },
+    }),
+  ]);
+
+  return {
+    success: true,
+    notifications: notifications.map((n) => ({
+      id: n.id,
+      type: n.type,
+      title: n.title,
+      message: n.message,
+      isRead: n.isRead,
+      createdAt: n.createdAt.toISOString(),
+    })),
+    unreadCount,
+  };
+}
+
+async function markNotificationsRead(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (input.mark_all) {
+    const result = await prisma.notification.updateMany({
+      where: { userId: context.userId, isRead: false },
+      data: { isRead: true },
+    });
+
+    return {
+      success: true,
+      updatedCount: result.count,
+      message: result.count > 0
+        ? `Marked ${result.count} notification(s) as read.`
+        : "No unread notifications to mark.",
+    };
+  }
+
+  if (input.notification_id) {
+    const notification = await prisma.notification.findFirst({
+      where: { id: input.notification_id, userId: context.userId },
+    });
+
+    if (!notification) return { error: "Notification not found." };
+
+    await prisma.notification.update({
+      where: { id: input.notification_id },
+      data: { isRead: true },
+    });
+
+    return {
+      success: true,
+      updatedCount: 1,
+      message: "Notification marked as read.",
+    };
+  }
+
+  return { error: "Please provide a notification_id or set mark_all to true." };
+}
+
+// ============================================
+// Schedule Order Tool
+// ============================================
+
+async function scheduleOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    include: {
+      supplier: true,
+      items: true,
+      restaurant: { include: { approvalRules: true } },
+    },
+  });
+
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+  if (order.status !== "DRAFT") return { error: `Order is ${order.status}, not DRAFT. Only draft orders can be scheduled.` };
+
+  const deliveryDate = new Date(input.delivery_date);
+  if (isNaN(deliveryDate.getTime())) return { error: "Invalid delivery date format. Use ISO format (e.g., 2025-01-15)." };
+  if (deliveryDate <= new Date()) return { error: "Delivery date must be in the future." };
+
+  if (order.supplier.status !== "VERIFIED") return { error: `Cannot submit: supplier is ${order.supplier.status.toLowerCase()}.` };
+
+  if (order.supplier.minimumOrder) {
+    const minAmount = Number(order.supplier.minimumOrder);
+    if (Number(order.subtotal) < minAmount) {
+      return { error: `Order subtotal ($${Number(order.subtotal).toFixed(2)}) is below supplier minimum ($${minAmount.toFixed(2)}).` };
+    }
+  }
+
+  // Set delivery date first
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { deliveryDate },
+  });
+
+  // Re-fetch with updated delivery date
+  order.deliveryDate = deliveryDate;
+
+  const updatedOrder = await submitOrderCore(order, context);
+
+  return {
+    success: true,
+    order: {
+      id: updatedOrder.id,
+      orderNumber: updatedOrder.orderNumber,
+      status: updatedOrder.status,
+      deliveryDate: deliveryDate.toISOString(),
+      supplier: updatedOrder.supplier.name,
+      total: Number(order.total),
+    },
+    message: updatedOrder.status === "AWAITING_APPROVAL"
+      ? `Order ${updatedOrder.orderNumber} scheduled for ${deliveryDate.toISOString().split("T")[0]} and requires approval.`
+      : `Order ${updatedOrder.orderNumber} scheduled for delivery on ${deliveryDate.toISOString().split("T")[0]} and submitted.`,
   };
 }

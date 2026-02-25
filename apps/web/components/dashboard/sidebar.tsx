@@ -15,6 +15,7 @@ import {
   FileText,
   Warehouse,
   Building2,
+  UtensilsCrossed,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -27,7 +28,8 @@ const navigation = [
   { name: "Orders", href: "/orders", icon: ShoppingCart },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Suppliers", href: "/suppliers", icon: Users },
-  { name: "Menu Parser", href: "/menu-parser", icon: Sparkles },
+  { name: "Menu Parser", href: "/menu-parser", icon: Sparkles, adminOnly: true },
+  { name: "My Menu", href: "/menu", icon: UtensilsCrossed },
   { name: "Products", href: "/products", icon: Package },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Reports", href: "/reports", icon: BarChart3 },
@@ -38,7 +40,7 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { isOrgAdmin } = useOrg();
+  const { isOrgAdmin, role } = useOrg();
   const { data: unreadResult } = useUnreadCount();
   const unreadCount = unreadResult?.data?.unreadCount || 0;
 
@@ -48,7 +50,10 @@ export function Sidebar() {
     icon: Building2,
   };
 
-  const navItems = isOrgAdmin ? [orgNavItem, ...navigation] : navigation;
+  const filteredNav = navigation.filter(
+    (item) => !item.adminOnly || ["OWNER", "MANAGER", "ORG_ADMIN"].includes(role)
+  );
+  const navItems = isOrgAdmin ? [orgNavItem, ...filteredNav] : filteredNav;
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">

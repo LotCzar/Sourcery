@@ -12,16 +12,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { restaurant: true },
+    });
+
+    if (!user?.restaurant) {
+      return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    }
+
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const body = await request.json();
     const validation = validateBody(MatchIngredientsSchema, body);
     if (!validation.success) return validation.response;
 
     const { ingredients } = validation.data;
 
-    // Get all supplier products with their suppliers
+    // Get linked supplier IDs for this restaurant
+    const linkedSuppliers = await prisma.restaurantSupplier.findMany({
+      where: { restaurantId: user.restaurant.id },
+      select: { supplierId: true },
+    });
+    const linkedSupplierIds = linkedSuppliers.map((ls) => ls.supplierId);
+
+    // Get supplier products scoped to linked suppliers
     const supplierProducts = await prisma.supplierProduct.findMany({
       where: {
         inStock: true,
+        ...(linkedSupplierIds.length > 0 && {
+          supplierId: { in: linkedSupplierIds },
+        }),
       },
       include: {
         supplier: {

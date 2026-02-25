@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Card,
   CardContent,
@@ -13,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -47,6 +49,7 @@ import {
   ChevronUp,
   AlertCircle,
   CalendarDays,
+  Search,
 } from "lucide-react";
 import Link from "next/link";
 import { AiPromptChips } from "@/components/ai-prompt-chips";
@@ -143,8 +146,10 @@ export default function OrdersPage() {
   const deleteOrder = useDeleteOrder();
   const queryClient = useQueryClient();
 
+  const searchParams = useSearchParams();
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -216,10 +221,17 @@ export default function OrdersPage() {
   };
 
   // Filter orders
-  const filteredOrders =
-    statusFilter === "all"
-      ? orders
-      : orders.filter((order) => order.status === statusFilter);
+  const filteredOrders = orders.filter((order) => {
+    if (statusFilter !== "all" && order.status !== statusFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      return (
+        order.orderNumber.toLowerCase().includes(q) ||
+        order.supplier.name.toLowerCase().includes(q)
+      );
+    }
+    return true;
+  });
 
   // Count by status
   const statusCounts = orders.reduce((acc, order) => {
@@ -289,7 +301,16 @@ export default function OrdersPage() {
         ]}
       />
 
-      {/* Status Filter Pills */}
+      {/* Search & Status Filter */}
+      <div className="relative max-w-xs">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Search orders..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
+      </div>
       <div className="flex flex-wrap gap-2">
         <Button
           variant={statusFilter === "all" ? "default" : "outline"}

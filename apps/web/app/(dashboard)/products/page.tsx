@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useProducts } from "@/hooks/use-products";
 import Link from "next/link";
 import {
@@ -136,7 +137,8 @@ const categoryColors: Record<string, string> = {
 
 export default function ProductsPage() {
   // Filters
-  const [search, setSearch] = useState("");
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState(searchParams.get("q") || "");
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
   const [sortBy, setSortBy] = useState("name");

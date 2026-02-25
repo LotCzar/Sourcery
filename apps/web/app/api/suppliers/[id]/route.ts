@@ -23,15 +23,6 @@ export async function GET(
       return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
     }
 
-    // Verify the supplier is linked to user's restaurant
-    const relationship = await prisma.restaurantSupplier.findFirst({
-      where: { supplierId: id, restaurantId: user.restaurant.id },
-    });
-
-    if (!relationship) {
-      return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
-    }
-
     const supplier = await prisma.supplier.findUnique({
       where: { id: id },
       include: {
@@ -47,7 +38,7 @@ export async function GET(
       },
     });
 
-    if (!supplier) {
+    if (!supplier || supplier.status !== "VERIFIED") {
       return NextResponse.json(
         { error: "Supplier not found" },
         { status: 404 }

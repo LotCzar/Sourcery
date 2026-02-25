@@ -1,8 +1,72 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { QueryClient, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
+
+// Tools that read data only — no cache invalidation needed
+const READ_ONLY_TOOLS = new Set([
+  "search_products",
+  "get_inventory",
+  "get_order_history",
+  "compare_prices",
+  "get_supplier_info",
+  "get_consumption_insights",
+  "get_spending_summary",
+  "check_invoice",
+  "calculate_menu_cost",
+  "recommend_supplier",
+  "analyze_waste",
+  "get_supplier_performance",
+  "get_budget_forecast",
+  "get_disputed_invoices",
+  "get_seasonal_forecast",
+  "find_substitutes",
+  "get_price_trends",
+  "get_benchmarks",
+  "get_negotiation_brief",
+  "compare_restaurants",
+  "org_summary",
+  "get_menu_items",
+  "get_delivery_status",
+  "get_notifications",
+]);
+
+// Map mutating tools to the query keys they should invalidate
+const TOOL_CACHE_MAP: Record<string, readonly (readonly string[])[]> = {
+  create_draft_order: [queryKeys.orders.all, queryKeys.dashboard.all],
+  consolidate_orders: [queryKeys.orders.all, queryKeys.dashboard.all],
+  reorder_item: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.inventory.all],
+  generate_restock_list: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.inventory.all],
+  adjust_inventory: [queryKeys.inventory.all, queryKeys.inventory.insights],
+  optimize_par_levels: [queryKeys.inventory.all, queryKeys.inventory.insights],
+  create_price_alert: [queryKeys.priceAlerts.all],
+  send_order_message: [queryKeys.messages.unread],
+  submit_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+  cancel_order: [queryKeys.orders.all, queryKeys.dashboard.all],
+  update_order_status: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.invoices.all],
+  mark_invoice_paid: [queryKeys.invoices.all, queryKeys.dashboard.all],
+  add_inventory_item: [queryKeys.inventory.all, queryKeys.inventory.insights],
+  duplicate_order: [queryKeys.orders.all, queryKeys.dashboard.all],
+  mark_notifications_read: [queryKeys.notifications.all],
+  schedule_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+};
+
+function invalidateCachesForTool(toolName: string, queryClient: QueryClient) {
+  if (READ_ONLY_TOOLS.has(toolName)) return;
+
+  const keys = TOOL_CACHE_MAP[toolName];
+  if (keys) {
+    for (const key of keys) {
+      queryClient.invalidateQueries({ queryKey: key });
+    }
+  } else {
+    // Unknown mutating tool — broad invalidation as safety net
+    queryClient.invalidateQueries({ queryKey: queryKeys.orders.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
+    queryClient.invalidateQueries({ queryKey: queryKeys.inventory.all });
+  }
+}
 
 export interface ChatMessage {
   id: string;
@@ -133,34 +197,7 @@ export function useChatStream() {
                       )
                     );
                     // Invalidate relevant caches after tool actions
-                    if (
-                      data.name === "create_draft_order" ||
-                      data.name === "reorder_item" ||
-                      data.name === "generate_restock_list"
-                    ) {
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.orders.all,
-                      });
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.dashboard.all,
-                      });
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.inventory.all,
-                      });
-                    }
-                    if (data.name === "adjust_inventory") {
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.inventory.all,
-                      });
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.inventory.insights,
-                      });
-                    }
-                    if (data.name === "create_price_alert") {
-                      queryClient.invalidateQueries({
-                        queryKey: queryKeys.priceAlerts.all,
-                      });
-                    }
+                    invalidateCachesForTool(data.name, queryClient);
                     break;
 
                   case "text":

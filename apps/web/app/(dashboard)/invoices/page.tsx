@@ -158,8 +158,6 @@ export default function InvoicesPage() {
       apiFetch("/api/invoices", { method: "POST", body: JSON.stringify(data) }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.invoices.all });
-      setIsCreateOpen(false);
-      setNewInvoice({ invoiceNumber: "", supplierId: "", subtotal: "", tax: "", dueDate: "", notes: "" });
     },
     onError: (err: any) => toast({ title: "Failed to create invoice", description: err.message, variant: "destructive" }),
   });
@@ -189,14 +187,23 @@ export default function InvoicesPage() {
       toast({ title: "Please fill in all required fields", variant: "destructive" });
       return;
     }
-    createInvoiceMutation.mutate({
-      invoiceNumber: newInvoice.invoiceNumber,
-      supplierId: newInvoice.supplierId,
-      subtotal: parseFloat(newInvoice.subtotal),
-      tax: newInvoice.tax ? parseFloat(newInvoice.tax) : 0,
-      dueDate: newInvoice.dueDate,
-      notes: newInvoice.notes || null,
-    });
+    createInvoiceMutation.mutate(
+      {
+        invoiceNumber: newInvoice.invoiceNumber,
+        supplierId: newInvoice.supplierId,
+        subtotal: parseFloat(newInvoice.subtotal),
+        tax: newInvoice.tax ? parseFloat(newInvoice.tax) : 0,
+        dueDate: newInvoice.dueDate,
+        notes: newInvoice.notes || null,
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "Invoice created" });
+          setIsCreateOpen(false);
+          setNewInvoice({ invoiceNumber: "", supplierId: "", subtotal: "", tax: "", dueDate: "", notes: "" });
+        },
+      }
+    );
   };
 
   const handleMarkAsPaid = () => {
@@ -334,8 +341,9 @@ export default function InvoicesPage() {
     return diffDays;
   };
 
-  // Filter invoices by search
+  // Filter invoices by status and search
   const filteredInvoices = invoices.filter((invoice) => {
+    if (statusFilter !== "all" && invoice.status !== statusFilter) return false;
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -363,7 +371,7 @@ export default function InvoicesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Dialog open={isScanOpen} onOpenChange={(open) => { setIsScanOpen(open); if (!open) { setScanFile(null); setScanPreview(null); setScanResult(null); } }}>
+          <Dialog open={isScanOpen} onOpenChange={(open) => { setIsScanOpen(open); if (!open) { setScanFile(null); setScanPreview(null); setScanResult(null); setIsScanning(false); } }}>
             <DialogTrigger asChild>
               <Button variant="outline" className="gap-2">
                 <Camera className="h-4 w-4" />

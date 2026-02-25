@@ -172,7 +172,7 @@ export function GlobalSearch() {
                 <button
                   key={product.id}
                   onClick={() => {
-                    router.push("/products");
+                    router.push(`/products?q=${encodeURIComponent(product.name)}`);
                     setIsOpen(false);
                     setQuery("");
                   }}
@@ -218,7 +218,7 @@ export function GlobalSearch() {
                 <button
                   key={order.id}
                   onClick={() => {
-                    router.push("/orders");
+                    router.push(`/orders?q=${encodeURIComponent(order.orderNumber)}`);
                     setIsOpen(false);
                     setQuery("");
                   }}

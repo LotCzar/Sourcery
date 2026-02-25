@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useSettings, useUpdateSettings } from "@/hooks/use-settings";
+import { useTeamMembers, useAddStaffMember, useRemoveStaffMember } from "@/hooks/use-team";
 import {
   useIntegration,
   useConnectIntegration,
@@ -65,6 +66,9 @@ import {
   HelpCircle,
   RotateCcw,
   Zap,
+  Users,
+  Mail,
+  X,
 } from "lucide-react";
 import { useAiUsage } from "@/hooks/use-ai-usage";
 import { useAiUsageAnalytics } from "@/hooks/use-ai-usage-analytics";
@@ -133,6 +137,7 @@ export default function SettingsPage() {
 
   const userSettings = settingsData?.data?.user ?? null;
   const restaurantSettings = settingsData?.data?.restaurant ?? null;
+  const isAdmin = ["OWNER", "MANAGER", "ORG_ADMIN"].includes(userSettings?.role ?? "");
   const [preferences, setPreferences] = useState({
     emailNotifications: true,
     orderUpdates: true,
@@ -387,7 +392,7 @@ export default function SettingsPage() {
         {/* Main Content */}
         <div className="lg:col-span-3">
           <Tabs defaultValue="profile" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className={`grid w-full ${isAdmin ? "grid-cols-7" : "grid-cols-4"}`}>
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Profile</span>
@@ -400,18 +405,28 @@ export default function SettingsPage() {
                 <Bell className="h-4 w-4" />
                 <span className="hidden sm:inline">Notifications</span>
               </TabsTrigger>
-              <TabsTrigger value="integrations" className="flex items-center gap-2">
-                <Plug className="h-4 w-4" />
-                <span className="hidden sm:inline">Integrations</span>
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="integrations" className="flex items-center gap-2">
+                  <Plug className="h-4 w-4" />
+                  <span className="hidden sm:inline">Integrations</span>
+                </TabsTrigger>
+              )}
+              {isAdmin && (
+                <TabsTrigger value="team" className="flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  <span className="hidden sm:inline">Team</span>
+                </TabsTrigger>
+              )}
               <TabsTrigger value="usage" className="flex items-center gap-2">
                 <Zap className="h-4 w-4" />
                 <span className="hidden sm:inline">Usage</span>
               </TabsTrigger>
-              <TabsTrigger value="developer" className="flex items-center gap-2">
-                <Wrench className="h-4 w-4" />
-                <span className="hidden sm:inline">Developer</span>
-              </TabsTrigger>
+              {isAdmin && (
+                <TabsTrigger value="developer" className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4" />
+                  <span className="hidden sm:inline">Developer</span>
+                </TabsTrigger>
+              )}
             </TabsList>
 
             {/* Profile Tab */}
@@ -777,8 +792,8 @@ export default function SettingsPage() {
               </Card>
             </TabsContent>
 
-            {/* Integrations Tab */}
-            <TabsContent value="integrations" className="space-y-6">
+            {/* Integrations Tab (admin only) */}
+            {isAdmin && <TabsContent value="integrations" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle>POS Integrations</CardTitle>
@@ -900,15 +915,20 @@ export default function SettingsPage() {
               <ApprovalRulesSection />
 
               <AccountingSection />
-            </TabsContent>
+            </TabsContent>}
+
+            {/* Team Tab (admin only) */}
+            {isAdmin && <TabsContent value="team" className="space-y-6">
+              <TeamSection />
+            </TabsContent>}
 
             {/* Usage Tab */}
             <TabsContent value="usage" className="space-y-6">
               <UsageSection />
             </TabsContent>
 
-            {/* Developer Tab */}
-            <TabsContent value="developer" className="space-y-6">
+            {/* Developer Tab (admin only) */}
+            {isAdmin && <TabsContent value="developer" className="space-y-6">
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1049,7 +1069,7 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
               </Card>
-            </TabsContent>
+            </TabsContent>}
           </Tabs>
         </div>
       </div>
@@ -1798,6 +1818,227 @@ function UsageAnalyticsCharts() {
             </div>
           </div>
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TeamSection() {
+  const { data: teamData, isLoading } = useTeamMembers();
+  const addMember = useAddStaffMember();
+  const removeMember = useRemoveStaffMember();
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [newMember, setNewMember] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    role: "STAFF" as "MANAGER" | "STAFF",
+  });
+  const { toast } = useToast();
+
+  const members = teamData?.data || [];
+
+  const handleAdd = async () => {
+    try {
+      await addMember.mutateAsync({
+        firstName: newMember.firstName,
+        lastName: newMember.lastName || undefined,
+        email: newMember.email,
+        phone: newMember.phone || undefined,
+        role: newMember.role,
+      });
+      setShowAddDialog(false);
+      setNewMember({ firstName: "", lastName: "", email: "", phone: "", role: "STAFF" });
+      toast({ title: "Team member added and invitation sent" });
+    } catch (err: any) {
+      toast({
+        title: "Failed to add team member",
+        description: err?.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRemove = async (id: string, name: string) => {
+    try {
+      await removeMember.mutateAsync(id);
+      toast({ title: `${name} removed from team` });
+    } catch (err: any) {
+      toast({
+        title: "Failed to remove member",
+        description: err?.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Team Members
+            </CardTitle>
+            <CardDescription>
+              Manage your restaurant staff and their roles
+            </CardDescription>
+          </div>
+          <Button size="sm" onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : members.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No team members yet. Add your first staff member to get started.
+          </p>
+        ) : (
+          <div className="space-y-2">
+            {members.map((member) => (
+              <div
+                key={member.id}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                    {member.firstName?.charAt(0)?.toUpperCase() || member.email.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium">
+                        {member.firstName} {member.lastName || ""}
+                      </p>
+                      <Badge variant="outline" className="text-xs">
+                        {member.role}
+                      </Badge>
+                      {member.isPending && (
+                        <Badge variant="secondary" className="text-xs">
+                          <Mail className="mr-1 h-3 w-3" />
+                          Pending
+                        </Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground">{member.email}</p>
+                  </div>
+                </div>
+                {member.role !== "OWNER" && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      handleRemove(
+                        member.id,
+                        `${member.firstName || ""} ${member.lastName || ""}`.trim()
+                      )
+                    }
+                    disabled={removeMember.isPending}
+                  >
+                    <X className="h-4 w-4 text-muted-foreground" />
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Add Member Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Team Member</DialogTitle>
+              <DialogDescription>
+                Add a new staff member to your restaurant. They&apos;ll receive an email invitation to join.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="memberFirstName">First Name *</Label>
+                  <Input
+                    id="memberFirstName"
+                    value={newMember.firstName}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, firstName: e.target.value })
+                    }
+                    placeholder="John"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="memberLastName">Last Name</Label>
+                  <Input
+                    id="memberLastName"
+                    value={newMember.lastName}
+                    onChange={(e) =>
+                      setNewMember({ ...newMember, lastName: e.target.value })
+                    }
+                    placeholder="Doe"
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="memberEmail">Email *</Label>
+                <Input
+                  id="memberEmail"
+                  type="email"
+                  value={newMember.email}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, email: e.target.value })
+                  }
+                  placeholder="john@example.com"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="memberPhone">Phone</Label>
+                <Input
+                  id="memberPhone"
+                  value={newMember.phone}
+                  onChange={(e) =>
+                    setNewMember({ ...newMember, phone: e.target.value })
+                  }
+                  placeholder="(555) 123-4567"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="memberRole">Role</Label>
+                <Select
+                  value={newMember.role}
+                  onValueChange={(value) =>
+                    setNewMember({ ...newMember, role: value as "MANAGER" | "STAFF" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STAFF">Staff</SelectItem>
+                    <SelectItem value="MANAGER">Manager</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAdd}
+                disabled={!newMember.firstName || !newMember.email || addMember.isPending}
+              >
+                {addMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Send Invitation
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );

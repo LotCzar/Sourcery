@@ -22,6 +22,12 @@ export const queryKeys = {
     detail: (id: string) => ["inventory", id] as const,
     insights: ["inventory", "insights"] as const,
   },
+  menuItems: {
+    all: ["menuItems"] as const,
+    filtered: (filters: Record<string, string | boolean | undefined>) =>
+      ["menuItems", filters] as const,
+    detail: (id: string) => ["menuItems", id] as const,
+  },
   analytics: {
     all: ["analytics"] as const,
     byRange: (timeRange: string) => ["analytics", timeRange] as const,
@@ -39,6 +45,9 @@ export const queryKeys = {
   },
   settings: {
     all: ["settings"] as const,
+  },
+  team: {
+    all: ["team", "members"] as const,
   },
   integration: {
     pos: ["integration", "pos"] as const,

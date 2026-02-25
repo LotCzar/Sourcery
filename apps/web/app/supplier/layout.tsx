@@ -9,14 +9,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
-async function checkSupplierAccess(userId: string) {
+async function checkSupplierAccess(userId: string): Promise<"ok" | "driver" | "no_supplier"> {
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: { supplier: true },
   });
 
-  // User must exist AND have a supplier to be considered onboarded as supplier
-  return user !== null && user.supplier !== null;
+  if (!user || !user.supplier) return "no_supplier";
+
+  // Drivers are linked to a supplier but should not access the supplier portal
+  if (user.role === "DRIVER") return "driver";
+
+  return "ok";
 }
 
 export default async function SupplierLayout({
@@ -30,9 +34,13 @@ export default async function SupplierLayout({
     redirect("/login");
   }
 
-  const hasSupplierAccess = await checkSupplierAccess(userId);
+  const access = await checkSupplierAccess(userId);
 
-  if (!hasSupplierAccess) {
+  if (access === "driver") {
+    redirect("/driver");
+  }
+
+  if (access === "no_supplier") {
     redirect("/supplier-onboarding");
   }
 

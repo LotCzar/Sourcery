@@ -722,6 +722,296 @@ export const aiTools: Anthropic.Tool[] = [
       required: ["order_id", "message"],
     },
   },
+  {
+    name: "submit_order",
+    description:
+      "Submit a draft order for processing. Checks approval rules — may require manager/owner approval for large orders.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the draft order to submit",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "cancel_order",
+    description:
+      "Cancel an order. Only works for orders that haven't been shipped or delivered yet.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the order to cancel",
+        },
+        reason: {
+          type: "string",
+          description: "Optional reason for cancellation",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "update_order_status",
+    description:
+      "Update order status. Use for tracking order progression from confirmed through delivery.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the order to update",
+        },
+        status: {
+          type: "string",
+          enum: ["CONFIRMED", "SHIPPED", "IN_TRANSIT", "DELIVERED"],
+          description: "The new status for the order",
+        },
+        tracking_notes: {
+          type: "string",
+          description: "Optional tracking or delivery notes",
+        },
+      },
+      required: ["order_id", "status"],
+    },
+  },
+  {
+    name: "get_menu_items",
+    description:
+      "Get menu items for the restaurant. Can filter by category or search by name. Includes ingredient details.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        category: {
+          type: "string",
+          description: "Filter by menu item category",
+        },
+        search: {
+          type: "string",
+          description: "Search by menu item name",
+        },
+        active_only: {
+          type: "boolean",
+          description: "Only show active menu items (default: true)",
+        },
+      },
+    },
+  },
+  {
+    name: "mark_invoice_paid",
+    description:
+      "Mark an invoice as paid. If paid_amount is less than total, marks as partially paid.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        invoice_id: {
+          type: "string",
+          description: "The ID of the invoice to mark as paid",
+        },
+        payment_method: {
+          type: "string",
+          enum: ["CHECK", "ACH", "CREDIT_CARD", "CASH", "BANK_TRANSFER", "OTHER"],
+          description: "Payment method used",
+        },
+        payment_reference: {
+          type: "string",
+          description: "Payment reference number or check number",
+        },
+        paid_amount: {
+          type: "number",
+          description:
+            "Amount paid. If less than invoice total, marks as partially paid.",
+        },
+      },
+      required: ["invoice_id"],
+    },
+  },
+  {
+    name: "add_inventory_item",
+    description:
+      "Add a new item to inventory. Specify name, category, unit of measurement, and optionally set initial quantity and par level.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description: "Name of the inventory item",
+        },
+        category: {
+          type: "string",
+          enum: [
+            "PRODUCE",
+            "MEAT",
+            "SEAFOOD",
+            "DAIRY",
+            "BAKERY",
+            "BEVERAGES",
+            "DRY_GOODS",
+            "FROZEN",
+            "CLEANING",
+            "EQUIPMENT",
+            "OTHER",
+          ],
+          description: "Product category",
+        },
+        unit: {
+          type: "string",
+          enum: [
+            "LB",
+            "OZ",
+            "KG",
+            "G",
+            "GAL",
+            "QT",
+            "PT",
+            "L",
+            "ML",
+            "EACH",
+            "CASE",
+            "BAG",
+            "BOX",
+            "BUNCH",
+            "DOZEN",
+          ],
+          description: "Unit of measurement",
+        },
+        current_quantity: {
+          type: "number",
+          description: "Initial quantity (default: 0)",
+        },
+        par_level: {
+          type: "number",
+          description: "Par level for reorder alerts",
+        },
+        cost_per_unit: {
+          type: "number",
+          description: "Cost per unit",
+        },
+        location: {
+          type: "string",
+          description: "Storage location (e.g., Walk-in cooler, Dry storage)",
+        },
+        notes: {
+          type: "string",
+          description: "Optional notes about the item",
+        },
+      },
+      required: ["name", "category", "unit"],
+    },
+  },
+  {
+    name: "get_delivery_status",
+    description:
+      "Check delivery status and tracking info for an order. Provide either order_id or order_number.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The order ID",
+        },
+        order_number: {
+          type: "string",
+          description: "The order number (e.g., ORD-00042)",
+        },
+      },
+    },
+  },
+  {
+    name: "duplicate_order",
+    description:
+      "Create a new draft order by duplicating an existing order. Optionally adjust item quantities. Useful for reordering from the same supplier.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the order to duplicate",
+        },
+        adjust_quantities: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              product_id: { type: "string" },
+              quantity: { type: "number" },
+            },
+            required: ["product_id", "quantity"],
+          },
+          description:
+            "Optional quantity adjustments for specific products",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "get_notifications",
+    description:
+      "Get your recent notifications. Can filter by unread only or notification type (ORDER_UPDATE, PRICE_ALERT, DELIVERY_UPDATE, SYSTEM, PROMOTION).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        unread_only: {
+          type: "boolean",
+          description: "Only show unread notifications",
+        },
+        type: {
+          type: "string",
+          enum: [
+            "ORDER_UPDATE",
+            "PRICE_ALERT",
+            "DELIVERY_UPDATE",
+            "SYSTEM",
+            "PROMOTION",
+          ],
+          description: "Filter by notification type",
+        },
+      },
+    },
+  },
+  {
+    name: "mark_notifications_read",
+    description:
+      "Mark notifications as read. Provide a specific notification_id or set mark_all to true to clear all unread notifications.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        notification_id: {
+          type: "string",
+          description: "ID of a specific notification to mark as read",
+        },
+        mark_all: {
+          type: "boolean",
+          description: "Mark all unread notifications as read",
+        },
+      },
+    },
+  },
+  {
+    name: "schedule_order",
+    description:
+      "Schedule a draft order for a specific delivery date. Sets the requested delivery date and submits the order.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the draft order to schedule",
+        },
+        delivery_date: {
+          type: "string",
+          description: "Requested delivery date (ISO format, e.g., 2025-01-15)",
+        },
+      },
+      required: ["order_id", "delivery_date"],
+    },
+  },
 ];
 
 // Org-admin-only tools — conditionally included for ORG_ADMIN users

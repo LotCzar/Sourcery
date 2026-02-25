@@ -24,6 +24,7 @@ interface OrgContextType {
   planTier: PlanTier;
   availableRestaurants: OrgRestaurant[];
   isOrgAdmin: boolean;
+  role: string;
   switchRestaurant: (id: string) => void;
 }
 
@@ -33,6 +34,7 @@ const OrgContext = createContext<OrgContextType>({
   planTier: "STARTER",
   availableRestaurants: [],
   isOrgAdmin: false,
+  role: "",
   switchRestaurant: () => {},
 });
 
@@ -60,6 +62,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
     OrgRestaurant[]
   >([]);
   const [isOrgAdmin, setIsOrgAdmin] = useState(false);
+  const [role, setRole] = useState("");
 
   useEffect(() => {
     async function fetchContext() {
@@ -67,8 +70,9 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         const res = await apiFetch<UserContextResponse>("/api/user/context");
         const data = res.data;
 
-        // Set plan tier from the user's own restaurant
+        // Set plan tier and role from the user's context
         setPlanTier(data.planTier || "STARTER");
+        setRole(data.role || "");
 
         if (data.role === "ORG_ADMIN" && data.orgRestaurants.length > 0) {
           setIsOrgAdmin(true);
@@ -130,6 +134,7 @@ export function OrgProvider({ children }: { children: React.ReactNode }) {
         planTier,
         availableRestaurants,
         isOrgAdmin,
+        role,
         switchRestaurant,
       }}
     >
@@ -145,4 +150,9 @@ export function useOrg() {
 export function usePlanTier(): PlanTier {
   const { planTier } = useContext(OrgContext);
   return planTier;
+}
+
+export function useUserRole(): string {
+  const { role } = useContext(OrgContext);
+  return role;
 }

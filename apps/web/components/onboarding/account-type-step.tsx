@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -8,18 +7,20 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Store, Truck } from "lucide-react";
+import { Store, Truck, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface AccountTypeStepProps {
   onSelectRestaurant: () => void;
   onSelectSupplier: () => void;
+  onSelectOrganization?: () => void;
   userName: string;
 }
 
 export function AccountTypeStep({
   onSelectRestaurant,
   onSelectSupplier,
+  onSelectOrganization,
   userName
 }: AccountTypeStepProps) {
   return (
@@ -84,6 +85,34 @@ export function AccountTypeStep({
             </div>
           </div>
         </button>
+
+        {onSelectOrganization && (
+          <button
+            onClick={onSelectOrganization}
+            className={cn(
+              "w-full rounded-lg border-2 p-6 text-left transition-all",
+              "hover:border-violet-500 hover:bg-violet-50",
+              "focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2"
+            )}
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-violet-50">
+                <Building2 className="h-6 w-6 text-violet-700" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-lg">Organization</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  I manage multiple restaurant locations and need centralized oversight.
+                </p>
+                <ul className="mt-3 text-sm text-muted-foreground space-y-1">
+                  <li>• Manage multiple restaurants</li>
+                  <li>• Cross-location analytics</li>
+                  <li>• Centralized supplier management</li>
+                </ul>
+              </div>
+            </div>
+          </button>
+        )}
       </CardContent>
     </Card>
   );

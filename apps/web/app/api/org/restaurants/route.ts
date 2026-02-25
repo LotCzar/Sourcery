@@ -1,6 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
+import { AddOrgRestaurantSchema } from "@/lib/validations";
+import { validateBody } from "@/lib/validations/validate";
 
 export async function GET() {
   try {
@@ -80,6 +82,78 @@ export async function GET() {
     console.error("Org restaurants error:", error);
     return NextResponse.json(
       { error: "Failed to fetch org restaurants" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const { userId: clerkId } = await auth();
+    if (!clerkId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId },
+    });
+
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    if (user.role !== "ORG_ADMIN" || !user.organizationId) {
+      return NextResponse.json(
+        { error: "Requires ORG_ADMIN role with an organization" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const validation = validateBody(AddOrgRestaurantSchema, body);
+    if (!validation.success) return validation.response;
+
+    const data = validation.data;
+
+    // Parse seating capacity to number
+    let seatingCapacity: number | null = null;
+    if (data.seatingCapacity) {
+      const capacityMap: Record<string, number> = {
+        "1-25": 25,
+        "26-50": 50,
+        "51-100": 100,
+        "100+": 150,
+      };
+      seatingCapacity = capacityMap[data.seatingCapacity] || null;
+    }
+
+    const restaurant = await prisma.restaurant.create({
+      data: {
+        name: data.restaurantName.trim(),
+        address: data.address || null,
+        city: data.city || null,
+        state: data.state || null,
+        zipCode: data.zipCode || null,
+        phone: data.phone || null,
+        email: data.email || null,
+        website: data.website || null,
+        cuisineType: data.cuisineType || null,
+        seatingCapacity,
+        organizationId: user.organizationId,
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        id: restaurant.id,
+        name: restaurant.name,
+      },
+    });
+  } catch (error: any) {
+    console.error("Create org restaurant error:", error);
+    return NextResponse.json(
+      { error: "Failed to create restaurant" },
       { status: 500 }
     );
   }

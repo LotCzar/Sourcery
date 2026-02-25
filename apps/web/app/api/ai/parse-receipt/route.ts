@@ -190,7 +190,8 @@ Be precise with numbers. If a field cannot be determined, use null. For line ite
     try {
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-    } catch {
+    } catch (parseError) {
+      console.error("Receipt JSON parse failed:", parseError, "Response text:", text.slice(0, 500));
       return NextResponse.json(
         { error: "Failed to parse receipt data from AI response" },
         { status: 422 }

@@ -16,17 +16,21 @@ import {
   BellRing,
   FileText,
   Warehouse,
+  Building2,
+  UtensilsCrossed,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useOrg } from "@/lib/org-context";
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Orders", href: "/orders", icon: ShoppingCart },
   { name: "Invoices", href: "/invoices", icon: FileText },
   { name: "Suppliers", href: "/suppliers", icon: Users },
-  { name: "Menu Parser", href: "/menu-parser", icon: Sparkles },
+  { name: "Menu Parser", href: "/menu-parser", icon: Sparkles, adminOnly: true },
+  { name: "My Menu", href: "/menu", icon: UtensilsCrossed },
   { name: "Products", href: "/products", icon: Package },
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Reports", href: "/reports", icon: BarChart3 },
@@ -38,6 +42,18 @@ const navigation = [
 export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const pathname = usePathname();
+  const { role, isOrgAdmin } = useOrg();
+
+  const orgNavItem = {
+    name: "Organization",
+    href: "/org-admin",
+    icon: Building2,
+  };
+
+  const filteredNav = navigation.filter(
+    (item) => !item.adminOnly || ["OWNER", "MANAGER", "ORG_ADMIN"].includes(role)
+  );
+  const navItems = isOrgAdmin ? [orgNavItem, ...filteredNav] : filteredNav;
 
   return (
     <div className="lg:hidden">
@@ -80,7 +96,7 @@ export function MobileNav() {
 
             {/* Navigation */}
             <nav className="space-y-0.5 px-3 py-3">
-              {navigation.map((item) => {
+              {navItems.map((item) => {
                 const isActive =
                   pathname === item.href ||
                   (item.href !== "/" && pathname.startsWith(item.href));

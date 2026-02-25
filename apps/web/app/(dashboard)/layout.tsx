@@ -13,13 +13,16 @@ import { OrgProvider } from "@/lib/org-context";
 import { TourWrapper } from "@/components/tour/tour-wrapper";
 import prisma from "@/lib/prisma";
 
-async function checkOnboarding(userId: string): Promise<"ok" | "supplier" | "onboarding"> {
+async function checkOnboarding(userId: string): Promise<"ok" | "supplier" | "driver" | "onboarding"> {
   const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: { restaurant: true, supplier: true },
   });
 
   if (!user) return "onboarding";
+
+  // Driver users should always go to the driver portal (linked or waiting screen)
+  if (user.role === "DRIVER") return "driver";
 
   // Supplier users should go to the supplier dashboard, not the restaurant dashboard
   if (user.supplier) return "supplier";
@@ -52,6 +55,10 @@ export default async function DashboardLayout({
 
   if (onboardingStatus === "supplier") {
     redirect("/supplier");
+  }
+
+  if (onboardingStatus === "driver") {
+    redirect("/driver");
   }
 
   if (onboardingStatus === "onboarding") {

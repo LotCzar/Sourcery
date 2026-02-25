@@ -35,6 +35,10 @@ export async function GET(request: Request) {
       );
     }
 
+    if (!["OWNER", "MANAGER", "ORG_ADMIN"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const format = searchParams.get("format") || "json";
     const type = searchParams.get("type") || "spending";

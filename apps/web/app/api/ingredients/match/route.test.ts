@@ -30,6 +30,7 @@ describe("POST /api/ingredients/match", () => {
   beforeEach(() => {
     const user = createMockUserWithRestaurant();
     prismaMock.user.findUnique.mockResolvedValue(user as any);
+    prismaMock.restaurantSupplier.findMany.mockResolvedValue([]);
   });
 
   it("returns 401 when unauthenticated", async () => {

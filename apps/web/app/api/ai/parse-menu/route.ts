@@ -35,6 +35,10 @@ export async function POST(request: Request) {
       );
     }
 
+    if (!["OWNER", "MANAGER"].includes(user.role)) {
+      return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
+    }
+
     // Rate limit check
     const rateLimit = await checkAiRateLimit(user.restaurant.id, "PARSE_MENU", user.restaurant.planTier);
     if (!rateLimit.allowed) {

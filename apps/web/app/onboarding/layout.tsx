@@ -17,6 +17,12 @@ export default async function OnboardingLayout({
       include: { supplier: true, restaurant: true },
     });
 
+    // Driver users — send to driver portal (created by supplier admins, not self-onboarded)
+    // Redirect regardless of supplier link — unlinked drivers see waiting screen at /driver
+    if (user?.role === "DRIVER") {
+      redirect("/driver");
+    }
+
     // Already-onboarded supplier — send to supplier dashboard
     if (user?.supplier) {
       redirect("/supplier");

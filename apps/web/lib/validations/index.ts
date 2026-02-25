@@ -403,6 +403,29 @@ export const UpdateDriverSchema = z.object({
   phone: z.string().max(50).optional(),
 });
 
+// Menu Item Management
+export const UpdateMenuItemSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  description: z.string().max(2000).nullable().optional(),
+  price: z.number().min(0).optional(),
+  category: z.string().max(255).nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
+export const AddIngredientSchema = z.object({
+  name: z.string().min(1).max(255),
+  quantity: z.number().min(0).default(0),
+  unit: UnitTypeSchema.default("EACH"),
+  notes: z.string().max(2000).optional(),
+});
+
+export const UpdateIngredientSchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  quantity: z.number().min(0).optional(),
+  unit: UnitTypeSchema.optional(),
+  notes: z.string().max(2000).nullable().optional(),
+});
+
 // Save Menu Items (from AI parser)
 export const SaveMenuItemSchema = z.object({
   name: z.string().min(1).max(255),
@@ -419,6 +442,51 @@ export const SaveMenuItemSchema = z.object({
 
 export const SaveMenuItemsSchema = z.object({
   items: z.array(SaveMenuItemSchema).min(1).max(200),
+});
+
+// Staff Members
+export const CreateStaffMemberSchema = z.object({
+  firstName: z.string().min(1, "First name is required").max(255),
+  lastName: z.string().max(255).optional(),
+  email: z.string().email("Valid email is required").max(255),
+  phone: z.string().max(50).optional(),
+  role: z.enum(["MANAGER", "STAFF"]),
+});
+
+export const UpdateStaffMemberSchema = z.object({
+  firstName: z.string().min(1).max(255).optional(),
+  lastName: z.string().max(255).optional(),
+  phone: z.string().max(50).optional(),
+  role: z.enum(["MANAGER", "STAFF"]).optional(),
+});
+
+// Organization Onboarding
+export const OrgOnboardingSchema = z.object({
+  organizationName: z.string().min(1, "Organization name is required").max(255),
+  slug: z.string().min(1, "Slug is required").max(255).regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Slug must be lowercase alphanumeric with hyphens"),
+  restaurantName: z.string().min(1, "Restaurant name is required").max(255),
+  address: z.string().max(255).optional(),
+  city: z.string().max(255).optional(),
+  state: z.string().max(255).optional(),
+  zipCode: z.string().max(255).optional(),
+  phone: z.string().max(255).optional(),
+  email: z.string().email().optional(),
+  website: z.string().url().optional(),
+  cuisineType: z.string().max(255).optional(),
+  seatingCapacity: z.string().max(255).optional(),
+});
+
+export const AddOrgRestaurantSchema = z.object({
+  restaurantName: z.string().min(1, "Restaurant name is required").max(255),
+  address: z.string().max(255).optional(),
+  city: z.string().max(255).optional(),
+  state: z.string().max(255).optional(),
+  zipCode: z.string().max(255).optional(),
+  phone: z.string().max(255).optional(),
+  email: z.string().email().optional(),
+  website: z.string().url().optional(),
+  cuisineType: z.string().max(255).optional(),
+  seatingCapacity: z.string().max(255).optional(),
 });
 
 // AI Chat

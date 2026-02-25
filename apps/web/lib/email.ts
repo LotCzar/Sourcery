@@ -52,6 +52,28 @@ export async function sendEmail({ to, subject, html }: SendEmailParams) {
 }
 
 export const emailTemplates = {
+  staffInvitation: (recipientName: string, restaurantName: string, role: string, inviterName: string) => ({
+    subject: `You've been invited to join ${escapeHtml(restaurantName)} on FreshSheet`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">You're Invited!</h1>
+        <p>Hi ${escapeHtml(recipientName)},</p>
+        <p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(restaurantName)}</strong> as a <strong>${escapeHtml(role.toLowerCase())}</strong> on FreshSheet.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Restaurant:</strong> ${escapeHtml(restaurantName)}</p>
+          <p style="margin: 8px 0 0;"><strong>Role:</strong> ${escapeHtml(role)}</p>
+        </div>
+        <p>Create your account to get started:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/register" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Create Account</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   orderPlaced: (orderNumber: string, restaurantName: string, total: number) => ({
     subject: `New Order: ${escapeHtml(orderNumber)}`,
     html: `

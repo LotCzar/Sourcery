@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useAnalytics } from "@/hooks/use-analytics";
+import { useAiUsageAnalytics } from "@/hooks/use-ai-usage-analytics";
+import { useConsumptionInsights } from "@/hooks/use-consumption-insights";
+import type { ConsumptionInsight } from "@/hooks/use-consumption-insights";
 import { usePlanTier } from "@/lib/org-context";
 import { hasTier } from "@/lib/tier";
 import { ProBadge } from "@/components/pro-badge";
+import { TierGate } from "@/components/tier-gate";
 import {
   Card,
   CardContent,
@@ -12,6 +16,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -34,11 +46,14 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Download,
+  Brain,
+  ArrowRight,
+  Bot,
 } from "lucide-react";
 import { AiPromptChips } from "@/components/ai-prompt-chips";
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -99,12 +114,48 @@ const statusConfig: Record<string, { label: string; color: string }> = {
   CANCELLED: { label: "Cancelled", color: "bg-red-50 text-red-700" },
 };
 
+const FEATURE_COLORS: Record<string, string> = {
+  CHAT: "#2F7A5E",
+  PARSE_MENU: "#4B7BE5",
+  PARSE_RECEIPT: "#D97706",
+  SEARCH: "#8B5CF6",
+  WEEKLY_DIGEST: "#EC4899",
+};
+
+const FEATURE_LABELS: Record<string, string> = {
+  CHAT: "Chat",
+  PARSE_MENU: "Menu Parsing",
+  PARSE_RECEIPT: "Receipt Parsing",
+  SEARCH: "Search",
+  WEEKLY_DIGEST: "Weekly Digest",
+};
+
+const unitLabels: Record<string, string> = {
+  POUND: "lb",
+  OUNCE: "oz",
+  KILOGRAM: "kg",
+  GRAM: "g",
+  GALLON: "gal",
+  LITER: "L",
+  QUART: "qt",
+  PINT: "pt",
+  EACH: "ea",
+  CASE: "case",
+  DOZEN: "dz",
+  BOX: "box",
+  BAG: "bag",
+  BUNCH: "bunch",
+};
+
 export default function ReportsPage() {
   const [timeRange, setTimeRange] = useState("30");
   const { data: result, isLoading, error } = useAnalytics(timeRange);
   const data: AnalyticsData | null = result?.data ?? null;
   const currentTier = usePlanTier();
   const canExport = hasTier(currentTier, "PROFESSIONAL");
+  const isPro = hasTier(currentTier, "PROFESSIONAL");
+  const { data: aiUsageResult } = useAiUsageAnalytics(timeRange);
+  const { data: insightsResult } = useConsumptionInsights();
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -310,7 +361,13 @@ export default function ReportsPage() {
           <CardContent>
             <div className="h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={data.spendOverTime}>
+                <AreaChart data={data.spendOverTime}>
+                  <defs>
+                    <linearGradient id="spendGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2F7A5E" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#2F7A5E" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="date"
@@ -332,15 +389,15 @@ export default function ReportsPage() {
                       borderRadius: "8px",
                     }}
                   />
-                  <Line
+                  <Area
                     type="monotone"
                     dataKey="total"
                     stroke="#2F7A5E"
                     strokeWidth={2}
-                    dot={false}
+                    fill="url(#spendGradient)"
                     activeDot={{ r: 6, fill: "#2F7A5E" }}
                   />
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -348,7 +405,7 @@ export default function ReportsPage() {
       </div>
 
       {/* Charts Row 2 */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Spending by Category */}
         <Card>
           <CardHeader>
@@ -439,7 +496,117 @@ export default function ReportsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Supplier Share Pie Chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PieChartIcon className="h-5 w-5" />
+              Supplier Share
+            </CardTitle>
+            <CardDescription>Share of total spend by supplier</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px]">
+              {data.spendBySupplier.length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={data.spendBySupplier}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60}
+                      outerRadius={100}
+                      paddingAngle={2}
+                      dataKey="total"
+                      nameKey="name"
+                      label={({ name, percent }) => `${name || ""} (${((percent || 0) * 100).toFixed(0)}%)`}
+                      labelLine={false}
+                    >
+                      {data.spendBySupplier.map((_: unknown, index: number) => (
+                        <Cell key={`supplier-cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      formatter={(value) => formatCurrency(value as number)}
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No supplier data available
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Supplier Performance Table */}
+      {data.spendBySupplier.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Supplier Performance</CardTitle>
+            <CardDescription>Detailed breakdown of all supplier activity</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Supplier</TableHead>
+                  <TableHead className="text-right">Orders</TableHead>
+                  <TableHead className="text-right">Total Spend</TableHead>
+                  <TableHead className="text-right">Avg Order Value</TableHead>
+                  <TableHead className="w-[200px]">Market Share</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.spendBySupplier.map((supplier: { name: string; total: number; orders: number }, index: number) => {
+                  const avgOrderValue = supplier.orders > 0 ? supplier.total / supplier.orders : 0;
+                  const marketShare = data.overview.totalSpend > 0 ? (supplier.total / data.overview.totalSpend) * 100 : 0;
+                  return (
+                    <TableRow key={supplier.name}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="h-3 w-3 rounded-full shrink-0"
+                            style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                          />
+                          <span className="font-medium">{supplier.name}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">{supplier.orders}</TableCell>
+                      <TableCell className="text-right font-medium">{formatCurrency(supplier.total)}</TableCell>
+                      <TableCell className="text-right">{formatCurrency(avgOrderValue)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all"
+                              style={{
+                                width: `${marketShare}%`,
+                                backgroundColor: COLORS[index % COLORS.length],
+                              }}
+                            />
+                          </div>
+                          <span className="text-sm text-muted-foreground w-12 text-right">
+                            {marketShare.toFixed(1)}%
+                          </span>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Tables Row */}
       <div className="grid gap-6 lg:grid-cols-2">
@@ -575,6 +742,225 @@ export default function ReportsPage() {
           </div>
         </CardContent>
       </Card>
+      {/* AI Usage Analytics — Pro-gated */}
+      <TierGate
+        requiredTier="PROFESSIONAL"
+        feature="AI Usage Analytics"
+        description="Track AI usage across your team, including per-user costs and feature breakdowns. Upgrade to Professional to unlock."
+      >
+        {aiUsageResult?.data && (
+          <div className="space-y-6">
+            <div>
+              <h2 className="text-xl font-semibold flex items-center gap-2">
+                <Bot className="h-5 w-5" />
+                AI Usage Analytics
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                AI usage breakdown for the last {timeRange} days
+              </p>
+            </div>
+
+            {/* AI Summary Cards */}
+            <div className="grid gap-4 md:grid-cols-2">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Total AI Requests</CardTitle>
+                  <Brain className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{aiUsageResult.data.totalRequests}</div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Estimated AI Cost</CardTitle>
+                  <DollarSign className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{formatCurrency(aiUsageResult.data.totalCost)}</div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* AI Usage Over Time — Stacked Bar Chart */}
+            {aiUsageResult.data.timeSeries.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Usage by Feature</CardTitle>
+                  <CardDescription>Daily AI operations by feature type</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[300px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={aiUsageResult.data.timeSeries}>
+                        <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={formatDate}
+                          tick={{ fontSize: 12 }}
+                        />
+                        <YAxis tick={{ fontSize: 12 }} />
+                        <Tooltip
+                          labelFormatter={(label) => formatDate(label)}
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                          }}
+                        />
+                        <Legend
+                          formatter={(value: string) => FEATURE_LABELS[value] || value}
+                        />
+                        {Object.keys(FEATURE_COLORS).map((feature) => (
+                          <Bar
+                            key={feature}
+                            dataKey={feature}
+                            stackId="ai"
+                            fill={FEATURE_COLORS[feature]}
+                          />
+                        ))}
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Per-User AI Usage Table */}
+            {aiUsageResult.data.perUser.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>AI Usage by Team Member</CardTitle>
+                  <CardDescription>Individual team member AI consumption</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Team Member</TableHead>
+                        <TableHead className="text-right">Requests</TableHead>
+                        <TableHead className="text-right">Cost</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {aiUsageResult.data.perUser.map((user: { userId: string; name: string; requestCount: number; totalCost: number }) => (
+                        <TableRow key={user.userId}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell className="text-right">{user.requestCount}</TableCell>
+                          <TableCell className="text-right">{formatCurrency(user.totalCost)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+      </TierGate>
+
+      {/* Inventory Insights — Pro-gated */}
+      <TierGate
+        requiredTier="PROFESSIONAL"
+        feature="Inventory Insights"
+        description="Get AI-powered consumption forecasting, stockout predictions, and par level recommendations. Upgrade to Professional to unlock."
+      >
+        {insightsResult?.data && insightsResult.data.length > 0 && (
+          <Card className="border-indigo-200 bg-indigo-50/30">
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Brain className="h-5 w-5 text-indigo-700" />
+                <CardTitle className="text-lg">Inventory Insights</CardTitle>
+              </div>
+              <CardDescription>
+                Based on {insightsResult.summary.totalInsights} items analyzed
+                {insightsResult.summary.criticalItemCount > 0 && (
+                  <Badge variant="destructive" className="ml-2">
+                    {insightsResult.summary.criticalItemCount} critical
+                  </Badge>
+                )}
+                {insightsResult.summary.parMismatchCount > 0 && (
+                  <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700">
+                    {insightsResult.summary.parMismatchCount} par adjustments
+                  </Badge>
+                )}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {/* Critical items - low runway */}
+                {insightsResult.data
+                  .filter(
+                    (i: ConsumptionInsight) =>
+                      i.daysUntilStockout !== null && i.daysUntilStockout < 3
+                  )
+                  .slice(0, 5)
+                  .map((insight: ConsumptionInsight) => (
+                    <div
+                      key={insight.id}
+                      className="flex items-center justify-between p-3 rounded-lg border border-red-200 bg-red-50/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge variant="destructive" className="text-xs">
+                          {insight.daysUntilStockout !== null
+                            ? `${Math.round(insight.daysUntilStockout * 10) / 10}d left`
+                            : "Low"}
+                        </Badge>
+                        <div>
+                          <p className="font-medium text-sm">{insight.itemName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Using ~{insight.avgDailyUsage.toFixed(1)}/{unitLabels[insight.unit] || insight.unit.toLowerCase()}/day
+                            {insight.trendDirection === "UP" && " (trending up)"}
+                            {insight.trendDirection === "DOWN" && " (trending down)"}
+                          </p>
+                        </div>
+                      </div>
+                      <p className="text-sm font-medium">
+                        {insight.currentQuantity.toFixed(1)} {unitLabels[insight.unit] || insight.unit.toLowerCase()} left
+                      </p>
+                    </div>
+                  ))}
+
+                {/* Par level suggestions */}
+                {insightsResult.data
+                  .filter(
+                    (i: ConsumptionInsight) =>
+                      i.suggestedParLevel !== null &&
+                      i.currentParLevel !== null &&
+                      Math.abs(i.suggestedParLevel - i.currentParLevel) >
+                        i.currentParLevel * 0.2
+                  )
+                  .slice(0, 5)
+                  .map((insight: ConsumptionInsight) => (
+                    <div
+                      key={`par-${insight.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-50/50"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-700">
+                          Par
+                        </Badge>
+                        <p className="font-medium text-sm">{insight.itemName}</p>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-muted-foreground">
+                          {insight.currentParLevel?.toFixed(1)}
+                        </span>
+                        <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        <span className="font-medium text-amber-700">
+                          {insight.suggestedParLevel?.toFixed(1)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {unitLabels[insight.unit] || insight.unit.toLowerCase()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </TierGate>
     </div>
   );
 }
