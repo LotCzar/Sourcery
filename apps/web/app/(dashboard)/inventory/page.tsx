@@ -63,6 +63,8 @@ import {
   PackagePlus,
   Brain,
   ArrowRight,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { AiPromptChips } from "@/components/ai-prompt-chips";
 import { TierGate } from "@/components/tier-gate";
@@ -173,6 +175,14 @@ export default function InventoryPage() {
   // View item dialog
   const [viewItem, setViewItem] = useState<InventoryItem | null>(null);
 
+  // Scan document dialog
+  const [isScanOpen, setIsScanOpen] = useState(false);
+  const [scanFile, setScanFile] = useState<File | null>(null);
+  const [scanPreview, setScanPreview] = useState<string | null>(null);
+  const [scanResult, setScanResult] = useState<any>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [isCreatingFromScan, setIsCreatingFromScan] = useState(false);
+
   const { toast } = useToast();
 
   const { data: result, isLoading } = useInventory({
@@ -255,6 +265,73 @@ export default function InventoryPage() {
     }
   };
 
+  const handleScanFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setScanFile(file);
+      setScanResult(null);
+      const reader = new FileReader();
+      reader.onloadend = () => setScanPreview(reader.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleScanInventory = async () => {
+    if (!scanFile) return;
+    setIsScanning(true);
+    setScanResult(null);
+    try {
+      const formData = new FormData();
+      formData.append("file", scanFile);
+      const res = await fetch("/api/ai/parse-inventory", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (data.success) {
+        setScanResult(data.data.parsed);
+      } else {
+        toast({ title: "Scan failed", description: data.error, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({ title: "Scan failed", description: err.message, variant: "destructive" });
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleCreateFromScan = async () => {
+    if (!scanResult?.items?.length) return;
+    setIsCreatingFromScan(true);
+    let created = 0;
+    try {
+      for (const item of scanResult.items) {
+        await createInventory.mutateAsync({
+          name: item.name,
+          category: item.category || "OTHER",
+          currentQuantity: item.quantity || 0,
+          unit: item.unit || "EACH",
+          costPerUnit: item.costPerUnit || undefined,
+          location: item.location || undefined,
+        });
+        created++;
+      }
+      toast({ title: `${created} item${created !== 1 ? "s" : ""} added to inventory` });
+      setIsScanOpen(false);
+      setScanFile(null);
+      setScanPreview(null);
+      setScanResult(null);
+    } catch (err: any) {
+      toast({
+        title: `Added ${created} items, but failed on remaining`,
+        description: err instanceof Error ? err.message : undefined,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingFromScan(false);
+    }
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
@@ -303,6 +380,105 @@ export default function InventoryPage() {
             Track stock levels and manage inventory
           </p>
         </div>
+        <div className="flex gap-2">
+          <Dialog open={isScanOpen} onOpenChange={(open) => { setIsScanOpen(open); if (!open) { setScanFile(null); setScanPreview(null); setScanResult(null); setIsScanning(false); } }}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <Upload className="h-4 w-4" />
+                Upload Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Scan Inventory Document</DialogTitle>
+                <DialogDescription>
+                  Upload a delivery slip, packing list, or inventory count sheet and AI will extract the items
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6">
+                  {scanPreview ? (
+                    scanFile?.type === "application/pdf" ? (
+                      <div className="flex items-center gap-2 mb-3 p-3 bg-muted rounded-lg">
+                        <FileText className="h-8 w-8 text-muted-foreground" />
+                        <span className="text-sm font-medium truncate max-w-[200px]">{scanFile.name}</span>
+                      </div>
+                    ) : (
+                      <img src={scanPreview} alt="Document preview" className="max-h-48 rounded-lg mb-3" />
+                    )
+                  ) : (
+                    <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*,.pdf,application/pdf"
+                    onChange={handleScanFileChange}
+                    className="text-sm"
+                  />
+                </div>
+                {scanResult && scanResult.items?.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <p className="font-medium text-sm">Extracted Items ({scanResult.items.length})</p>
+                      {scanResult.documentType && (
+                        <Badge variant="outline">{scanResult.documentType}</Badge>
+                      )}
+                    </div>
+                    {scanResult.supplierName && (
+                      <p className="text-sm text-muted-foreground">Supplier: {scanResult.supplierName}</p>
+                    )}
+                    <div className="max-h-64 overflow-y-auto border rounded-lg">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="text-xs">Name</TableHead>
+                            <TableHead className="text-xs">Category</TableHead>
+                            <TableHead className="text-xs text-right">Qty</TableHead>
+                            <TableHead className="text-xs">Unit</TableHead>
+                            <TableHead className="text-xs text-right">Cost</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {scanResult.items.map((item: any, idx: number) => (
+                            <TableRow key={idx}>
+                              <TableCell className="text-sm py-2">{item.name}</TableCell>
+                              <TableCell className="text-sm py-2">
+                                <Badge variant="outline" className="text-xs">
+                                  {categoryLabels[item.category] || item.category}
+                                </Badge>
+                              </TableCell>
+                              <TableCell className="text-sm py-2 text-right">{item.quantity}</TableCell>
+                              <TableCell className="text-sm py-2">{unitLabels[item.unit] || item.unit}</TableCell>
+                              <TableCell className="text-sm py-2 text-right">
+                                {item.costPerUnit ? `$${item.costPerUnit.toFixed(2)}` : "-"}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+                {scanResult && (!scanResult.items || scanResult.items.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-2">No items could be extracted from this document.</p>
+                )}
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsScanOpen(false)}>Cancel</Button>
+                {!scanResult ? (
+                  <Button onClick={handleScanInventory} disabled={!scanFile || isScanning}>
+                    {isScanning && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    {isScanning ? "Scanning..." : "Scan Document"}
+                  </Button>
+                ) : (
+                  <Button onClick={handleCreateFromScan} disabled={!scanResult.items?.length || isCreatingFromScan}>
+                    {isCreatingFromScan && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Add {scanResult.items?.length || 0} Item{scanResult.items?.length !== 1 ? "s" : ""}
+                  </Button>
+                )}
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
           <DialogTrigger asChild>
             <Button className="gap-2">
@@ -427,6 +603,7 @@ export default function InventoryPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Summary Cards */}
