@@ -183,7 +183,7 @@ export default function DashboardPage() {
         </div>
         <div className="flex gap-2">
           <Button variant="outline" asChild>
-            <Link href="/analytics">
+            <Link href="/reports">
               <BarChart3 className="mr-2 h-4 w-4" />
               Analytics
             </Link>
