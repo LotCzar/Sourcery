@@ -144,10 +144,10 @@ export default function InvoicesPage() {
   const summary = (result as any)?.summary as Summary | undefined;
 
   useEffect(() => {
-    apiFetch<any>("/api/search?q=supplier")
+    apiFetch<any>("/api/suppliers")
       .then((data) => {
-        if (data.success && data.data.suppliers) {
-          setSuppliers(data.data.suppliers);
+        if (data.success && data.data) {
+          setSuppliers(data.data);
         }
       })
       .catch(() => {});
