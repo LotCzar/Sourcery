@@ -84,7 +84,7 @@ export class SquareAdapter implements POSAdapter {
       for (const obj of objects) {
         if (obj.type !== "ITEM" || !obj.itemData) continue;
 
-        const variation = obj.itemData.variations?.[0];
+        const variation = obj.itemData.variations?.[0] as any;
         const priceMoney = variation?.itemVariationData?.priceMoney;
         const priceAmount = priceMoney?.amount ? Number(priceMoney.amount) / 100 : 0;
 
