@@ -246,6 +246,8 @@ export const UpdateSupplierSettingsSchema = z.object({
 });
 
 // Onboarding
+const emptyToUndefined = z.literal("").transform(() => undefined);
+
 export const OnboardingSchema = z.object({
   restaurantName: z.string().min(1, "Restaurant name is required").max(255),
   address: z.string().max(255).optional(),
@@ -253,10 +255,13 @@ export const OnboardingSchema = z.object({
   state: z.string().max(255).optional(),
   zipCode: z.string().max(255).optional(),
   phone: z.string().max(255).optional(),
-  email: z.string().email().optional(),
-  website: z.string().url().optional(),
+  email: z.union([emptyToUndefined, z.string().email()]).optional(),
+  website: z.union([emptyToUndefined, z.string().url()]).optional(),
   cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
+  deliveryPreference: z.string().max(255).optional(),
+  orderFrequency: z.string().max(255).optional(),
+  budgetRange: z.string().max(255).optional(),
 });
 
 // Ingredient Matching
@@ -470,10 +475,13 @@ export const OrgOnboardingSchema = z.object({
   state: z.string().max(255).optional(),
   zipCode: z.string().max(255).optional(),
   phone: z.string().max(255).optional(),
-  email: z.string().email().optional(),
-  website: z.string().url().optional(),
+  email: z.union([emptyToUndefined, z.string().email()]).optional(),
+  website: z.union([emptyToUndefined, z.string().url()]).optional(),
   cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
+  deliveryPreference: z.string().max(255).optional(),
+  orderFrequency: z.string().max(255).optional(),
+  budgetRange: z.string().max(255).optional(),
 });
 
 export const AddOrgRestaurantSchema = z.object({
