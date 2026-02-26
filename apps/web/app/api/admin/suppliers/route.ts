@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextRequest, NextResponse } from "next/server";
+import { SupplierStatus } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { SupplierVerificationActionSchema } from "@/lib/validations";
 import { validateBody } from "@/lib/validations/validate";
@@ -88,7 +89,7 @@ export async function PATCH(request: Request) {
     }
 
     // Determine new status and verifiedAt based on action
-    let newStatus: string;
+    let newStatus: SupplierStatus;
     let verifiedAt: Date | null = null;
 
     switch (action) {

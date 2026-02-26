@@ -1,6 +1,6 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
-import { sendEmail, emailTemplates } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
 
 export const supplierVerificationNotify = inngest.createFunction(
   { id: "supplier-verification-notify", name: "Notify Admins of New Supplier Application" },
