@@ -145,7 +145,7 @@ export class SquareAdapter implements POSAdapter {
       try {
         const response = await client.catalog.batchUpsert({
           idempotencyKey,
-          batches: [{ objects }],
+          batches: [{ objects: objects as any }],
         });
 
         const mappings = response.idMappings ?? [];
