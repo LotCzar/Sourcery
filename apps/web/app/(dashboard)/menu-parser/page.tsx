@@ -28,6 +28,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Sparkles,
   Loader2,
@@ -47,6 +48,8 @@ import {
   Minus,
   Store,
   Save,
+  Upload,
+  FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -150,6 +153,11 @@ export default function MenuParserPage() {
   const [selectedDish, setSelectedDish] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("parse");
 
+  // File upload state
+  const [inputMode, setInputMode] = useState<"text" | "upload">("text");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
+
   const [prices, setPrices] = useState<Record<string, number>>({});
 
   // Shared cart
@@ -177,9 +185,31 @@ export default function MenuParserPage() {
     });
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadFile(file);
+      if (file.type.startsWith("image/")) {
+        const url = URL.createObjectURL(file);
+        setUploadPreview(url);
+      } else {
+        setUploadPreview(file.name);
+      }
+    }
+  };
+
+  const clearFile = () => {
+    setUploadFile(null);
+    setUploadPreview(null);
+  };
+
   const handleParse = async () => {
-    if (!menuText.trim()) {
+    if (inputMode === "text" && !menuText.trim()) {
       setError("Please enter your menu text");
+      return;
+    }
+    if (inputMode === "upload" && !uploadFile) {
+      setError("Please select a file to upload");
       return;
     }
 
@@ -189,7 +219,9 @@ export default function MenuParserPage() {
     setViewMode("parse");
 
     try {
-      const data: any = await parseMenu.mutateAsync({ menuText, menuType });
+      const data: any = inputMode === "upload"
+        ? await parseMenu.mutateAsync({ menuType, file: uploadFile! })
+        : await parseMenu.mutateAsync({ menuText, menuType });
 
       if (data.parsed && data.data) {
         setResult(data.data);
@@ -285,7 +317,7 @@ export default function MenuParserPage() {
         <div>
           <h1 className="text-3xl font-bold text-foreground">AI Menu Parser</h1>
           <p className="mt-1 text-muted-foreground">
-            Paste your menu and let AI extract ingredients, then source from suppliers
+            Paste or upload your menu and let AI extract ingredients, then source from suppliers
           </p>
         </div>
         {cart.length > 0 && (
@@ -566,7 +598,7 @@ export default function MenuParserPage() {
                 Your Menu
               </CardTitle>
               <CardDescription>
-                Paste your menu items below. Include dish names and descriptions.
+                Paste your menu text or upload a photo/PDF of your menu.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -585,11 +617,17 @@ export default function MenuParserPage() {
                 </Select>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="menuText">Menu Content</Label>
-                <Textarea
-                  id="menuText"
-                  placeholder="Example:
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "text" | "upload")}>
+                <TabsList className="w-full">
+                  <TabsTrigger value="text" className="flex-1">Paste Text</TabsTrigger>
+                  <TabsTrigger value="upload" className="flex-1">Upload Image</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="text" className="space-y-2 mt-3">
+                  <Label htmlFor="menuText">Menu Content</Label>
+                  <Textarea
+                    id="menuText"
+                    placeholder="Example:
 
 STARTERS
 Caesar Salad - Crisp romaine, parmesan, croutons, house-made dressing
@@ -601,11 +639,54 @@ Ribeye Steak - 12oz USDA Prime, garlic mashed potatoes, asparagus
 
 DESSERTS
 Chocolate Cake - Dark chocolate, raspberry coulis"
-                  className="min-h-[300px] font-mono text-sm"
-                  value={menuText}
-                  onChange={(e) => setMenuText(e.target.value)}
-                />
-              </div>
+                    className="min-h-[300px] font-mono text-sm"
+                    value={menuText}
+                    onChange={(e) => setMenuText(e.target.value)}
+                  />
+                </TabsContent>
+
+                <TabsContent value="upload" className="mt-3">
+                  <div className="flex flex-col items-center justify-center border-2 border-dashed rounded-lg p-6">
+                    {uploadPreview ? (
+                      <div className="w-full">
+                        {uploadFile?.type === "application/pdf" ? (
+                          <div className="flex items-center gap-2 mb-3 p-3 bg-muted rounded-lg">
+                            <FileText className="h-8 w-8 text-muted-foreground" />
+                            <span className="text-sm font-medium truncate max-w-[200px]">{uploadFile.name}</span>
+                          </div>
+                        ) : (
+                          <img src={uploadPreview} alt="Menu preview" className="max-h-48 rounded-lg mb-3 mx-auto" />
+                        )}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={clearFile}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Remove File
+                        </Button>
+                      </div>
+                    ) : (
+                      <>
+                        <Upload className="h-10 w-10 text-muted-foreground mb-3" />
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Upload a photo or PDF of your menu
+                        </p>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp,application/pdf"
+                          onChange={handleFileChange}
+                          className="text-sm"
+                        />
+                        <p className="text-xs text-muted-foreground mt-2">
+                          JPEG, PNG, GIF, WebP, or PDF. Max 5MB.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
 
               {error && (
                 <p className="text-sm text-red-500">{error}</p>
@@ -613,7 +694,7 @@ Chocolate Cake - Dark chocolate, raspberry coulis"
 
               <Button
                 onClick={handleParse}
-                disabled={isLoading || !menuText.trim()}
+                disabled={isLoading || (inputMode === "text" ? !menuText.trim() : !uploadFile)}
                 className="w-full"
                 size="lg"
               >

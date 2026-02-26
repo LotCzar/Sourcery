@@ -2,10 +2,57 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
-import { ParseMenuSchema } from "@/lib/validations";
-import { validateBody } from "@/lib/validations/validate";
 import { checkAiRateLimit } from "@/lib/ai/rate-limit";
 import { trackAiUsage } from "@/lib/ai/usage";
+
+export const maxDuration = 60;
+
+const ALLOWED_MIME_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "application/pdf",
+];
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+const systemPrompt = `You are an expert culinary analyst. Your task is to analyze restaurant menus and extract all ingredients that would need to be sourced from suppliers.
+
+For each menu item, identify:
+1. The dish name
+2. All ingredients (both explicitly mentioned and commonly implied)
+3. Estimated quantity needed per serving
+4. The category (produce, meat, seafood, dairy, dry goods, etc.)
+
+Return your analysis as a JSON object with this structure:
+{
+  "menuItems": [
+    {
+      "name": "Dish Name",
+      "description": "Brief description",
+      "ingredients": [
+        {
+          "name": "Ingredient Name",
+          "category": "PRODUCE|MEAT|SEAFOOD|DAIRY|BAKERY|BEVERAGES|DRY_GOODS|FROZEN|OTHER",
+          "estimatedQuantity": "amount per serving",
+          "unit": "POUND|OUNCE|EACH|BUNCH|etc",
+          "notes": "any special notes"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "totalDishes": number,
+    "totalIngredients": number,
+    "categories": {
+      "PRODUCE": number,
+      "MEAT": number,
+      // etc
+    }
+  }
+}
+
+Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
 
 export async function POST(request: Request) {
   try {
@@ -52,48 +99,88 @@ export async function POST(request: Request) {
       );
     }
 
-    const body = await request.json();
-    const validation = validateBody(ParseMenuSchema, body);
-    if (!validation.success) return validation.response;
-    const { menuText, menuType } = validation.data;
+    const contentType = request.headers.get("content-type") || "";
 
-    const systemPrompt = `You are an expert culinary analyst. Your task is to analyze restaurant menus and extract all ingredients that would need to be sourced from suppliers.
+    let userContent: any[];
 
-For each menu item, identify:
-1. The dish name
-2. All ingredients (both explicitly mentioned and commonly implied)
-3. Estimated quantity needed per serving
-4. The category (produce, meat, seafood, dairy, dry goods, etc.)
+    if (contentType.includes("multipart/form-data")) {
+      // File upload flow
+      const formData = await request.formData();
+      const file = formData.get("file") as File | null;
+      const menuType = (formData.get("menuType") as string) || "restaurant";
 
-Return your analysis as a JSON object with this structure:
-{
-  "menuItems": [
-    {
-      "name": "Dish Name",
-      "description": "Brief description",
-      "ingredients": [
+      if (!file) {
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 }
+        );
+      }
+
+      if (file.size > MAX_FILE_SIZE) {
+        return NextResponse.json(
+          { error: "File too large. Maximum size is 5MB." },
+          { status: 413 }
+        );
+      }
+
+      const mediaType = file.type || "image/jpeg";
+      if (!ALLOWED_MIME_TYPES.includes(mediaType)) {
+        return NextResponse.json(
+          { error: "Invalid file type. Accepted: JPEG, PNG, GIF, WebP, PDF." },
+          { status: 400 }
+        );
+      }
+
+      const buffer = Buffer.from(await file.arrayBuffer());
+      const imageBase64 = buffer.toString("base64");
+
+      userContent = [
+        mediaType === "application/pdf"
+          ? {
+              type: "document" as const,
+              source: {
+                type: "base64" as const,
+                media_type: "application/pdf" as const,
+                data: imageBase64,
+              },
+            }
+          : {
+              type: "image" as const,
+              source: {
+                type: "base64" as const,
+                media_type: mediaType as
+                  | "image/jpeg"
+                  | "image/png"
+                  | "image/gif"
+                  | "image/webp",
+                data: imageBase64,
+              },
+            },
         {
-          "name": "Ingredient Name",
-          "category": "PRODUCE|MEAT|SEAFOOD|DAIRY|BAKERY|BEVERAGES|DRY_GOODS|FROZEN|OTHER",
-          "estimatedQuantity": "amount per serving",
-          "unit": "POUND|OUNCE|EACH|BUNCH|etc",
-          "notes": "any special notes"
-        }
-      ]
-    }
-  ],
-  "summary": {
-    "totalDishes": number,
-    "totalIngredients": number,
-    "categories": {
-      "PRODUCE": number,
-      "MEAT": number,
-      // etc
-    }
-  }
-}
+          type: "text",
+          text: `Please analyze this ${menuType} menu image and extract all ingredients. Return ONLY the JSON object, no markdown fences or extra text.`,
+        },
+      ];
+    } else {
+      // Text-only flow (existing behavior)
+      const body = await request.json();
+      const menuText = body.menuText;
+      const menuType = body.menuType || "restaurant";
 
-Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
+      if (!menuText || typeof menuText !== "string" || !menuText.trim()) {
+        return NextResponse.json(
+          { error: "menuText is required" },
+          { status: 400 }
+        );
+      }
+
+      userContent = [
+        {
+          type: "text",
+          text: `Please analyze this ${menuType} menu and extract all ingredients. Return ONLY the JSON object, no markdown fences or extra text.\n\n<user_menu_text>\n${menuText}\n</user_menu_text>`,
+        },
+      ];
+    }
 
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
@@ -101,7 +188,7 @@ Be thorough - include cooking oils, seasonings, garnishes, and all components.`;
       messages: [
         {
           role: "user",
-          content: `Please analyze this ${menuType || "restaurant"} menu and extract all ingredients. Return ONLY the JSON object, no markdown fences or extra text.\n\n<user_menu_text>\n${menuText}\n</user_menu_text>`,
+          content: userContent,
         },
       ],
       system: systemPrompt,

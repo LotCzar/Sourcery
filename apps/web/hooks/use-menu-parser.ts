@@ -6,11 +6,26 @@ import { queryKeys } from "@/lib/query-keys";
 
 export function useParseMenu() {
   return useMutation({
-    mutationFn: (data: { menuText: string; menuType: string }) =>
-      apiFetch("/api/ai/parse-menu", {
+    mutationFn: async (data: { menuText?: string; menuType: string; file?: File }) => {
+      if (data.file) {
+        const formData = new FormData();
+        formData.append("file", data.file);
+        formData.append("menuType", data.menuType);
+        const res = await fetch("/api/ai/parse-menu", {
+          method: "POST",
+          body: formData,
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to parse menu");
+        }
+        return res.json();
+      }
+      return apiFetch("/api/ai/parse-menu", {
         method: "POST",
-        body: JSON.stringify(data),
-      }),
+        body: JSON.stringify({ menuText: data.menuText, menuType: data.menuType }),
+      });
+    },
   });
 }
 
