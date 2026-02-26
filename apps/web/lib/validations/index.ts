@@ -255,7 +255,7 @@ export const OnboardingSchema = z.object({
   phone: z.string().max(255).optional(),
   email: z.string().email().optional(),
   website: z.string().url().optional(),
-  cuisineType: z.string().max(255).optional(),
+  cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
 });
 
@@ -472,7 +472,7 @@ export const OrgOnboardingSchema = z.object({
   phone: z.string().max(255).optional(),
   email: z.string().email().optional(),
   website: z.string().url().optional(),
-  cuisineType: z.string().max(255).optional(),
+  cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
 });
 
@@ -485,7 +485,7 @@ export const AddOrgRestaurantSchema = z.object({
   phone: z.string().max(255).optional(),
   email: z.string().email().optional(),
   website: z.string().url().optional(),
-  cuisineType: z.string().max(255).optional(),
+  cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
 });
 
@@ -518,6 +518,13 @@ export const SupplierOnboardingSchema = z.object({
   minimumOrder: z.union([z.string().max(20), z.number()]).optional(),
   deliveryFee: z.union([z.string().max(20), z.number()]).optional(),
   leadTimeDays: z.union([z.string().max(10), z.number()]).optional(),
+});
+
+// Supplier Verification
+export const SupplierVerificationActionSchema = z.object({
+  supplierId: z.string().min(1),
+  action: z.enum(["approve", "reject", "suspend", "reactivate"]),
+  notes: z.string().max(2000).optional(),
 });
 
 // Invoice Creation

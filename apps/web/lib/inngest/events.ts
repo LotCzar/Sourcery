@@ -37,6 +37,14 @@ export type FreshSheetEvents = {
       provider: string;
     };
   };
+  "pos/push.requested": {
+    data: {
+      integrationId: string;
+      restaurantId: string;
+      provider: string;
+      menuItemIds?: string[];
+    };
+  };
   "ordering/autopilot.scheduled": { data: Record<string, never> };
   "invoice/reminders.scheduled": { data: Record<string, never> };
   "digest/weekly.scheduled": { data: Record<string, never> };
@@ -46,4 +54,11 @@ export type FreshSheetEvents = {
   "substitution/suggestions.scheduled": { data: Record<string, never> };
   "contract/price-alerts.scheduled": { data: Record<string, never> };
   "usage/alerts.scheduled": { data: Record<string, never> };
+  "supplier/verification.requested": {
+    data: {
+      supplierId: string;
+      supplierName: string;
+      supplierEmail: string;
+    };
+  };
 };

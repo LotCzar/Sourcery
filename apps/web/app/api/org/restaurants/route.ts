@@ -137,7 +137,7 @@ export async function POST(request: Request) {
         phone: data.phone || null,
         email: data.email || null,
         website: data.website || null,
-        cuisineType: data.cuisineType || null,
+        cuisineTypes: data.cuisineTypes ?? [],
         seatingCapacity,
         organizationId: user.organizationId,
       },

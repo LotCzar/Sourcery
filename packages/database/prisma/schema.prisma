@@ -206,7 +206,7 @@ model Restaurant {
 
   // Business details
   taxId         String?
-  cuisineType   String?
+  cuisineTypes  String[]
   seatingCapacity Int?
   planTier      PlanTier @default(STARTER)
 
@@ -238,19 +238,22 @@ model Restaurant {
 }
 
 model POSIntegration {
-  id            String      @id @default(cuid())
-  provider      POSProvider
-  accessToken   String?
-  refreshToken  String?
-  storeId       String?
-  lastSyncAt    DateTime?
-  isActive      Boolean     @default(true)
+  id              String      @id @default(cuid())
+  provider        POSProvider
+  accessToken     String?
+  refreshToken    String?
+  storeId         String?
+  tokenExpiresAt  DateTime?
+  merchantId      String?
+  lastSyncAt      DateTime?
+  lastSyncError   String?
+  isActive        Boolean     @default(true)
 
-  restaurantId  String      @unique
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
+  restaurantId    String      @unique
+  restaurant      Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 }
 
 model MenuItem {

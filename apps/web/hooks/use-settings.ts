@@ -22,7 +22,7 @@ interface RestaurantSettings {
   zipCode: string | null;
   phone: string | null;
   website: string | null;
-  cuisineType: string | null;
+  cuisineTypes: string[];
   createdAt: string;
 }
 

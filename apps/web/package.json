@@ -42,6 +42,7 @@
     "react-dom": "^19.0.0",
     "recharts": "^3.7.0",
     "resend": "^6.9.1",
+    "square": "^44.0.0",
     "stripe": "^17.7.0",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",

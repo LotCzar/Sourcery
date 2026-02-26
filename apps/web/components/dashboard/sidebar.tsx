@@ -16,6 +16,7 @@ import {
   Warehouse,
   Building2,
   UtensilsCrossed,
+  ShieldCheck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ const navigation = [
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Price Alerts", href: "/price-alerts", icon: BellRing },
   { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "Verification", href: "/admin/suppliers", icon: ShieldCheck, adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings },
 ];
 

@@ -43,6 +43,14 @@ export const mockEmailTemplates = {
     subject: "New Message on Order ORD-TEST",
     html: "<p>Test order message email</p>",
   }),
+  supplierVerified: vi.fn().mockReturnValue({
+    subject: "Congratulations! Test Supplier is now verified on FreshSheet",
+    html: "<p>Test supplier verified email</p>",
+  }),
+  supplierRejected: vi.fn().mockReturnValue({
+    subject: "Application Update: Test Supplier",
+    html: "<p>Test supplier rejected email</p>",
+  }),
 };
 
 vi.mock("@/lib/email", () => ({

@@ -264,7 +264,7 @@ describe("GET /api/dashboard", () => {
 
     expect(data.data.restaurant).toEqual({
       name: "Test Restaurant",
-      cuisineType: "American",
+      cuisineTypes: ["American"],
     });
   });
 

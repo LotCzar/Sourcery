@@ -73,7 +73,7 @@ export interface DashboardData {
   }[];
   restaurant: {
     name: string;
-    cuisineType: string | null;
+    cuisineTypes: string[];
   };
 }
 

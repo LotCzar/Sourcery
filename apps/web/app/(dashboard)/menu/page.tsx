@@ -555,7 +555,14 @@ export default function MenuPage() {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div>
-                        <p className="font-medium">{item.name}</p>
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{item.name}</p>
+                          {item.posItemId && (
+                            <Badge variant="secondary" className="text-[10px] px-1.5 py-0 h-4 bg-violet-100 text-violet-700">
+                              POS
+                            </Badge>
+                          )}
+                        </div>
                         {item.description && (
                           <p className="text-xs text-muted-foreground truncate max-w-[250px]">
                             {item.description}

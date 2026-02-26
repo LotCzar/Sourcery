@@ -37,7 +37,7 @@ export interface Restaurant {
   website?: string | null;
   logoUrl?: string | null;
   taxId?: string | null;
-  cuisineType?: string | null;
+  cuisineTypes?: string[];
   seatingCapacity?: number | null;
   createdAt: Date;
   updatedAt: Date;

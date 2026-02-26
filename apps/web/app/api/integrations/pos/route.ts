@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateBody } from "@/lib/validations/validate";
 import { ConnectIntegrationSchema } from "@/lib/validations";
-import { isProviderConfigured, buildOAuthUrl } from "@/lib/pos";
+import { isProviderConfigured, buildOAuthUrl, getAdapter } from "@/lib/pos";
 
 // GET - Get current POS integration status
 export async function GET() {
@@ -39,6 +39,7 @@ export async function GET() {
             provider: integration.provider,
             storeId: integration.storeId,
             lastSyncAt: integration.lastSyncAt,
+            lastSyncError: integration.lastSyncError,
             isActive: integration.isActive,
             createdAt: integration.createdAt,
           }
@@ -106,6 +107,73 @@ export async function POST(request: Request) {
           createdAt: integration.createdAt,
         },
       });
+    }
+
+    // Toast: client-credentials flow (not OAuth redirect)
+    if (provider === "TOAST") {
+      if (!isProviderConfigured(provider)) {
+        return NextResponse.json(
+          { error: "Toast integration is not configured. Contact your administrator." },
+          { status: 503 }
+        );
+      }
+      if (!storeId) {
+        return NextResponse.json(
+          { error: "Toast requires a Restaurant External ID (storeId)" },
+          { status: 400 }
+        );
+      }
+
+      const adapter = await getAdapter(provider);
+      if (!adapter?.authenticateClientCredentials) {
+        return NextResponse.json(
+          { error: "Toast adapter not available" },
+          { status: 500 }
+        );
+      }
+
+      try {
+        const tokens = await adapter.authenticateClientCredentials(storeId);
+        const integration = await prisma.pOSIntegration.upsert({
+          where: { restaurantId: user.restaurant.id },
+          update: {
+            provider,
+            accessToken: tokens.accessToken,
+            storeId,
+            merchantId: storeId,
+            tokenExpiresAt: tokens.expiresAt ?? null,
+            isActive: true,
+            lastSyncError: null,
+          },
+          create: {
+            provider,
+            accessToken: tokens.accessToken,
+            storeId,
+            merchantId: storeId,
+            tokenExpiresAt: tokens.expiresAt ?? null,
+            restaurantId: user.restaurant.id,
+            isActive: true,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          data: {
+            id: integration.id,
+            provider: integration.provider,
+            storeId: integration.storeId,
+            lastSyncAt: integration.lastSyncAt,
+            isActive: integration.isActive,
+            createdAt: integration.createdAt,
+          },
+        });
+      } catch (err: any) {
+        console.error("Toast authentication failed:", err);
+        return NextResponse.json(
+          { error: `Toast authentication failed: ${err.message}` },
+          { status: 400 }
+        );
+      }
     }
 
     // OAuth provider: check if configured

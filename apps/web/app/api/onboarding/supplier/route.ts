@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { SupplierOnboardingSchema } from "@/lib/validations";
 import { validateBody } from "@/lib/validations/validate";
+import { inngest } from "@/lib/inngest/client";
 
 export async function POST(request: Request) {
   try {
@@ -100,6 +101,16 @@ export async function POST(request: Request) {
         where: { id: dbUser.id },
         data: { supplierId: supplier.id },
       });
+
+      // Notify admins of new supplier application
+      inngest.send({
+        name: "supplier/verification.requested",
+        data: {
+          supplierId: supplier.id,
+          supplierName: supplier.name,
+          supplierEmail: supplier.email,
+        },
+      }).catch(() => {});
     }
 
     return NextResponse.json({

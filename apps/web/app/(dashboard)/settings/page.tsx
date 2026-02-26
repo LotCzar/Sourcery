@@ -155,11 +155,13 @@ export default function SettingsPage() {
     zipCode: "",
     phone: "",
     website: "",
-    cuisineType: "",
+    cuisineTypes: [] as string[],
   });
 
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [disconnectDialog, setDisconnectDialog] = useState(false);
+  const [toastConnectDialog, setToastConnectDialog] = useState(false);
+  const [toastStoreId, setToastStoreId] = useState("");
   const [isSeeding, setIsSeeding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const [seedResult, setSeedResult] = useState<any>(null);
@@ -179,7 +181,7 @@ export default function SettingsPage() {
           zipCode: restaurant.zipCode || "",
           phone: restaurant.phone || "",
           website: restaurant.website || "",
-          cuisineType: restaurant.cuisineType || "",
+          cuisineTypes: restaurant.cuisineTypes ?? [],
         });
       }
     }
@@ -363,8 +365,12 @@ export default function SettingsPage() {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="font-medium">{restaurantSettings.name}</p>
-                {restaurantSettings.cuisineType && (
-                  <Badge variant="outline" className="text-xs">{restaurantSettings.cuisineType}</Badge>
+                {restaurantSettings.cuisineTypes?.length > 0 && (
+                  <div className="flex flex-wrap gap-1">
+                    {restaurantSettings.cuisineTypes.map((ct: string) => (
+                      <Badge key={ct} variant="outline" className="text-xs">{ct}</Badge>
+                    ))}
+                  </div>
                 )}
                 {restaurantSettings.address && (
                   <div className="flex items-start gap-2 text-xs text-muted-foreground">
@@ -533,29 +539,33 @@ export default function SettingsPage() {
                           placeholder="Restaurant name"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="cuisineType">Cuisine Type</Label>
-                        <Select
-                          value={restaurantForm.cuisineType || "none"}
-                          onValueChange={(value) =>
-                            setRestaurantForm({
-                              ...restaurantForm,
-                              cuisineType: value === "none" ? "" : value,
-                            })
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select cuisine type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Select cuisine type</SelectItem>
-                            {cuisineTypes.map((type) => (
-                              <SelectItem key={type} value={type}>
-                                {type}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <div className="space-y-2 sm:col-span-2">
+                        <Label>Cuisine Type(s)</Label>
+                        <div className="grid grid-cols-4 gap-2">
+                          {cuisineTypes.map((type) => (
+                            <button
+                              key={type}
+                              type="button"
+                              onClick={() => {
+                                const current = restaurantForm.cuisineTypes ?? [];
+                                const updated = current.includes(type)
+                                  ? current.filter((c) => c !== type)
+                                  : current.length < 5
+                                    ? [...current, type]
+                                    : current;
+                                setRestaurantForm({ ...restaurantForm, cuisineTypes: updated });
+                              }}
+                              className={`rounded-lg border p-2 text-sm transition-colors ${
+                                (restaurantForm.cuisineTypes ?? []).includes(type)
+                                  ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                                  : "border-zinc-200 hover:border-zinc-300"
+                              }`}
+                            >
+                              {type}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Select up to 5 cuisine types</p>
                       </div>
                     </div>
 
@@ -848,6 +858,12 @@ export default function SettingsPage() {
                                     Last synced: {formatDate(currentIntegration.lastSyncAt)}
                                   </p>
                                 )}
+                                {isConnected && currentIntegration?.lastSyncError && (
+                                  <p className="text-xs text-red-600 mt-1 flex items-center gap-1">
+                                    <AlertTriangle className="h-3 w-3" />
+                                    {currentIntegration.lastSyncError}
+                                  </p>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -887,6 +903,11 @@ export default function SettingsPage() {
                                 <Button
                                   variant="outline"
                                   onClick={() => {
+                                    if (provider.key === "TOAST") {
+                                      setToastStoreId("");
+                                      setToastConnectDialog(true);
+                                      return;
+                                    }
                                     connectIntegration.mutate(
                                       { provider: provider.key },
                                       {
@@ -911,6 +932,58 @@ export default function SettingsPage() {
                   )}
                 </CardContent>
               </Card>
+
+              {/* Toast Connect Dialog */}
+              <Dialog open={toastConnectDialog} onOpenChange={setToastConnectDialog}>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Connect Toast POS</DialogTitle>
+                    <DialogDescription>
+                      Enter your Toast Restaurant External ID to connect. You can find this in your Toast admin portal under Restaurant Info.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="toast-store-id">Restaurant External ID</Label>
+                      <Input
+                        id="toast-store-id"
+                        placeholder="e.g. abc123-def456-..."
+                        value={toastStoreId}
+                        onChange={(e) => setToastStoreId(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setToastConnectDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (!toastStoreId.trim()) {
+                          toast({ title: "Restaurant External ID is required", variant: "destructive" });
+                          return;
+                        }
+                        connectIntegration.mutate(
+                          { provider: "TOAST", storeId: toastStoreId.trim() },
+                          {
+                            onSuccess: () => {
+                              toast({ title: "Toast connected successfully" });
+                              setToastConnectDialog(false);
+                            },
+                            onError: (err) => toast({ title: "Connection failed", description: err instanceof Error ? err.message : undefined, variant: "destructive" }),
+                          }
+                        );
+                      }}
+                      disabled={connectIntegration.isPending}
+                    >
+                      {connectIntegration.isPending ? (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      ) : null}
+                      Connect
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               <ApprovalRulesSection />
 

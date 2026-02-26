@@ -109,4 +109,7 @@ export const queryKeys = {
   tour: {
     all: ["tour"] as const,
   },
+  admin: {
+    suppliers: (status?: string) => ["admin", "suppliers", status] as const,
+  },
 };

@@ -9,6 +9,7 @@ interface POSIntegrationData {
   provider: string;
   storeId: string | null;
   lastSyncAt: string | null;
+  lastSyncError: string | null;
   isActive: boolean;
   createdAt: string;
 }

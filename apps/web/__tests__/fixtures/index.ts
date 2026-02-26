@@ -31,7 +31,7 @@ export function createMockRestaurant(overrides?: Record<string, unknown>) {
     website: null,
     logoUrl: null,
     taxId: null,
-    cuisineType: "American",
+    cuisineTypes: ["American"],
     seatingCapacity: 50,
     planTier: "STARTER" as const,
     stripeCustomerId: null,
@@ -302,8 +302,28 @@ export function createMockPOSIntegration(overrides?: Record<string, unknown>) {
     accessToken: null,
     refreshToken: null,
     storeId: null,
+    tokenExpiresAt: null,
+    merchantId: null,
     lastSyncAt: null,
+    lastSyncError: null,
     isActive: true,
+    restaurantId: "rest_1",
+    createdAt: new Date("2024-01-01"),
+    updatedAt: new Date("2024-01-01"),
+    ...overrides,
+  };
+}
+
+export function createMockMenuItem(overrides?: Record<string, unknown>) {
+  return {
+    id: "menu_1",
+    name: "Margherita Pizza",
+    description: "Classic pizza with tomato sauce and mozzarella",
+    price: new Decimal("14.99"),
+    category: "Pizza",
+    isActive: true,
+    imageUrl: null,
+    posItemId: null,
     restaurantId: "rest_1",
     createdAt: new Date("2024-01-01"),
     updatedAt: new Date("2024-01-01"),

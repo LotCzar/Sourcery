@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateBody } from "@/lib/validations/validate";
 import { UpdateMenuItemSchema } from "@/lib/validations";
+import { inngest } from "@/lib/inngest/client";
 
 export async function GET(
   request: Request,
@@ -51,6 +52,7 @@ export async function GET(
         price: Number(item.price),
         category: item.category,
         isActive: item.isActive,
+        posItemId: item.posItemId,
         ingredients: item.ingredients.map((ing) => ({
           id: ing.id,
           name: ing.name,
@@ -123,6 +125,28 @@ export async function PATCH(
       data: updateData,
     });
 
+    // If this item is linked to a POS and the restaurant has an active Square integration, trigger push
+    if (item.posItemId) {
+      const posIntegration = await prisma.pOSIntegration.findUnique({
+        where: { restaurantId: user.restaurant.id },
+      });
+      if (
+        posIntegration?.isActive &&
+        posIntegration.provider === "SQUARE" &&
+        posIntegration.accessToken
+      ) {
+        await inngest.send({
+          name: "pos/push.requested",
+          data: {
+            integrationId: posIntegration.id,
+            restaurantId: user.restaurant.id,
+            provider: "SQUARE",
+            menuItemIds: [id],
+          },
+        });
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -132,6 +156,7 @@ export async function PATCH(
         price: Number(item.price),
         category: item.category,
         isActive: item.isActive,
+        posItemId: item.posItemId,
       },
     });
   } catch (error) {

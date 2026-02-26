@@ -58,15 +58,23 @@ export function BusinessInfoStep({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="cuisineType">Cuisine Type</Label>
+          <Label htmlFor="cuisineTypes">Cuisine Type(s)</Label>
           <div className="grid grid-cols-3 gap-2">
             {cuisineTypes.map((cuisine) => (
               <button
                 key={cuisine}
                 type="button"
-                onClick={() => updateData({ cuisineType: cuisine })}
+                onClick={() => {
+                  const current = data.cuisineTypes ?? [];
+                  const updated = current.includes(cuisine)
+                    ? current.filter((c) => c !== cuisine)
+                    : current.length < 5
+                      ? [...current, cuisine]
+                      : current;
+                  updateData({ cuisineTypes: updated });
+                }}
                 className={`rounded-lg border p-2 text-sm transition-colors ${
-                  data.cuisineType === cuisine
+                  (data.cuisineTypes ?? []).includes(cuisine)
                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                     : "border-zinc-200 hover:border-zinc-300"
                 }`}
@@ -75,6 +83,9 @@ export function BusinessInfoStep({
               </button>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground">
+            Select up to 5 cuisine types
+          </p>
         </div>
 
         <div className="space-y-2">

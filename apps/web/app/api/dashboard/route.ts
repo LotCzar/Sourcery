@@ -293,7 +293,7 @@ export async function GET() {
         })),
         restaurant: {
           name: user.restaurant.name,
-          cuisineType: user.restaurant.cuisineType,
+          cuisineTypes: user.restaurant.cuisineTypes,
         },
       },
     });

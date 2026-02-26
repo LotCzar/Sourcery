@@ -67,6 +67,7 @@ export async function GET(request: NextRequest) {
         price: Number(item.price),
         category: item.category,
         isActive: item.isActive,
+        posItemId: item.posItemId,
         ingredients: item.ingredients.map((ing) => ({
           id: ing.id,
           name: ing.name,

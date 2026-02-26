@@ -20,6 +20,7 @@ interface MenuItemData {
   price: number;
   category: string | null;
   isActive: boolean;
+  posItemId: string | null;
   ingredients: IngredientData[];
   createdAt: string;
   updatedAt: string;

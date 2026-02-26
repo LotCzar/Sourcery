@@ -31,7 +31,7 @@ export interface OnboardingData {
   email: string;
   website: string;
   // Business Info
-  cuisineType: string;
+  cuisineTypes: string[];
   seatingCapacity: string;
   // Preferences
   deliveryPreference: string;
@@ -51,7 +51,7 @@ const initialData: OnboardingData = {
   phone: "",
   email: "",
   website: "",
-  cuisineType: "",
+  cuisineTypes: [],
   seatingCapacity: "",
   deliveryPreference: "",
   orderFrequency: "",

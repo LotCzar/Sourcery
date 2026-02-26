@@ -17,7 +17,7 @@ const providerEnvMap: Record<
     clientSecret: "SQUARE_CLIENT_SECRET",
     authUrl: "https://connect.squareup.com/oauth2/authorize",
     tokenUrl: "https://connect.squareup.com/oauth2/token",
-    scopes: ["ITEMS_READ", "MERCHANT_PROFILE_READ"],
+    scopes: ["ITEMS_READ", "ITEMS_WRITE", "MERCHANT_PROFILE_READ", "INVENTORY_READ", "INVENTORY_WRITE", "ORDERS_READ"],
   },
   TOAST: {
     clientId: "TOAST_CLIENT_ID",

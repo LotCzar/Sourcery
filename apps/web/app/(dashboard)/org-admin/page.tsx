@@ -314,7 +314,7 @@ function AddRestaurantDialog({
     phone: "",
     email: "",
     website: "",
-    cuisineType: "",
+    cuisineTypes: [] as string[],
     seatingCapacity: "",
   });
 
@@ -329,13 +329,13 @@ function AddRestaurantDialog({
         phone: form.phone || undefined,
         email: form.email || undefined,
         website: form.website || undefined,
-        cuisineType: form.cuisineType || undefined,
+        cuisineTypes: form.cuisineTypes.length > 0 ? form.cuisineTypes : undefined,
         seatingCapacity: form.seatingCapacity || undefined,
       });
       onOpenChange(false);
       setForm({
         restaurantName: "", address: "", city: "", state: "", zipCode: "",
-        phone: "", email: "", website: "", cuisineType: "", seatingCapacity: "",
+        phone: "", email: "", website: "", cuisineTypes: [], seatingCapacity: "",
       });
       toast({ title: "Restaurant added successfully" });
     } catch (err: any) {
@@ -445,24 +445,33 @@ function AddRestaurantDialog({
             />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-2">
-              <Label htmlFor="newCuisine">Cuisine Type</Label>
-              <Select
-                value={form.cuisineType || "none"}
-                onValueChange={(value) =>
-                  setForm({ ...form, cuisineType: value === "none" ? "" : value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Select type</SelectItem>
-                  {cuisineTypes.map((t) => (
-                    <SelectItem key={t} value={t}>{t}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-2 col-span-2">
+              <Label>Cuisine Type(s)</Label>
+              <div className="grid grid-cols-4 gap-1.5">
+                {cuisineTypes.map((t) => (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => {
+                      const current = form.cuisineTypes ?? [];
+                      const updated = current.includes(t)
+                        ? current.filter((c) => c !== t)
+                        : current.length < 5
+                          ? [...current, t]
+                          : current;
+                      setForm({ ...form, cuisineTypes: updated });
+                    }}
+                    className={`rounded-lg border px-2 py-1.5 text-xs transition-colors ${
+                      (form.cuisineTypes ?? []).includes(t)
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-zinc-200 hover:border-zinc-300"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-muted-foreground">Select up to 5</p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="newCapacity">Seating Capacity</Label>

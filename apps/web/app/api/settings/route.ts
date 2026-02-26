@@ -49,7 +49,7 @@ export async function GET() {
               zipCode: user.restaurant.zipCode,
               phone: user.restaurant.phone,
               website: user.restaurant.website,
-              cuisineType: user.restaurant.cuisineType,
+              cuisineTypes: user.restaurant.cuisineTypes,
               createdAt: user.restaurant.createdAt,
             }
           : null,
@@ -106,15 +106,15 @@ export async function PATCH(request: Request) {
 
     let result;
 
-    const settings = data as Record<string, string | undefined>;
+    const settings = data as Record<string, unknown>;
 
     switch (section) {
       case "profile":
         result = await prisma.user.update({
           where: { id: user.id },
           data: {
-            firstName: settings.firstName,
-            lastName: settings.lastName,
+            firstName: settings.firstName as string | undefined,
+            lastName: settings.lastName as string | undefined,
           },
         });
         break;
@@ -134,14 +134,14 @@ export async function PATCH(request: Request) {
         result = await prisma.restaurant.update({
           where: { id: user.restaurant.id },
           data: {
-            name: settings.name,
-            address: settings.address,
-            city: settings.city,
-            state: settings.state,
-            zipCode: settings.zipCode,
-            phone: settings.phone,
-            website: settings.website,
-            cuisineType: settings.cuisineType,
+            name: settings.name as string | undefined,
+            address: settings.address as string | undefined,
+            city: settings.city as string | undefined,
+            state: settings.state as string | undefined,
+            zipCode: settings.zipCode as string | undefined,
+            phone: settings.phone as string | undefined,
+            website: settings.website as string | undefined,
+            cuisineTypes: Array.isArray(settings.cuisineTypes) ? settings.cuisineTypes as string[] : undefined,
           },
         });
         break;

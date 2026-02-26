@@ -43,7 +43,7 @@ interface AddOrgRestaurantData {
   phone?: string;
   email?: string;
   website?: string;
-  cuisineType?: string;
+  cuisineTypes?: string[];
   seatingCapacity?: string;
 }
 

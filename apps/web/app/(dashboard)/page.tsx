@@ -172,11 +172,13 @@ export default function DashboardPage() {
           </h1>
           <p className="mt-1 text-muted-foreground">
             {data.restaurant.name}
-            {data.restaurant.cuisineType && (
-              <span className="ml-2">
-                <Badge variant="outline" className="text-xs">
-                  {data.restaurant.cuisineType}
-                </Badge>
+            {data.restaurant.cuisineTypes?.length > 0 && (
+              <span className="ml-2 inline-flex gap-1">
+                {data.restaurant.cuisineTypes.map((ct: string) => (
+                  <Badge key={ct} variant="outline" className="text-xs">
+                    {ct}
+                  </Badge>
+                ))}
               </span>
             )}
           </p>

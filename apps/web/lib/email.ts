@@ -273,6 +273,48 @@ export const emailTemplates = {
     `,
   }),
 
+  supplierVerified: (supplierName: string) => ({
+    subject: `Congratulations! ${escapeHtml(supplierName)} is now verified on FreshSheet`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #16a34a;">You're Verified!</h1>
+        <p>Great news! <strong>${escapeHtml(supplierName)}</strong> has been verified on FreshSheet.</p>
+        <div style="background: #f0fdf4; border: 1px solid #86efac; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;">Your supplier profile is now visible in the marketplace. Restaurants can discover and order from you.</p>
+        </div>
+        <p>Head to your dashboard to set up your product catalog and start receiving orders.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/supplier/dashboard" style="background: #16a34a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  supplierRejected: (supplierName: string, notes?: string) => ({
+    subject: `Application Update: ${escapeHtml(supplierName)}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Application Not Approved</h1>
+        <p>Thank you for your interest in joining FreshSheet. Unfortunately, <strong>${escapeHtml(supplierName)}</strong> has not been approved at this time.</p>
+        ${notes ? `
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Reason:</strong> ${escapeHtml(notes)}</p>
+        </div>
+        ` : ''}
+        <p>If you believe this was in error or have additional information to provide, please contact our support team.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="mailto:support@freshsheet.ai" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Contact Support</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   usageAlert: (restaurantName: string, featureName: string, used: number, limit: number, usagePercent: number) => ({
     subject: `Usage Alert: ${escapeHtml(featureName)} at ${usagePercent}% - ${escapeHtml(restaurantName)}`,
     html: `
