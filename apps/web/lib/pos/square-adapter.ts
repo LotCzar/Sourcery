@@ -75,7 +75,7 @@ export class SquareAdapter implements POSAdapter {
     let cursor: string | undefined;
 
     do {
-      const response = await client.catalog.list({
+      const response: any = await client.catalog.list({
         cursor,
         types: "ITEM",
       });
@@ -178,7 +178,7 @@ export class SquareAdapter implements POSAdapter {
     if (catalogItems.length === 0) return counts;
 
     do {
-      const response = await client.inventory.batchGetCounts({
+      const response: any = await client.inventory.batchGetCounts({
         catalogObjectIds: catalogItems.map((item) => item.posItemId),
         cursor,
       });
@@ -209,7 +209,7 @@ export class SquareAdapter implements POSAdapter {
     let updated = 0;
 
     // Get location ID
-    const locationsResponse = await client.locations.list();
+    const locationsResponse: any = await client.locations.list();
     const locationId = locationsResponse.data?.[0]?.id;
     if (!locationId) {
       return { created: 0, updated: 0, errors: ["No Square location found"] };
