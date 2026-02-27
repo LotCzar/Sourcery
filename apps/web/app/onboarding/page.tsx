@@ -121,10 +121,15 @@ export default function OnboardingPage() {
         ? "/api/onboarding/organization"
         : "/api/onboarding";
 
+      // Trim all string fields to prevent mobile keyboard whitespace issues
+      const cleanedData = Object.fromEntries(
+        Object.entries(data).map(([k, v]) => [k, typeof v === "string" ? v.trim() : v])
+      );
+
       const response = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(cleanedData),
       });
 
       if (!response.ok) {

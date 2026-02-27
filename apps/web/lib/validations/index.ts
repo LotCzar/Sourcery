@@ -246,7 +246,8 @@ export const UpdateSupplierSettingsSchema = z.object({
 });
 
 // Onboarding
-const emptyToUndefined = z.literal("").transform(() => undefined);
+// Matches empty strings AND whitespace-only strings (common from mobile keyboards)
+const emptyToUndefined = z.string().refine(s => s.trim() === "").transform(() => undefined);
 
 export const OnboardingSchema = z.object({
   restaurantName: z.string().min(1, "Restaurant name is required").max(255),
@@ -255,8 +256,8 @@ export const OnboardingSchema = z.object({
   state: z.string().max(255).optional(),
   zipCode: z.string().max(255).optional(),
   phone: z.string().max(255).optional(),
-  email: z.union([emptyToUndefined, z.string().email()]).optional(),
-  website: z.union([emptyToUndefined, z.string().url()]).optional(),
+  email: z.union([emptyToUndefined, z.string().trim().email()]).optional(),
+  website: z.union([emptyToUndefined, z.string().trim().url()]).optional(),
   cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
   deliveryPreference: z.string().max(255).optional(),
@@ -475,8 +476,8 @@ export const OrgOnboardingSchema = z.object({
   state: z.string().max(255).optional(),
   zipCode: z.string().max(255).optional(),
   phone: z.string().max(255).optional(),
-  email: z.union([emptyToUndefined, z.string().email()]).optional(),
-  website: z.union([emptyToUndefined, z.string().url()]).optional(),
+  email: z.union([emptyToUndefined, z.string().trim().email()]).optional(),
+  website: z.union([emptyToUndefined, z.string().trim().url()]).optional(),
   cuisineTypes: z.array(z.string().max(100)).max(5).optional(),
   seatingCapacity: z.string().max(255).optional(),
   deliveryPreference: z.string().max(255).optional(),
