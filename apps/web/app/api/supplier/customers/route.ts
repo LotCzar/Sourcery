@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // GET - Supplier customer insights
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
@@ -23,6 +23,9 @@ export async function GET() {
       return NextResponse.json({ error: "Insufficient permissions" }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search") || "";
+
     const supplierId = user.supplier.id;
 
     // Get all orders grouped by restaurant
@@ -40,14 +43,19 @@ export async function GET() {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 1000,
+      take: 5000,
     });
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     // Aggregate per restaurant
     const customerMap: Record<string, {
       restaurant: { id: string; name: string; city: string | null; state: string | null };
       orderCount: number;
       totalSpend: number;
+      firstOrderDate: Date;
       lastOrderDate: Date;
       topProducts: Record<string, number>;
     }> = {};
@@ -59,6 +67,7 @@ export async function GET() {
           restaurant: order.restaurant,
           orderCount: 0,
           totalSpend: 0,
+          firstOrderDate: order.createdAt,
           lastOrderDate: order.createdAt,
           topProducts: {},
         };
@@ -68,24 +77,51 @@ export async function GET() {
       if (order.createdAt > customerMap[rid].lastOrderDate) {
         customerMap[rid].lastOrderDate = order.createdAt;
       }
+      if (order.createdAt < customerMap[rid].firstOrderDate) {
+        customerMap[rid].firstOrderDate = order.createdAt;
+      }
       for (const item of order.items) {
         const name = item.product.name;
         customerMap[rid].topProducts[name] = (customerMap[rid].topProducts[name] || 0) + Number(item.quantity);
       }
     }
 
-    const customers = Object.values(customerMap)
-      .sort((a, b) => b.totalSpend - a.totalSpend)
-      .map((c) => ({
-        ...c.restaurant,
-        orderCount: c.orderCount,
-        totalSpend: c.totalSpend,
-        lastOrderDate: c.lastOrderDate,
-        topProducts: Object.entries(c.topProducts)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 5)
-          .map(([name, qty]) => ({ name, quantity: qty })),
-      }));
+    let customers = Object.values(customerMap)
+      .map((c) => {
+        const monthsSinceFirst = Math.max(
+          1,
+          (now.getTime() - c.firstOrderDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
+        );
+        const avgOrderValue = c.orderCount > 0 ? c.totalSpend / c.orderCount : 0;
+        const orderFrequency = c.orderCount / monthsSinceFirst;
+        const atRisk = c.lastOrderDate < thirtyDaysAgo;
+
+        return {
+          ...c.restaurant,
+          orderCount: c.orderCount,
+          totalSpend: c.totalSpend,
+          avgOrderValue,
+          orderFrequency,
+          firstOrderDate: c.firstOrderDate,
+          lastOrderDate: c.lastOrderDate,
+          atRisk,
+          topProducts: Object.entries(c.topProducts)
+            .sort(([, a], [, b]) => b - a)
+            .slice(0, 5)
+            .map(([name, qty]) => ({ name, quantity: qty })),
+        };
+      })
+      .sort((a, b) => b.totalSpend - a.totalSpend);
+
+    // Apply search filter
+    if (search) {
+      const q = search.toLowerCase();
+      customers = customers.filter(
+        (c) =>
+          c.name.toLowerCase().includes(q) ||
+          (c.city && c.city.toLowerCase().includes(q))
+      );
+    }
 
     return NextResponse.json({
       success: true,

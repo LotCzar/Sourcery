@@ -12,10 +12,11 @@ export function useSupplierAnalytics(period?: string) {
   });
 }
 
-export function useSupplierCustomers() {
+export function useSupplierCustomers(search?: string) {
   return useQuery({
-    queryKey: queryKeys.supplier.customers,
-    queryFn: () => apiFetch<any>("/api/supplier/customers"),
+    queryKey: queryKeys.supplier.customers(search),
+    queryFn: () =>
+      apiFetch<any>(`/api/supplier/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   });
 }
 

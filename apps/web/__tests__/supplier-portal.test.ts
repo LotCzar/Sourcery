@@ -224,6 +224,8 @@ describe("GET /api/supplier/analytics", () => {
     ];
 
     prismaMock.order.findMany.mockResolvedValueOnce(orders as any);
+    // Previous period comparison query
+    prismaMock.order.findMany.mockResolvedValueOnce([] as any);
 
     const req = new Request("http://localhost/api/supplier/analytics?period=30d");
     const response = await getAnalytics(req);
@@ -237,12 +239,17 @@ describe("GET /api/supplier/analytics", () => {
     expect(data.data.customerCount).toBe(2);
     expect(data.data.topProducts).toHaveLength(2);
     expect(data.data.period).toBe("30d");
+    // New fields
+    expect(data.data.revenueOverTime).toBeDefined();
+    expect(data.data.revenueByCategory).toBeDefined();
+    expect(data.data.ordersByStatus).toBeDefined();
+    expect(data.data.comparison).toBeDefined();
   });
 });
 
 // ---- Customers ----
 describe("GET /api/supplier/customers", () => {
-  let getCustomers: () => Promise<Response>;
+  let getCustomers: (request: Request) => Promise<Response>;
 
   beforeEach(async () => {
     const mod = await import("@/app/api/supplier/customers/route");
@@ -297,7 +304,7 @@ describe("GET /api/supplier/customers", () => {
 
     prismaMock.order.findMany.mockResolvedValueOnce(orders as any);
 
-    const response = await getCustomers();
+    const response = await getCustomers(createRequest("http://localhost:3000/api/supplier/customers"));
     const { status, data } = await parseResponse(response);
 
     expect(status).toBe(200);
@@ -325,7 +332,7 @@ describe("GET /api/supplier/customers", () => {
       restaurant: null,
     } as any);
 
-    const response = await getCustomers();
+    const response = await getCustomers(createRequest("http://localhost:3000/api/supplier/customers"));
     const { status } = await parseResponse(response);
 
     // user.supplier is null so route returns 404 ("Supplier not found")

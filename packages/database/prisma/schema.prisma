@@ -337,6 +337,7 @@ model Supplier {
   invoices      Invoice[]
   restaurantRelationships RestaurantSupplier[]
   deliveryZones DeliveryZone[]
+  promotions    Promotion[]
 
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -372,6 +373,7 @@ model SupplierProduct {
   ingredients   Ingredient[]
   priceAlerts   PriceAlert[]
   inventoryItems InventoryItem[] @relation("InventorySupplierProduct")
+  promotions    Promotion[]
 
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
@@ -883,4 +885,39 @@ model AccountingCategoryMapping {
 
   @@unique([integrationId, productCategory])
   @@index([integrationId])
+}
+
+// ============================================
+// PROMOTIONS
+// ============================================
+
+enum PromotionType {
+  PERCENTAGE_OFF
+  FLAT_DISCOUNT
+  FREE_DELIVERY
+  BUY_X_GET_Y
+}
+
+model Promotion {
+  id              String          @id @default(cuid())
+  type            PromotionType
+  value           Decimal         @db.Decimal(10, 2)
+  minOrderAmount  Decimal?        @db.Decimal(10, 2)
+  startDate       DateTime
+  endDate         DateTime
+  description     String?         @db.Text
+  isActive        Boolean         @default(true)
+  buyQuantity     Int?
+  getQuantity     Int?
+
+  supplierId      String
+  supplier        Supplier        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  products        SupplierProduct[]
+
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([supplierId])
+  @@index([startDate, endDate])
+  @@index([isActive])
 }

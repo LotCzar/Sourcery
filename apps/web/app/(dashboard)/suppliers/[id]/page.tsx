@@ -46,8 +46,14 @@ import {
   Fish,
   Milk,
   Coffee,
+  Tag,
+  Percent,
+  Gift,
 } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
 
 interface Product {
   id: string;
@@ -144,6 +150,14 @@ export default function SupplierDetailPage() {
   };
 
   // Filter cart to items from this supplier
+  // Fetch active promotions for this supplier
+  const { data: promoResult } = useQuery({
+    queryKey: queryKeys.promotions.active(params.id as string),
+    queryFn: () => apiFetch<any>(`/api/promotions?supplierId=${params.id}`),
+    enabled: !!params.id,
+  });
+  const activePromotions = promoResult?.data ?? [];
+
   const supplierCart = cart.filter((item) => item.supplierId === supplier?.id);
   const supplierCartTotal = supplierCart.reduce(
     (sum, item) => sum + item.quantity * item.unitPrice,
@@ -302,6 +316,42 @@ export default function SupplierDetailPage() {
         <Card className="border-red-200 bg-red-50">
           <CardContent className="pt-6">
             <p className="text-red-600">{error?.message}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Active Promotions Banner */}
+      {activePromotions.length > 0 && (
+        <Card className="border-amber-200 bg-amber-50/50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Tag className="h-5 w-5 text-amber-700" />
+              <span className="font-semibold text-amber-900">Active Promotions</span>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              {activePromotions.map((promo: any) => (
+                <div key={promo.id} className="flex items-center gap-2 rounded-lg bg-white px-3 py-2 border border-amber-200">
+                  {promo.type === "PERCENTAGE_OFF" && <Percent className="h-4 w-4 text-blue-600" />}
+                  {promo.type === "FLAT_DISCOUNT" && <DollarSign className="h-4 w-4 text-emerald-600" />}
+                  {promo.type === "FREE_DELIVERY" && <Truck className="h-4 w-4 text-purple-600" />}
+                  {promo.type === "BUY_X_GET_Y" && <Gift className="h-4 w-4 text-amber-600" />}
+                  <div>
+                    <p className="text-sm font-medium">
+                      {promo.type === "PERCENTAGE_OFF" && `${promo.value}% Off`}
+                      {promo.type === "FLAT_DISCOUNT" && `$${promo.value.toFixed(2)} Off`}
+                      {promo.type === "FREE_DELIVERY" && "Free Delivery"}
+                      {promo.type === "BUY_X_GET_Y" && `Buy ${promo.buyQuantity} Get ${promo.getQuantity}`}
+                    </p>
+                    {promo.description && (
+                      <p className="text-xs text-muted-foreground">{promo.description}</p>
+                    )}
+                    {promo.minOrderAmount && (
+                      <p className="text-xs text-muted-foreground">Min. order: ${promo.minOrderAmount.toFixed(2)}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       )}

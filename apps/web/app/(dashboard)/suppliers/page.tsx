@@ -15,11 +15,13 @@ import {
   Phone,
   Truck,
   DollarSign,
+  Tag,
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { SupplierSearch } from "@/components/suppliers/supplier-search";
 
 async function getSuppliers(query?: string) {
+  const now = new Date();
   const suppliers = await prisma.supplier.findMany({
     where: {
       status: "VERIFIED",
@@ -35,6 +37,15 @@ async function getSuppliers(query?: string) {
     include: {
       _count: {
         select: { products: true },
+      },
+      promotions: {
+        where: {
+          isActive: true,
+          startDate: { lte: now },
+          endDate: { gte: now },
+        },
+        select: { id: true, type: true, value: true },
+        take: 3,
       },
     },
     orderBy: {
@@ -163,6 +174,22 @@ export default async function SuppliersPage({
                 <Phone className="h-4 w-4" />
                 {supplier.phone}
               </div>
+              {supplier.promotions.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {supplier.promotions.map((promo) => (
+                    <Badge key={promo.id} className="bg-amber-50 text-amber-700 hover:bg-amber-100 text-xs">
+                      <Tag className="h-3 w-3 mr-1" />
+                      {promo.type === "PERCENTAGE_OFF"
+                        ? `${Number(promo.value)}% Off`
+                        : promo.type === "FLAT_DISCOUNT"
+                          ? `$${Number(promo.value)} Off`
+                          : promo.type === "FREE_DELIVERY"
+                            ? "Free Delivery"
+                            : "Special Deal"}
+                    </Badge>
+                  ))}
+                </div>
+              )}
               <div className="flex items-center gap-4 text-xs text-muted-foreground">
                 <span>Min. ${supplier.minimumOrder?.toNumber() || 0}</span>
                 <span>•</span>

@@ -504,6 +504,56 @@ export const AiChatSchema = z.object({
   conversationId: z.string().nullable().optional(),
 });
 
+// Promotions
+export const PromotionTypeSchema = z.enum([
+  "PERCENTAGE_OFF",
+  "FLAT_DISCOUNT",
+  "FREE_DELIVERY",
+  "BUY_X_GET_Y",
+]);
+
+export const CreatePromotionSchema = z
+  .object({
+    type: PromotionTypeSchema,
+    value: z.number().min(0),
+    minOrderAmount: z.number().min(0).nullable().optional(),
+    startDate: z.string().min(1),
+    endDate: z.string().min(1),
+    description: z.string().max(2000).optional(),
+    isActive: z.boolean().optional(),
+    buyQuantity: z.number().int().positive().nullable().optional(),
+    getQuantity: z.number().int().positive().nullable().optional(),
+    productIds: z.array(z.string()).optional(),
+  })
+  .refine((data) => new Date(data.endDate) > new Date(data.startDate), {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  })
+  .refine(
+    (data) => data.type !== "PERCENTAGE_OFF" || data.value <= 100,
+    { message: "Percentage discount cannot exceed 100%", path: ["value"] }
+  )
+  .refine(
+    (data) =>
+      data.type !== "BUY_X_GET_Y" ||
+      (data.buyQuantity != null && data.getQuantity != null),
+    { message: "BUY_X_GET_Y requires buyQuantity and getQuantity", path: ["buyQuantity"] }
+  );
+
+export const UpdatePromotionSchema = z
+  .object({
+    type: PromotionTypeSchema.optional(),
+    value: z.number().min(0).optional(),
+    minOrderAmount: z.number().min(0).nullable().optional(),
+    startDate: z.string().min(1).optional(),
+    endDate: z.string().min(1).optional(),
+    description: z.string().max(2000).nullable().optional(),
+    isActive: z.boolean().optional(),
+    buyQuantity: z.number().int().positive().nullable().optional(),
+    getQuantity: z.number().int().positive().nullable().optional(),
+    productIds: z.array(z.string()).optional(),
+  });
+
 // AI Search
 export const AiSearchSchema = z.object({
   query: z.string().min(2).max(1000),
