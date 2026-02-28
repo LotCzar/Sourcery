@@ -55,10 +55,10 @@ export function useUpdateSupplierInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, action }: { id: string; action: string }) =>
+    mutationFn: ({ id, action, paidAmount }: { id: string; action: string; paidAmount?: number }) =>
       apiFetch(`/api/supplier/invoices/${id}`, {
         method: "PATCH",
-        body: JSON.stringify({ action }),
+        body: JSON.stringify({ action, ...(paidAmount !== undefined && { paidAmount }) }),
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.supplier.invoices.all });

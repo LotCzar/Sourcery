@@ -29,7 +29,9 @@ import {
   CheckCircle2,
   XCircle,
   DollarSign,
+  ImageIcon,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const statusColors: Record<string, string> = {
   PENDING: "bg-amber-100 text-amber-800",
@@ -48,6 +50,7 @@ const typeLabels: Record<string, string> = {
 };
 
 export default function SupplierReturnsPage() {
+  const { toast } = useToast();
   const { data, isLoading } = useSupplierReturns();
   const updateReturn = useUpdateSupplierReturn();
 
@@ -71,12 +74,22 @@ export default function SupplierReturnsPage() {
       if (creditAmount) payload.creditAmount = parseFloat(creditAmount);
       if (creditNotes) payload.creditNotes = creditNotes;
     }
-    await updateReturn.mutateAsync({ id: selectedReturn.id, data: payload });
-    setActionDialog(null);
-    setSelectedReturn(null);
-    setResolution("");
-    setCreditAmount("");
-    setCreditNotes("");
+    try {
+      await updateReturn.mutateAsync({ id: selectedReturn.id, data: payload });
+      const actionLabel = action.replace(/_/g, " ");
+      toast({ title: `Return ${actionLabel} successfully` });
+      setActionDialog(null);
+      setSelectedReturn(null);
+      setResolution("");
+      setCreditAmount("");
+      setCreditNotes("");
+    } catch (err: any) {
+      toast({
+        title: "Failed to process return",
+        description: err.message,
+        variant: "destructive",
+      });
+    }
   }
 
   if (isLoading) {
@@ -184,6 +197,31 @@ export default function SupplierReturnsPage() {
                         </li>
                       ))}
                     </ul>
+                  </div>
+                )}
+                {selectedReturn.photoUrls?.length > 0 && (
+                  <div>
+                    <Label className="text-muted-foreground flex items-center gap-1">
+                      <ImageIcon className="h-3 w-3" />
+                      Photo Evidence
+                    </Label>
+                    <div className="mt-1 grid grid-cols-3 gap-2">
+                      {selectedReturn.photoUrls.map((url: string, i: number) => (
+                        <a
+                          key={i}
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block overflow-hidden rounded-md border hover:opacity-80 transition-opacity"
+                        >
+                          <img
+                            src={url}
+                            alt={`Evidence photo ${i + 1}`}
+                            className="h-24 w-full object-cover"
+                          />
+                        </a>
+                      ))}
+                    </div>
                   </div>
                 )}
                 {selectedReturn.resolution && (

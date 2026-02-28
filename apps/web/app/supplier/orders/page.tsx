@@ -206,7 +206,7 @@ export default function SupplierOrdersPage() {
         action: shipDialog.action,
         estimatedDeliveryAt: shipEta ? new Date(shipEta).toISOString() : undefined,
         trackingNotes: shipNotes || undefined,
-        driverId: shipDriverId || undefined,
+        driverId: shipDriverId && shipDriverId !== "none" ? shipDriverId : undefined,
       },
       {
         onSuccess: () => {
@@ -284,7 +284,7 @@ export default function SupplierOrdersPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => window.open("/api/supplier/analytics/export?type=orders&period=30d", "_blank")}
+          onClick={() => window.open("/api/supplier/analytics/export?type=orders&period=all", "_blank")}
         >
           <Download className="h-4 w-4 mr-2" />
           Export CSV

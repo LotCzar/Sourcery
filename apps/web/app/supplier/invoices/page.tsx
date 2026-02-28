@@ -26,6 +26,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   FileText,
   Search,
@@ -109,6 +110,8 @@ export default function SupplierInvoicesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStatus, setSelectedStatus] = useState<string>("ALL");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
+  const [partialPaymentInvoice, setPartialPaymentInvoice] = useState<Invoice | null>(null);
+  const [partialAmount, setPartialAmount] = useState("");
 
   const { data: result, isLoading, error } = useSupplierInvoices(selectedStatus);
   const updateInvoice = useUpdateSupplierInvoice();
@@ -123,12 +126,14 @@ export default function SupplierInvoicesPage() {
     paidThisMonthCount: 0,
   };
 
-  const handleAction = async (invoiceId: string, action: string) => {
+  const handleAction = async (invoiceId: string, action: string, paidAmount?: number) => {
     updateInvoice.mutate(
-      { id: invoiceId, action },
+      { id: invoiceId, action, paidAmount },
       {
         onSuccess: () => {
           setSelectedInvoice(null);
+          setPartialPaymentInvoice(null);
+          setPartialAmount("");
           toast({ title: `Invoice updated successfully` });
         },
         onError: (err) => {
@@ -136,6 +141,16 @@ export default function SupplierInvoicesPage() {
         },
       }
     );
+  };
+
+  const handlePartialPaymentSubmit = () => {
+    if (!partialPaymentInvoice || !partialAmount) return;
+    const amount = parseFloat(partialAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast({ title: "Invalid amount", description: "Please enter a valid positive amount.", variant: "destructive" });
+      return;
+    }
+    handleAction(partialPaymentInvoice.id, "markPartiallyPaid", amount);
   };
 
   const formatCurrency = (amount: number) => {
@@ -525,6 +540,17 @@ export default function SupplierInvoicesPage() {
                   Mark Overdue
                 </Button>
                 <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPartialPaymentInvoice(selectedInvoice);
+                    setPartialAmount("");
+                  }}
+                  disabled={updateInvoice.isPending}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Record Partial Payment
+                </Button>
+                <Button
                   onClick={() => handleAction(selectedInvoice.id, "markPaid")}
                   disabled={updateInvoice.isPending}
                   className="bg-emerald-600 hover:bg-emerald-700"
@@ -539,18 +565,31 @@ export default function SupplierInvoicesPage() {
               </>
             )}
             {selectedInvoice?.status === "OVERDUE" && (
-              <Button
-                onClick={() => handleAction(selectedInvoice.id, "markPaid")}
-                disabled={updateInvoice.isPending}
-                className="bg-emerald-600 hover:bg-emerald-700"
-              >
-                {updateInvoice.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                )}
-                Mark as Paid
-              </Button>
+              <>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setPartialPaymentInvoice(selectedInvoice);
+                    setPartialAmount("");
+                  }}
+                  disabled={updateInvoice.isPending}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Record Partial Payment
+                </Button>
+                <Button
+                  onClick={() => handleAction(selectedInvoice.id, "markPaid")}
+                  disabled={updateInvoice.isPending}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  {updateInvoice.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                  )}
+                  Mark as Paid
+                </Button>
+              </>
             )}
             {selectedInvoice?.status === "PARTIALLY_PAID" && (
               <Button
@@ -561,6 +600,58 @@ export default function SupplierInvoicesPage() {
                 Mark Fully Paid
               </Button>
             )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Partial Payment Dialog */}
+      <Dialog
+        open={!!partialPaymentInvoice}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPartialPaymentInvoice(null);
+            setPartialAmount("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Record Partial Payment</DialogTitle>
+            <DialogDescription>
+              Invoice {partialPaymentInvoice?.invoiceNumber} &mdash; Total: {partialPaymentInvoice ? formatCurrency(partialPaymentInvoice.total) : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="partial-amount">Amount Received ($)</Label>
+              <Input
+                id="partial-amount"
+                type="number"
+                step="0.01"
+                min="0.01"
+                max={partialPaymentInvoice?.total}
+                value={partialAmount}
+                onChange={(e) => setPartialAmount(e.target.value)}
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => { setPartialPaymentInvoice(null); setPartialAmount(""); }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePartialPaymentSubmit}
+              disabled={updateInvoice.isPending || !partialAmount}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {updateInvoice.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <DollarSign className="h-4 w-4 mr-2" />
+              )}
+              Record Payment
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
