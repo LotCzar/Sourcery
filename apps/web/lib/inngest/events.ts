@@ -77,6 +77,34 @@ export type FreshSheetEvents = {
   "supplier/delivery-digest.scheduled": { data: Record<string, never> };
   "supplier/payment-collection.scheduled": { data: Record<string, never> };
   "supplier/seasonal-prep.scheduled": { data: Record<string, never> };
+  "invoice/status.changed": {
+    data: {
+      invoiceId: string;
+      newStatus: string;
+      restaurantId: string;
+    };
+  };
+  "order/approval.requested": {
+    data: {
+      orderId: string;
+      orderNumber: string;
+      requesterName: string;
+      total: number;
+      restaurantId: string;
+      requiredRole: string;
+    };
+  };
+  "order/message.sent": {
+    data: {
+      orderId: string;
+      orderNumber: string;
+      senderName: string;
+      messagePreview: string;
+      isSupplierSender: boolean;
+      restaurantId: string;
+      supplierId: string;
+    };
+  };
   "return/status.changed": {
     data: {
       returnId: string;

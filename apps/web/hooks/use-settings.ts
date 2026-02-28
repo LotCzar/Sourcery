@@ -23,6 +23,7 @@ interface RestaurantSettings {
   phone: string | null;
   website: string | null;
   cuisineTypes: string[];
+  stripeSubscriptionId: string | null;
   createdAt: string;
 }
 

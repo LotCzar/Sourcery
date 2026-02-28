@@ -330,7 +330,7 @@ export const emailTemplates = {
         </div>
         <p>Consider upgrading your plan to increase your limits.</p>
         <div style="text-align: center; margin-top: 24px;">
-          <a href="/settings" style="background: #d97706; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Manage Plan</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/settings" style="background: #d97706; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Manage Plan</a>
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
           This email was sent by FreshSheet. Please do not reply to this email.
@@ -368,7 +368,7 @@ export const emailTemplates = {
           </tr>
         </table>
         <div style="text-align: center; margin-top: 24px;">
-          <a href="/supplier" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Dashboard</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/supplier" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Dashboard</a>
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
           This email was sent by FreshSheet. Please do not reply to this email.
@@ -454,7 +454,7 @@ export const emailTemplates = {
         </div>
         <p>Log in to your FreshSheet dashboard to place an order or reply.</p>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="/dashboard" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/dashboard" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
           This email was sent by FreshSheet on behalf of ${escapeHtml(supplierName)}. Please do not reply to this email.
@@ -496,7 +496,7 @@ export const emailTemplates = {
           </tr>
         </table>
         <div style="text-align: center; margin-top: 24px;">
-          <a href="/dashboard" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Dashboard</a>
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/dashboard" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Dashboard</a>
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
           This email was sent by FreshSheet. Please do not reply to this email.

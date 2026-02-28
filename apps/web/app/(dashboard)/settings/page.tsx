@@ -87,7 +87,7 @@ import {
 import { useUpdatePlan } from "@/hooks/use-update-plan";
 import { useBillingCheckout, useBillingPortal } from "@/hooks/use-billing";
 import { useApprovalRules, useCreateApprovalRule, useDeleteApprovalRule } from "@/hooks/use-approvals";
-import { useAccountingIntegration, useSyncInvoices } from "@/hooks/use-accounting";
+import { useAccountingIntegration, useAccountingMappings, useUpdateMappings, useSyncInvoices } from "@/hooks/use-accounting";
 import { useTour } from "@/lib/tour-context";
 import { TierGate } from "@/components/tier-gate";
 
@@ -1427,6 +1427,7 @@ function AccountingSection() {
                 Sync Now
               </Button>
             </div>
+            <AccountingMappingsSection />
           </div>
         ) : (
           <>
@@ -1480,7 +1481,7 @@ function UsageSection() {
 
   const usage = usageData?.features;
   const restaurant = settingsData?.data?.restaurant;
-  const hasSubscription = !!(restaurant as Record<string, unknown> | null)?.stripeSubscriptionId;
+  const hasSubscription = !!restaurant?.stripeSubscriptionId;
 
   const getBarColor = (used: number, limit: number) => {
     const pct = (used / limit) * 100;
@@ -2152,5 +2153,110 @@ function GuidedTourCard() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+const PRODUCT_CATEGORIES = [
+  "PRODUCE",
+  "MEAT",
+  "SEAFOOD",
+  "DAIRY",
+  "BAKERY",
+  "BEVERAGES",
+  "DRY_GOODS",
+  "FROZEN",
+  "CLEANING",
+  "EQUIPMENT",
+  "OTHER",
+];
+
+function AccountingMappingsSection() {
+  const { data: mappingsResult, isLoading } = useAccountingMappings();
+  const updateMappings = useUpdateMappings();
+  const { toast } = useToast();
+
+  const [localMappings, setLocalMappings] = useState<
+    { productCategory: string; accountingCode: string; accountingName: string }[]
+  >([]);
+  const [initialized, setInitialized] = useState(false);
+
+  useEffect(() => {
+    if (mappingsResult?.data && !initialized) {
+      const existing = mappingsResult.data as {
+        productCategory: string;
+        accountingCode: string;
+        accountingName?: string;
+      }[];
+      const mapped = PRODUCT_CATEGORIES.map((cat) => {
+        const found = existing.find((m) => m.productCategory === cat);
+        return {
+          productCategory: cat,
+          accountingCode: found?.accountingCode || "",
+          accountingName: found?.accountingName || "",
+        };
+      });
+      setLocalMappings(mapped);
+      setInitialized(true);
+    }
+  }, [mappingsResult, initialized]);
+
+  const handleSave = async () => {
+    const nonEmpty = localMappings.filter((m) => m.accountingCode.trim());
+    try {
+      await updateMappings.mutateAsync(nonEmpty);
+      toast({ title: "Mappings saved" });
+    } catch (err: any) {
+      toast({ title: "Failed to save", description: err?.message, variant: "destructive" });
+    }
+  };
+
+  if (isLoading) return null;
+
+  return (
+    <div className="mt-4 border-t pt-4 space-y-3">
+      <div>
+        <p className="text-sm font-medium">Category Mappings</p>
+        <p className="text-xs text-muted-foreground">
+          Map product categories to your accounting codes
+        </p>
+      </div>
+      <div className="space-y-2">
+        {localMappings.map((mapping, idx) => (
+          <div key={mapping.productCategory} className="flex items-center gap-2">
+            <span className="w-28 text-xs font-medium truncate">
+              {mapping.productCategory.replace("_", " ")}
+            </span>
+            <Input
+              placeholder="Code"
+              value={mapping.accountingCode}
+              onChange={(e) => {
+                const updated = [...localMappings];
+                updated[idx] = { ...updated[idx], accountingCode: e.target.value };
+                setLocalMappings(updated);
+              }}
+              className="h-8 text-sm flex-1"
+            />
+            <Input
+              placeholder="Account name"
+              value={mapping.accountingName}
+              onChange={(e) => {
+                const updated = [...localMappings];
+                updated[idx] = { ...updated[idx], accountingName: e.target.value };
+                setLocalMappings(updated);
+              }}
+              className="h-8 text-sm flex-1"
+            />
+          </div>
+        ))}
+      </div>
+      <Button
+        size="sm"
+        onClick={handleSave}
+        disabled={updateMappings.isPending}
+      >
+        {updateMappings.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        Save Mappings
+      </Button>
+    </div>
   );
 }

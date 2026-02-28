@@ -46,6 +46,7 @@ import {
   useUpdateSupplierInvoice,
   useSendInvoiceReminder,
 } from "@/hooks/use-supplier-invoices";
+import { useSupplierSettings } from "@/hooks/use-supplier-settings";
 
 interface Invoice {
   id: string;
@@ -116,6 +117,8 @@ export default function SupplierInvoicesPage() {
   const { data: result, isLoading, error } = useSupplierInvoices(selectedStatus);
   const updateInvoice = useUpdateSupplierInvoice();
   const sendReminder = useSendInvoiceReminder();
+  const { data: settingsResult } = useSupplierSettings();
+  const isSupplierAdmin = settingsResult?.data?.userRole === "SUPPLIER_ADMIN";
 
   const invoices: Invoice[] = result?.data ?? [];
   const stats = result?.stats ?? {
@@ -496,7 +499,8 @@ export default function SupplierInvoicesPage() {
                 Download PDF
               </Button>
             )}
-            {selectedInvoice &&
+            {isSupplierAdmin &&
+              selectedInvoice &&
               (selectedInvoice.status === "PENDING" ||
                 selectedInvoice.status === "OVERDUE" ||
                 isOverdue(selectedInvoice)) && (

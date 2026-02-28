@@ -53,6 +53,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { AiPromptChips } from "@/components/ai-prompt-chips";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Textarea } from "@/components/ui/textarea";
+import { MessageSquare } from "lucide-react";
+import { useOrderMessages, useSendMessage } from "@/hooks/use-messages";
 
 interface OrderItem {
   id: string;
@@ -150,6 +160,10 @@ export default function OrdersPage() {
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "");
+
+  // Messages panel
+  const [selectedOrderForMessages, setSelectedOrderForMessages] = useState<Order | null>(null);
+  const [messageText, setMessageText] = useState("");
 
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -463,23 +477,35 @@ export default function OrdersPage() {
 
                 <CardContent>
                   <div className="flex items-center justify-between">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
-                    >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp className="mr-1 h-4 w-4" />
-                          Hide Details
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown className="mr-1 h-4 w-4" />
-                          Show Details
-                        </>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setExpandedOrder(isExpanded ? null : order.id)}
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp className="mr-1 h-4 w-4" />
+                            Hide Details
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="mr-1 h-4 w-4" />
+                            Show Details
+                          </>
+                        )}
+                      </Button>
+                      {order.status !== "DRAFT" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedOrderForMessages(order)}
+                        >
+                          <MessageSquare className="mr-1 h-4 w-4" />
+                          Messages
+                        </Button>
                       )}
-                    </Button>
+                    </div>
 
                     {/* Quick Actions */}
                     <div className="flex gap-2">
@@ -726,6 +752,116 @@ export default function OrdersPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Order Messages Sheet */}
+      <Sheet
+        open={!!selectedOrderForMessages}
+        onOpenChange={(open) => !open && setSelectedOrderForMessages(null)}
+      >
+        <SheetContent className="sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>
+              Messages — {selectedOrderForMessages?.orderNumber}
+            </SheetTitle>
+            <SheetDescription>
+              {selectedOrderForMessages?.supplier.name}
+            </SheetDescription>
+          </SheetHeader>
+          {selectedOrderForMessages && (
+            <OrderMessagesPanel
+              orderId={selectedOrderForMessages.id}
+              messageText={messageText}
+              setMessageText={setMessageText}
+            />
+          )}
+        </SheetContent>
+      </Sheet>
+    </div>
+  );
+}
+
+function OrderMessagesPanel({
+  orderId,
+  messageText,
+  setMessageText,
+}: {
+  orderId: string;
+  messageText: string;
+  setMessageText: (v: string) => void;
+}) {
+  const { data: messagesResult, isLoading } = useOrderMessages(orderId);
+  const sendMessage = useSendMessage(orderId);
+  const messages = messagesResult?.data || [];
+
+  const handleSend = () => {
+    if (!messageText.trim()) return;
+    sendMessage.mutate(
+      { content: messageText.trim() },
+      { onSuccess: () => setMessageText("") }
+    );
+  };
+
+  return (
+    <div className="flex flex-col h-[calc(100vh-10rem)] mt-4">
+      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+          </div>
+        ) : messages.length === 0 ? (
+          <p className="text-sm text-muted-foreground text-center py-8">
+            No messages yet. Start the conversation below.
+          </p>
+        ) : (
+          messages.map((msg: any) => (
+            <div
+              key={msg.id}
+              className={`rounded-lg p-3 text-sm ${
+                msg.isFromSupplier
+                  ? "bg-muted ml-0 mr-8"
+                  : "bg-primary/10 ml-8 mr-0"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-xs">
+                  {msg.senderName || (msg.isFromSupplier ? "Supplier" : "You")}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(msg.createdAt).toLocaleString()}
+                </span>
+              </div>
+              <p>{msg.content}</p>
+            </div>
+          ))
+        )}
+      </div>
+      <div className="border-t pt-3 mt-3 space-y-2">
+        <Textarea
+          placeholder="Type a message..."
+          value={messageText}
+          onChange={(e) => setMessageText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          rows={2}
+        />
+        <Button
+          size="sm"
+          onClick={handleSend}
+          disabled={!messageText.trim() || sendMessage.isPending}
+          className="w-full"
+        >
+          {sendMessage.isPending ? (
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="mr-2 h-4 w-4" />
+          )}
+          Send Message
+        </Button>
+      </div>
     </div>
   );
 }

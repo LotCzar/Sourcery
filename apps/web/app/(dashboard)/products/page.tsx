@@ -143,7 +143,9 @@ export default function ProductsPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<string>("");
   const [sortBy, setSortBy] = useState("name");
   const [inStockOnly, setInStockOnly] = useState(false);
-  const [viewMode, setViewMode] = useState<"grid" | "table" | "compare">("grid");
+  const [viewMode, setViewMode] = useState<"grid" | "table" | "compare">(
+    (searchParams.get("view") as "grid" | "table" | "compare") || "grid"
+  );
   const [page, setPage] = useState(1);
 
   // Shared cart

@@ -214,6 +214,23 @@ export async function PATCH(
       },
     });
 
+    // Emit Inngest event for accounting sync when invoice is paid
+    if (status === "PAID") {
+      try {
+        const { inngest } = await import("@/lib/inngest/client");
+        await inngest.send({
+          name: "invoice/status.changed",
+          data: {
+            invoiceId: invoice.id,
+            newStatus: "PAID",
+            restaurantId: user.restaurant!.id,
+          },
+        });
+      } catch {
+        // Don't fail the request if Inngest is unavailable
+      }
+    }
+
     return NextResponse.json({
       success: true,
       data: {

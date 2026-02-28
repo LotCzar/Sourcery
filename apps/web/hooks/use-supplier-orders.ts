@@ -17,7 +17,7 @@ export function useSupplierOrders(status?: string) {
   const url = `/api/supplier/orders${queryString ? `?${queryString}` : ""}`;
 
   return useQuery({
-    queryKey: queryKeys.supplier.orders.all,
+    queryKey: status ? queryKeys.supplier.orders.filtered(status) : queryKeys.supplier.orders.all,
     queryFn: () => apiFetch<SupplierOrdersResponse>(url),
   });
 }

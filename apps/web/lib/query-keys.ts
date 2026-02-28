@@ -87,10 +87,12 @@ export const queryKeys = {
     },
     orders: {
       all: ["supplier", "orders"] as const,
+      filtered: (status?: string) => ["supplier", "orders", status] as const,
       detail: (id: string) => ["supplier", "orders", id] as const,
     },
     invoices: {
       all: ["supplier", "invoices"] as const,
+      filtered: (status?: string) => ["supplier", "invoices", status] as const,
       detail: (id: string) => ["supplier", "invoices", id] as const,
     },
     settings: ["supplier", "settings"] as const,

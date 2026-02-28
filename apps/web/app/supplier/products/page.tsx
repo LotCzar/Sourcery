@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -112,6 +113,7 @@ const initialFormData = {
 
 export default function SupplierProductsPage() {
   const { toast } = useToast();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -125,6 +127,13 @@ export default function SupplierProductsPage() {
     updated: number;
     errors: { row: number; message: string }[];
   } | null>(null);
+
+  // Auto-open CSV import dialog when mode=bulk
+  useEffect(() => {
+    if (searchParams.get("mode") === "bulk") {
+      setImportDialogOpen(true);
+    }
+  }, [searchParams]);
 
   const { data: result, isLoading, error } = useSupplierProducts(selectedCategory);
   const createProduct = useCreateSupplierProduct();

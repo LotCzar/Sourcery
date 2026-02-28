@@ -68,21 +68,40 @@ export default function OnboardingPage() {
   const [pendingInvite, setPendingInvite] = useState<{
     hasPendingInvite: boolean;
     restaurantName?: string;
+    supplierName?: string;
     role?: string;
+    type?: "restaurant" | "supplier";
   } | null>(null);
   const [isCheckingInvite, setIsCheckingInvite] = useState(true);
   const [isAcceptingInvite, setIsAcceptingInvite] = useState(false);
   const router = useRouter();
   const { user } = useUser();
 
-  // Check for pending invite on mount
+  // Check for pending invite on mount (restaurant and supplier)
   useEffect(() => {
     async function checkInvite() {
       try {
+        // Check restaurant invite first
         const res = await fetch("/api/team/check-invite");
         if (res.ok) {
           const result = await res.json();
-          setPendingInvite(result.data);
+          if (result.data?.hasPendingInvite) {
+            setPendingInvite({ ...result.data, type: "restaurant" });
+            setIsCheckingInvite(false);
+            return;
+          }
+        }
+        // Check supplier invite
+        const supplierRes = await fetch("/api/supplier/team/check-invite");
+        if (supplierRes.ok) {
+          const supplierResult = await supplierRes.json();
+          if (supplierResult.data?.hasPendingInvite) {
+            setPendingInvite({
+              ...supplierResult.data,
+              supplierName: supplierResult.data.supplierName,
+              type: "supplier",
+            });
+          }
         }
       } catch {
         // Ignore errors, proceed with normal onboarding
@@ -149,11 +168,15 @@ export default function OnboardingPage() {
   const handleAcceptInvite = async () => {
     setIsAcceptingInvite(true);
     try {
-      const res = await fetch("/api/team/accept-invite", { method: "POST" });
+      const isSupplierInvite = pendingInvite?.type === "supplier";
+      const endpoint = isSupplierInvite
+        ? "/api/supplier/team/accept-invite"
+        : "/api/team/accept-invite";
+      const res = await fetch(endpoint, { method: "POST" });
       if (!res.ok) {
         throw new Error("Failed to accept invite");
       }
-      router.push("/");
+      router.push(isSupplierInvite ? "/supplier" : "/");
     } catch (error) {
       console.error("Accept invite error:", error);
       alert("Something went wrong accepting the invite. Please try again.");
@@ -188,8 +211,12 @@ export default function OnboardingPage() {
               <CardTitle className="text-2xl">You&apos;re Invited!</CardTitle>
               <CardDescription className="text-lg">
                 You&apos;ve been invited to join{" "}
-                <strong>{pendingInvite.restaurantName}</strong> as a{" "}
-                {pendingInvite.role?.toLowerCase()}.
+                <strong>
+                  {pendingInvite.type === "supplier"
+                    ? pendingInvite.supplierName
+                    : pendingInvite.restaurantName}
+                </strong>{" "}
+                as a {pendingInvite.role?.toLowerCase()}.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 pt-4">

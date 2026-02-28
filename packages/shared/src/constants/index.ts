@@ -13,6 +13,7 @@ export const ORDER_STATUS_CONFIG: Record<
   { label: string; color: string }
 > = {
   DRAFT: { label: "Draft", color: "gray" },
+  AWAITING_APPROVAL: { label: "Awaiting Approval", color: "orange" },
   PENDING: { label: "Pending", color: "yellow" },
   CONFIRMED: { label: "Confirmed", color: "blue" },
   PROCESSING: { label: "Processing", color: "blue" },
@@ -72,6 +73,8 @@ export const USER_ROLES: { value: UserRole; label: string }[] = [
   { value: "OWNER", label: "Owner" },
   { value: "MANAGER", label: "Manager" },
   { value: "STAFF", label: "Staff" },
+  { value: "ORG_ADMIN", label: "Organization Admin" },
+  { value: "DRIVER", label: "Driver" },
   { value: "SUPPLIER_ADMIN", label: "Supplier Admin" },
   { value: "SUPPLIER_REP", label: "Supplier Representative" },
 ];

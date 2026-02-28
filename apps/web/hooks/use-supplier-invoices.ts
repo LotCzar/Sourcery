@@ -24,7 +24,7 @@ export function useSupplierInvoices(status?: string) {
   const url = `/api/supplier/invoices${queryString ? `?${queryString}` : ""}`;
 
   return useQuery({
-    queryKey: queryKeys.supplier.invoices.all,
+    queryKey: status ? queryKeys.supplier.invoices.filtered(status) : queryKeys.supplier.invoices.all,
     queryFn: () => apiFetch<SupplierInvoicesResponse>(url),
   });
 }

@@ -102,8 +102,8 @@ export function SupplierSidebar() {
           <p className="mt-1 text-xs text-muted-foreground">
             Contact support or check our documentation.
           </p>
-          <Button variant="outline" size="sm" className="mt-3 w-full">
-            Get Support
+          <Button variant="outline" size="sm" className="mt-3 w-full" asChild>
+            <a href="mailto:support@freshsheet.app">Get Support</a>
           </Button>
         </div>
       </div>

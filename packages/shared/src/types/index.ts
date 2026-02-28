@@ -6,6 +6,8 @@ export type UserRole =
   | "OWNER"
   | "MANAGER"
   | "STAFF"
+  | "ORG_ADMIN"
+  | "DRIVER"
   | "SUPPLIER_ADMIN"
   | "SUPPLIER_REP";
 
@@ -121,6 +123,7 @@ export interface SupplierProduct {
 // Order types
 export type OrderStatus =
   | "DRAFT"
+  | "AWAITING_APPROVAL"
   | "PENDING"
   | "CONFIRMED"
   | "PROCESSING"

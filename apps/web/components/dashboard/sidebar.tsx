@@ -55,7 +55,7 @@ export function Sidebar() {
   };
 
   const filteredNav = navigation.filter(
-    (item) => !item.adminOnly || ["OWNER", "MANAGER", "ORG_ADMIN"].includes(role)
+    (item) => !item.adminOnly || ["OWNER", "ORG_ADMIN"].includes(role)
   );
   const navItems = isOrgAdmin ? [orgNavItem, ...filteredNav] : filteredNav;
 
