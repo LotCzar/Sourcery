@@ -66,8 +66,21 @@ export const queryKeys = {
     aiCosts: (params?: Record<string, string | undefined>) =>
       ["org", "ai-costs", params] as const,
   },
+  returns: {
+    all: ["returns"] as const,
+    detail: (id: string) => ["returns", id] as const,
+  },
   supplier: {
     dashboard: ["supplier", "dashboard"] as const,
+    team: ["supplier", "team"] as const,
+    inventory: {
+      all: ["supplier", "inventory"] as const,
+      filtered: (filter?: string) => ["supplier", "inventory", filter] as const,
+    },
+    returns: {
+      all: ["supplier", "returns"] as const,
+      detail: (id: string) => ["supplier", "returns", id] as const,
+    },
     products: {
       all: ["supplier", "products"] as const,
       detail: (id: string) => ["supplier", "products", id] as const,

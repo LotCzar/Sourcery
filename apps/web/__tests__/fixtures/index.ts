@@ -412,6 +412,29 @@ export function createMockAccountingIntegration(overrides?: Record<string, unkno
   };
 }
 
+export function createMockReturnRequest(overrides?: Record<string, unknown>) {
+  return {
+    id: "ret_1",
+    returnNumber: "RET-00001",
+    type: "DAMAGED" as const,
+    status: "PENDING" as const,
+    reason: "Items arrived damaged",
+    items: [{ productId: "prod_1", productName: "Organic Tomatoes", quantity: 5, unitPrice: 4.99 }],
+    creditAmount: null,
+    creditNotes: null,
+    resolution: null,
+    resolvedAt: null,
+    photoUrls: [],
+    orderId: "order_1",
+    createdById: "user_1",
+    reviewedById: null,
+    reviewedAt: null,
+    createdAt: new Date("2024-01-15"),
+    updatedAt: new Date("2024-01-15"),
+    ...overrides,
+  };
+}
+
 export function createMockAiUsageLog(overrides?: Record<string, unknown>) {
   return {
     id: "usage_1",

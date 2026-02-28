@@ -29,3 +29,5 @@ export { supplierPricingSuggestions } from "./supplier-pricing-suggestions";
 export { supplierOrderAnomaly } from "./supplier-order-anomaly";
 export { supplierCustomerFollowup } from "./supplier-customer-followup";
 export { supplierInvoiceEscalation } from "./supplier-invoice-escalation";
+export { supplierLowStockAlerts } from "./supplier-low-stock-alerts";
+export { returnNotification } from "./return-notification";

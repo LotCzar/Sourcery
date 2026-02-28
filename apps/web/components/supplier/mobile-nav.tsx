@@ -12,9 +12,12 @@ import {
   Settings,
   BarChart3,
   Users,
+  Users2,
   Tag,
   Lightbulb,
   Bell,
+  Warehouse,
+  RotateCcw,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -24,10 +27,13 @@ const navigation = [
   { name: "Dashboard", href: "/supplier", icon: LayoutDashboard },
   { name: "Orders", href: "/supplier/orders", icon: ShoppingCart },
   { name: "Products", href: "/supplier/products", icon: Package },
+  { name: "Inventory", href: "/supplier/inventory", icon: Warehouse },
   { name: "Invoices", href: "/supplier/invoices", icon: FileText },
+  { name: "Returns", href: "/supplier/returns", icon: RotateCcw },
   { name: "Analytics", href: "/supplier/analytics", icon: BarChart3 },
   { name: "AI Insights", href: "/supplier/insights", icon: Lightbulb },
   { name: "Notifications", href: "/supplier/notifications", icon: Bell },
+  { name: "Team", href: "/supplier/team", icon: Users2 },
   { name: "Customers", href: "/supplier/customers", icon: Users },
   { name: "Promotions", href: "/supplier/promotions", icon: Tag },
   { name: "Settings", href: "/supplier/settings", icon: Settings },

@@ -177,6 +177,8 @@ model User {
   approvalReviews  OrderApproval[] @relation("ApprovalReviews")
   sentMessages     OrderMessage[]
   driverDeliveries Order[]        @relation("DriverDeliveries")
+  returnRequestsCreated  ReturnRequest[] @relation("ReturnCreator")
+  returnRequestsReviewed ReturnRequest[] @relation("ReturnReviewer")
 
   // Guided tour
   tourCompletedAt   DateTime?
@@ -368,8 +370,10 @@ model SupplierProduct {
   packSize      Decimal?        @db.Decimal(10, 2)
 
   // Inventory
-  inStock       Boolean         @default(true)
-  stockQuantity Int?
+  inStock        Boolean         @default(true)
+  stockQuantity  Int?
+  reorderPoint   Int?
+  expirationDate DateTime?
 
   // Relations
   supplierId    String
@@ -480,10 +484,11 @@ model Order {
   driverId      String?
   driver        User?       @relation("DriverDeliveries", fields: [driverId], references: [id])
 
-  items         OrderItem[]
-  invoice       Invoice?
-  approvals     OrderApproval[]
-  messages      OrderMessage[]
+  items          OrderItem[]
+  invoice        Invoice?
+  approvals      OrderApproval[]
+  messages       OrderMessage[]
+  returnRequests ReturnRequest[]
 
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
@@ -951,4 +956,52 @@ model Promotion {
   @@index([supplierId])
   @@index([startDate, endDate])
   @@index([isActive])
+}
+
+// ============================================
+// RETURNS & QUALITY ISSUES
+// ============================================
+
+enum ReturnType {
+  RETURN
+  QUALITY_ISSUE
+  DAMAGED
+  WRONG_ITEM
+  SHORT_DELIVERY
+}
+
+enum ReturnStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  RESOLVED
+  CREDIT_ISSUED
+}
+
+model ReturnRequest {
+  id            String        @id @default(cuid())
+  returnNumber  String        @unique
+  type          ReturnType
+  status        ReturnStatus  @default(PENDING)
+  reason        String        @db.Text
+  items         Json?
+  creditAmount  Decimal?      @db.Decimal(10, 2)
+  creditNotes   String?       @db.Text
+  resolution    String?       @db.Text
+  resolvedAt    DateTime?
+  photoUrls     Json?         @default("[]")
+
+  orderId       String
+  order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  createdById   String
+  createdBy     User          @relation("ReturnCreator", fields: [createdById], references: [id])
+  reviewedById  String?
+  reviewedBy    User?         @relation("ReturnReviewer", fields: [reviewedById], references: [id])
+  reviewedAt    DateTime?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([orderId])
+  @@index([status])
 }

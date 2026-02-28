@@ -211,6 +211,8 @@ export const CreateSupplierProductSchema = z.object({
   packSize: z.number().positive().optional(),
   inStock: z.boolean().optional(),
   stockQuantity: z.number().int().min(0).optional(),
+  reorderPoint: z.number().int().min(0).optional(),
+  expirationDate: z.string().optional(),
 });
 
 export const UpdateSupplierProductSchema = z.object({
@@ -225,6 +227,8 @@ export const UpdateSupplierProductSchema = z.object({
   packSize: z.number().positive().nullable().optional(),
   inStock: z.boolean().optional(),
   stockQuantity: z.number().int().min(0).nullable().optional(),
+  reorderPoint: z.number().int().min(0).nullable().optional(),
+  expirationDate: z.string().nullable().optional(),
 });
 
 // Supplier Settings
@@ -352,6 +356,7 @@ export const BulkUpdateProductsSchema = z.object({
         productId: z.string().min(1),
         price: z.number().positive().optional(),
         inStock: z.boolean().optional(),
+        stockQuantity: z.number().int().min(0).optional(),
       })
     )
     .min(1)
@@ -407,6 +412,52 @@ export const UpdateDriverSchema = z.object({
   firstName: z.string().min(1).max(255).optional(),
   lastName: z.string().max(255).optional(),
   phone: z.string().max(50).optional(),
+});
+
+// Supplier Staff
+export const CreateSupplierStaffSchema = z.object({
+  firstName: z.string().min(1).max(255),
+  lastName: z.string().max(255).optional(),
+  email: z.string().email().max(255),
+  phone: z.string().max(50).optional(),
+  role: z.enum(["SUPPLIER_ADMIN", "SUPPLIER_REP"]),
+});
+
+export const UpdateSupplierStaffSchema = z.object({
+  firstName: z.string().min(1).max(255).optional(),
+  lastName: z.string().max(255).optional(),
+  phone: z.string().max(50).optional(),
+  role: z.enum(["SUPPLIER_ADMIN", "SUPPLIER_REP"]).optional(),
+});
+
+// Stock Adjustment
+export const StockAdjustmentSchema = z.object({
+  adjustments: z.array(z.object({
+    productId: z.string().min(1),
+    quantity: z.number().int(),
+    reason: z.string().max(500).optional(),
+  })).min(1).max(100),
+});
+
+// Returns & Quality Issues
+export const CreateReturnRequestSchema = z.object({
+  orderId: z.string().min(1),
+  type: z.enum(["RETURN", "QUALITY_ISSUE", "DAMAGED", "WRONG_ITEM", "SHORT_DELIVERY"]),
+  reason: z.string().min(1).max(2000),
+  items: z.array(z.object({
+    productId: z.string().min(1),
+    productName: z.string().min(1),
+    quantity: z.number().positive(),
+    unitPrice: z.number().min(0),
+  })).optional(),
+  photoUrls: z.array(z.string().url()).max(5).optional(),
+});
+
+export const UpdateReturnRequestSchema = z.object({
+  action: z.enum(["approve", "reject", "resolve", "issue_credit"]),
+  resolution: z.string().max(2000).optional(),
+  creditAmount: z.number().min(0).optional(),
+  creditNotes: z.string().max(2000).optional(),
 });
 
 // Menu Item Management

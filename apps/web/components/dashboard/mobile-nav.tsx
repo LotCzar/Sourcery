@@ -18,6 +18,7 @@ import {
   Warehouse,
   Building2,
   UtensilsCrossed,
+  RotateCcw,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Orders", href: "/orders", icon: ShoppingCart },
   { name: "Invoices", href: "/invoices", icon: FileText },
+  { name: "Returns", href: "/returns", icon: RotateCcw },
   { name: "Suppliers", href: "/suppliers", icon: Users },
   { name: "Menu Parser", href: "/menu-parser", icon: Sparkles, adminOnly: true },
   { name: "My Menu", href: "/menu", icon: UtensilsCrossed },

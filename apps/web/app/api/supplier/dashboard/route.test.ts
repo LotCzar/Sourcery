@@ -52,6 +52,9 @@ describe("GET /api/supplier/dashboard", () => {
     } as any);
     prismaMock.invoice.count.mockResolvedValueOnce(1); // overdue invoices
     prismaMock.supplierProduct.count.mockResolvedValueOnce(2); // out of stock
+    prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]); // low stock products
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0); // expiring soon
+    prismaMock.returnRequest.count.mockResolvedValueOnce(0); // pending returns
 
     // top products
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
@@ -100,6 +103,9 @@ describe("GET /api/supplier/dashboard", () => {
     } as any);
     prismaMock.invoice.count.mockResolvedValueOnce(0);
     prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]); // low stock
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0); // expiring soon
+    prismaMock.returnRequest.count.mockResolvedValueOnce(0); // pending returns
 
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
@@ -138,6 +144,9 @@ describe("GET /api/supplier/dashboard", () => {
     } as any);
     prismaMock.invoice.count.mockResolvedValueOnce(0);
     prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]); // low stock
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0); // expiring soon
+    prismaMock.returnRequest.count.mockResolvedValueOnce(0); // pending returns
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
 
@@ -173,6 +182,9 @@ describe("GET /api/supplier/dashboard", () => {
     } as any);
     prismaMock.invoice.count.mockResolvedValueOnce(0);
     prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]); // low stock
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0); // expiring soon
+    prismaMock.returnRequest.count.mockResolvedValueOnce(0); // pending returns
 
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([
       {

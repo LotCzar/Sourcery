@@ -33,9 +33,11 @@ import {
   supplierOrderAnomaly,
   supplierCustomerFollowup,
   supplierInvoiceEscalation,
+  supplierLowStockAlerts,
+  returnNotification,
 } from "@/lib/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts, approvalNotification, messageNotification, accountingInvoiceSync, accountingBatchSync, deliveryTracking, usageAlerts, tokenRefresh, posPushSync, supplierVerificationNotify, supplierDemandForecast, supplierCustomerHealth, supplierWeeklyDigest, supplierPricingSuggestions, supplierOrderAnomaly, supplierCustomerFollowup, supplierInvoiceEscalation],
+  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts, approvalNotification, messageNotification, accountingInvoiceSync, accountingBatchSync, deliveryTracking, usageAlerts, tokenRefresh, posPushSync, supplierVerificationNotify, supplierDemandForecast, supplierCustomerHealth, supplierWeeklyDigest, supplierPricingSuggestions, supplierOrderAnomaly, supplierCustomerFollowup, supplierInvoiceEscalation, supplierLowStockAlerts, returnNotification],
 });

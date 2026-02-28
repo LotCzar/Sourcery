@@ -135,6 +135,8 @@ export async function PATCH(
     if (data.packSize !== undefined) updateData.packSize = data.packSize;
     if (data.inStock !== undefined) updateData.inStock = data.inStock;
     if (data.stockQuantity !== undefined) updateData.stockQuantity = data.stockQuantity;
+    if (data.reorderPoint !== undefined) updateData.reorderPoint = data.reorderPoint;
+    if (data.expirationDate !== undefined) updateData.expirationDate = data.expirationDate ? new Date(data.expirationDate) : null;
 
     // Handle price update with history tracking
     if (data.price !== undefined) {

@@ -377,6 +377,72 @@ export const emailTemplates = {
     `,
   }),
 
+  supplierTeamInvitation: (recipientName: string, supplierName: string, role: string, inviterName: string) => ({
+    subject: `You've been invited to join ${escapeHtml(supplierName)} on FreshSheet`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">You're Invited!</h1>
+        <p>Hi ${escapeHtml(recipientName)},</p>
+        <p><strong>${escapeHtml(inviterName)}</strong> has invited you to join <strong>${escapeHtml(supplierName)}</strong>'s team on FreshSheet Supplier Portal as a <strong>${escapeHtml(role.toLowerCase())}</strong>.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Supplier:</strong> ${escapeHtml(supplierName)}</p>
+          <p style="margin: 8px 0 0;"><strong>Role:</strong> ${escapeHtml(role)}</p>
+        </div>
+        <p>Create your account to get started:</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/register" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Create Account</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  returnRequestCreated: (returnNumber: string, restaurantName: string, supplierName: string, type: string, reason: string) => ({
+    subject: `New Return Request: ${escapeHtml(returnNumber)}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">New Return Request</h1>
+        <p><strong>${escapeHtml(restaurantName)}</strong> has submitted a return request.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Return Number:</strong> ${escapeHtml(returnNumber)}</p>
+          <p style="margin: 8px 0 0;"><strong>Type:</strong> ${escapeHtml(type.replace(/_/g, ' '))}</p>
+          <p style="margin: 8px 0 0;"><strong>Reason:</strong> ${escapeHtml(reason.length > 200 ? reason.slice(0, 200) + '...' : reason)}</p>
+        </div>
+        <p>Log in to your FreshSheet Supplier Portal to review and respond.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/supplier/returns" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Review Return</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  returnRequestUpdated: (returnNumber: string, restaurantName: string, status: string, resolution?: string) => ({
+    subject: `Return ${escapeHtml(status.replace(/_/g, ' ').toLowerCase())}: ${escapeHtml(returnNumber)}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Return Request Updated</h1>
+        <p>Your return request has been <strong>${escapeHtml(status.replace(/_/g, ' ').toLowerCase())}</strong>.</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0;"><strong>Return Number:</strong> ${escapeHtml(returnNumber)}</p>
+          <p style="margin: 8px 0 0;"><strong>Status:</strong> ${escapeHtml(status.replace(/_/g, ' '))}</p>
+          ${resolution ? `<p style="margin: 8px 0 0;"><strong>Resolution:</strong> ${escapeHtml(resolution)}</p>` : ''}
+        </div>
+        <p>View full details in your FreshSheet dashboard.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://freshsheet.app'}/returns" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Return</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   supplierCustomerFollowup: (restaurantName: string, supplierName: string, message: string) => ({
     subject: `A message from ${escapeHtml(supplierName)}`,
     html: `

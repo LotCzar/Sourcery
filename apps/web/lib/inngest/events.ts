@@ -67,4 +67,15 @@ export type FreshSheetEvents = {
   "supplier/pricing.scheduled": { data: Record<string, never> };
   "supplier/customer-followup.scheduled": { data: Record<string, never> };
   "supplier/invoice-escalation.scheduled": { data: Record<string, never> };
+  "supplier/low-stock.scheduled": { data: Record<string, never> };
+  "return/status.changed": {
+    data: {
+      returnId: string;
+      orderId: string;
+      previousStatus: string;
+      newStatus: string;
+      restaurantId: string;
+      supplierId: string;
+    };
+  };
 };

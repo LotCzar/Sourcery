@@ -62,6 +62,7 @@ export async function POST(request: Request) {
           data: {
             ...(update.price !== undefined ? { price: update.price } : {}),
             ...(update.inStock !== undefined ? { inStock: update.inStock } : {}),
+            ...(update.stockQuantity !== undefined ? { stockQuantity: update.stockQuantity } : {}),
           },
         });
 

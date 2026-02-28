@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import { validateBody } from "@/lib/validations/validate";
-import { CreateSupplierProductSchema } from "@/lib/validations";
+import { CreateSupplierProductSchema, UpdateSupplierProductSchema } from "@/lib/validations";
 
 // GET - List supplier products
 export async function GET(request: Request) {
@@ -123,6 +123,8 @@ export async function POST(request: Request) {
         packSize: data.packSize || null,
         inStock: data.inStock !== false,
         stockQuantity: data.stockQuantity ?? null,
+        reorderPoint: data.reorderPoint ?? null,
+        expirationDate: data.expirationDate ? new Date(data.expirationDate) : null,
       },
     });
 

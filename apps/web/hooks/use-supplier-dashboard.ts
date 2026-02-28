@@ -23,6 +23,9 @@ interface SupplierDashboardResponse {
       overdueInvoiceCount: number;
       outOfStockCount: number;
       atRiskCustomerCount: number;
+      lowStockCount: number;
+      expiringSoonCount: number;
+      pendingReturnCount: number;
     };
     supplier: {
       id: string;

@@ -36,6 +36,9 @@ export async function GET() {
       totalRevenue,
       overdueInvoiceCount,
       outOfStockCount,
+      lowStockProducts,
+      expiringSoonCount,
+      pendingReturnCount,
     ] = await Promise.all([
       // Total products
       prisma.supplierProduct.count({
@@ -107,7 +110,40 @@ export async function GET() {
       prisma.supplierProduct.count({
         where: { supplierId, inStock: false },
       }),
+
+      // Low stock products (fetch both fields and filter in JS)
+      prisma.supplierProduct.findMany({
+        where: {
+          supplierId,
+          stockQuantity: { not: null },
+          reorderPoint: { not: null },
+        },
+        select: { stockQuantity: true, reorderPoint: true },
+      }),
+
+      // Expiring soon products (within 7 days)
+      prisma.supplierProduct.count({
+        where: {
+          supplierId,
+          expirationDate: {
+            gte: new Date(),
+            lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        },
+      }),
+
+      // Pending return requests
+      prisma.returnRequest.count({
+        where: {
+          order: { supplierId },
+          status: "PENDING",
+        },
+      }),
     ]);
+
+    const lowStockCount = lowStockProducts.filter(
+      (p) => p.stockQuantity !== null && p.reorderPoint !== null && p.stockQuantity <= p.reorderPoint
+    ).length;
 
     // Compute at-risk customer count (ordered 30-60 days ago but not in last 30 days)
     const now = new Date();
@@ -136,6 +172,9 @@ export async function GET() {
     if (overdueInvoiceCount > 0) briefingParts.push(`${overdueInvoiceCount} overdue invoice${overdueInvoiceCount !== 1 ? "s" : ""} need attention.`);
     if (outOfStockCount > 0) briefingParts.push(`${outOfStockCount} product${outOfStockCount !== 1 ? "s" : ""} marked out of stock.`);
     if (atRiskCustomerCount > 0) briefingParts.push(`${atRiskCustomerCount} customer${atRiskCustomerCount !== 1 ? "s" : ""} at risk of churning.`);
+    if (lowStockCount > 0) briefingParts.push(`${lowStockCount} product${lowStockCount !== 1 ? "s" : ""} below reorder point.`);
+    if (expiringSoonCount > 0) briefingParts.push(`${expiringSoonCount} product${expiringSoonCount !== 1 ? "s" : ""} expiring within 7 days.`);
+    if (pendingReturnCount > 0) briefingParts.push(`${pendingReturnCount} return request${pendingReturnCount !== 1 ? "s" : ""} need review.`);
     const briefingSummary = briefingParts.length > 0 ? briefingParts.join(" ") : null;
 
     // Get top products by order count
@@ -207,6 +246,9 @@ export async function GET() {
           overdueInvoiceCount,
           outOfStockCount: outOfStockCount,
           atRiskCustomerCount,
+          lowStockCount,
+          expiringSoonCount,
+          pendingReturnCount,
         },
         supplier: {
           id: user.supplier.id,
