@@ -30,6 +30,20 @@ const READ_ONLY_TOOLS = new Set([
   "get_menu_items",
   "get_delivery_status",
   "get_notifications",
+  // Supplier read-only tools
+  "get_supplier_orders",
+  "get_order_details",
+  "get_supplier_products",
+  "get_customer_list",
+  "get_customer_details",
+  "get_supplier_invoices",
+  "get_revenue_summary",
+  "get_top_products",
+  "get_delivery_performance",
+  "get_demand_forecast",
+  "get_pricing_suggestions",
+  "get_customer_health",
+  "get_supplier_insights",
 ]);
 
 // Map mutating tools to the query keys they should invalidate
@@ -44,12 +58,15 @@ const TOOL_CACHE_MAP: Record<string, readonly (readonly string[])[]> = {
   send_order_message: [queryKeys.messages.unread],
   submit_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
   cancel_order: [queryKeys.orders.all, queryKeys.dashboard.all],
-  update_order_status: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.invoices.all],
+  update_order_status: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.invoices.all, queryKeys.supplier.orders.all, queryKeys.supplier.dashboard],
   mark_invoice_paid: [queryKeys.invoices.all, queryKeys.dashboard.all],
   add_inventory_item: [queryKeys.inventory.all, queryKeys.inventory.insights],
   duplicate_order: [queryKeys.orders.all, queryKeys.dashboard.all],
   mark_notifications_read: [queryKeys.notifications.all],
   schedule_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+  // Supplier mutating tools
+  update_product: [queryKeys.supplier.products.all, queryKeys.supplier.dashboard],
+  send_customer_message: [queryKeys.messages.unread],
 };
 
 function invalidateCachesForTool(toolName: string, queryClient: QueryClient) {
@@ -269,7 +286,7 @@ export function useChatStream(options?: ChatStreamOptions) {
         abortRef.current = null;
       }
     },
-    [conversationId, queryClient]
+    [conversationId, queryClient, endpoint]
   );
 
   const abort = useCallback(() => {

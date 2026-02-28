@@ -13,6 +13,7 @@ import {
   BarChart3,
   Users,
   Tag,
+  Lightbulb,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Products", href: "/supplier/products", icon: Package },
   { name: "Invoices", href: "/supplier/invoices", icon: FileText },
   { name: "Analytics", href: "/supplier/analytics", icon: BarChart3 },
+  { name: "AI Insights", href: "/supplier/insights", icon: Lightbulb },
   { name: "Customers", href: "/supplier/customers", icon: Users },
   { name: "Promotions", href: "/supplier/promotions", icon: Tag },
   { name: "Settings", href: "/supplier/settings", icon: Settings },
