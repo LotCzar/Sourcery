@@ -12,6 +12,7 @@ import {
   Users,
   Tag,
   Lightbulb,
+  Bell,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ const navigation = [
   { name: "Invoices", href: "/supplier/invoices", icon: FileText },
   { name: "Analytics", href: "/supplier/analytics", icon: BarChart3 },
   { name: "AI Insights", href: "/supplier/insights", icon: Lightbulb },
+  { name: "Notifications", href: "/supplier/notifications", icon: Bell },
   { name: "Customers", href: "/supplier/customers", icon: Users },
   { name: "Promotions", href: "/supplier/promotions", icon: Tag },
   { name: "Settings", href: "/supplier/settings", icon: Settings },

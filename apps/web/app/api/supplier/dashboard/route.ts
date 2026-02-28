@@ -34,6 +34,8 @@ export async function GET() {
       deliveredOrders,
       recentOrders,
       totalRevenue,
+      overdueInvoiceCount,
+      outOfStockCount,
     ] = await Promise.all([
       // Total products
       prisma.supplierProduct.count({
@@ -91,7 +93,50 @@ export async function GET() {
           total: true,
         },
       }),
+
+      // Overdue invoices
+      prisma.invoice.count({
+        where: {
+          supplierId,
+          status: { in: ["PENDING", "OVERDUE"] },
+          dueDate: { lt: new Date() },
+        },
+      }),
+
+      // Out-of-stock products
+      prisma.supplierProduct.count({
+        where: { supplierId, inStock: false },
+      }),
     ]);
+
+    // Compute at-risk customer count (ordered 30-60 days ago but not in last 30 days)
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
+
+    const [recentCustomerIds, olderCustomerIds] = await Promise.all([
+      prisma.order.findMany({
+        where: { supplierId, createdAt: { gte: thirtyDaysAgo }, status: { not: "CANCELLED" } },
+        select: { restaurantId: true },
+        distinct: ["restaurantId"],
+      }),
+      prisma.order.findMany({
+        where: { supplierId, createdAt: { gte: sixtyDaysAgo, lt: thirtyDaysAgo }, status: { not: "CANCELLED" } },
+        select: { restaurantId: true },
+        distinct: ["restaurantId"],
+      }),
+    ]);
+
+    const recentSet = new Set(recentCustomerIds.map((r) => r.restaurantId));
+    const atRiskCustomerCount = olderCustomerIds.filter((r) => !recentSet.has(r.restaurantId)).length;
+
+    // Build briefing summary
+    const briefingParts: string[] = [];
+    if (pendingOrders > 0) briefingParts.push(`${pendingOrders} order${pendingOrders !== 1 ? "s" : ""} awaiting confirmation.`);
+    if (overdueInvoiceCount > 0) briefingParts.push(`${overdueInvoiceCount} overdue invoice${overdueInvoiceCount !== 1 ? "s" : ""} need attention.`);
+    if (outOfStockCount > 0) briefingParts.push(`${outOfStockCount} product${outOfStockCount !== 1 ? "s" : ""} marked out of stock.`);
+    if (atRiskCustomerCount > 0) briefingParts.push(`${atRiskCustomerCount} customer${atRiskCustomerCount !== 1 ? "s" : ""} at risk of churning.`);
+    const briefingSummary = briefingParts.length > 0 ? briefingParts.join(" ") : null;
 
     // Get top products by order count
     const topProducts = await prisma.orderItem.groupBy({
@@ -156,6 +201,13 @@ export async function GET() {
           total: Number(order.total),
         })),
         topProducts: topProductsWithDetails,
+        briefing: {
+          summary: briefingSummary,
+          pendingOrderCount: pendingOrders,
+          overdueInvoiceCount,
+          outOfStockCount: outOfStockCount,
+          atRiskCustomerCount,
+        },
         supplier: {
           id: user.supplier.id,
           name: user.supplier.name,

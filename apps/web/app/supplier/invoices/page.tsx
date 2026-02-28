@@ -194,6 +194,14 @@ export default function SupplierInvoicesPage() {
             Manage invoices for delivered orders
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open("/api/supplier/analytics/export?type=invoices&period=30d", "_blank")}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Stats */}

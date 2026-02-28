@@ -157,6 +157,28 @@ export const supplierCustomerHealth = inngest.createFunction(
           },
         });
 
+        // Notify supplier users about at-risk customers
+        if (atRisk.length > 0) {
+          const users = await prisma.user.findMany({
+            where: { supplierId: supplier.id },
+            select: { id: true },
+          });
+          for (const user of users) {
+            await prisma.notification.create({
+              data: {
+                type: "SYSTEM",
+                title: "At-risk customers detected",
+                message: `${atRisk.length} customer${atRisk.length !== 1 ? "s" : ""} at risk of churning: ${atRisk.slice(0, 3).map((c) => c.name).join(", ")}${atRisk.length > 3 ? ` and ${atRisk.length - 3} more` : ""}.`,
+                userId: user.id,
+                metadata: {
+                  actionUrl: "/supplier/customers",
+                  action: "view_customers",
+                },
+              },
+            });
+          }
+        }
+
         insightsCreated++;
       }
 

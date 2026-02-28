@@ -1,13 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { UserButton } from "@clerk/nextjs";
 import { Bell, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { useSupplierChat } from "@/lib/supplier-chat-context";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export function SupplierHeader() {
   const { toggleChat } = useSupplierChat();
+  const { data } = useNotifications();
+  const unreadCount = data?.unreadCount || 0;
 
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6 relative z-20" style={{ overflow: "visible" }}>
@@ -22,10 +26,16 @@ export function SupplierHeader() {
           <Sparkles className="h-5 w-5" />
         </Button>
 
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="h-5 w-5" />
-          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-amber-600" />
-        </Button>
+        <Link href="/supplier/notifications">
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-amber-600 text-[10px] font-medium text-white">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </Button>
+        </Link>
 
         <div className="h-8 w-px bg-border" />
 

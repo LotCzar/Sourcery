@@ -181,6 +181,53 @@ export default function SupplierDashboardPage() {
         </Card>
       )}
 
+      {/* AI Briefing */}
+      {data.briefing?.summary && (
+        <Card className="border-border bg-muted" data-tour="ai-briefing">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-primary mb-1">Daily Briefing</p>
+                <p className="text-sm text-foreground">{data.briefing.summary}</p>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {data.briefing.pendingOrderCount > 0 && (
+                    <Link href="/supplier/orders?status=PENDING">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-primary/10">
+                        {data.briefing.pendingOrderCount} pending orders
+                      </Badge>
+                    </Link>
+                  )}
+                  {data.briefing.overdueInvoiceCount > 0 && (
+                    <Link href="/supplier/invoices">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-red-50 text-red-700 border-red-200">
+                        {data.briefing.overdueInvoiceCount} overdue invoices
+                      </Badge>
+                    </Link>
+                  )}
+                  {data.briefing.outOfStockCount > 0 && (
+                    <Link href="/supplier/products">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-amber-50 text-amber-700 border-amber-200">
+                        {data.briefing.outOfStockCount} out of stock
+                      </Badge>
+                    </Link>
+                  )}
+                  {data.briefing.atRiskCustomerCount > 0 && (
+                    <Link href="/supplier/customers">
+                      <Badge variant="outline" className="cursor-pointer hover:bg-orange-50 text-orange-700 border-orange-200">
+                        {data.briefing.atRiskCustomerCount} at-risk customers
+                      </Badge>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Quick Actions */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4" data-tour="supplier-quick-actions">
         <Link href="/supplier/orders?status=PENDING">

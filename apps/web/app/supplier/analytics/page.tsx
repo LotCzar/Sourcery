@@ -166,6 +166,22 @@ export default function SupplierAnalyticsPage() {
             <Download className="h-4 w-4 mr-1" />
             Customers CSV
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/api/supplier/analytics/export?type=orders&period=${period}`, "_blank")}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Orders CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => window.open(`/api/supplier/analytics/export?type=invoices&period=${period}`, "_blank")}
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Invoices CSV
+          </Button>
           <Select value={period} onValueChange={setPeriod}>
             <SelectTrigger className="w-[150px]">
               <SelectValue />

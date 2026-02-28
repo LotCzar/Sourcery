@@ -17,6 +17,13 @@ interface SupplierDashboardResponse {
     };
     recentOrders: any[];
     topProducts: any[];
+    briefing: {
+      summary: string | null;
+      pendingOrderCount: number;
+      overdueInvoiceCount: number;
+      outOfStockCount: number;
+      atRiskCustomerCount: number;
+    };
     supplier: {
       id: string;
       name: string;

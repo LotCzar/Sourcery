@@ -26,9 +26,9 @@ export async function GET(request: Request) {
     const type = searchParams.get("type") || "revenue";
     const period = searchParams.get("period") || "30d";
 
-    if (!["revenue", "products", "customers"].includes(type)) {
+    if (!["revenue", "products", "customers", "orders", "invoices"].includes(type)) {
       return NextResponse.json(
-        { error: "Invalid type. Use 'revenue', 'products', or 'customers'" },
+        { error: "Invalid type. Use 'revenue', 'products', 'customers', 'orders', or 'invoices'" },
         { status: 400 }
       );
     }
@@ -144,6 +144,76 @@ export async function GET(request: Request) {
             avgOrderValue: c.orderCount > 0 ? (c.totalSpend / c.orderCount).toFixed(2) : "0.00",
           }));
         csvHeaders = ["name", "city", "state", "orderCount", "totalSpend", "avgOrderValue", "lastOrder"];
+        break;
+      }
+
+      case "orders": {
+        const allOrders = await prisma.order.findMany({
+          where: {
+            supplierId,
+            createdAt: { gte: startDate },
+          },
+          include: {
+            restaurant: { select: { name: true } },
+            items: {
+              include: { product: { select: { name: true, category: true } } },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 5000,
+        });
+
+        data = allOrders.flatMap((o) =>
+          o.items.map((item) => ({
+            orderNumber: o.orderNumber,
+            customer: o.restaurant.name,
+            product: item.product.name,
+            category: item.product.category,
+            quantity: Number(item.quantity),
+            unitPrice: Number(item.unitPrice).toFixed(2),
+            lineTotal: Number(item.subtotal).toFixed(2),
+            orderDate: o.createdAt.toISOString().split("T")[0],
+            status: o.status,
+          }))
+        );
+        csvHeaders = ["orderNumber", "customer", "product", "category", "quantity", "unitPrice", "lineTotal", "orderDate", "status"];
+        break;
+      }
+
+      case "invoices": {
+        const allInvoices = await prisma.invoice.findMany({
+          where: {
+            supplierId,
+            createdAt: { gte: startDate },
+          },
+          include: {
+            restaurant: { select: { name: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 5000,
+        });
+
+        const nowDate = new Date();
+        data = allInvoices.map((inv) => {
+          const isPastDue = ["PENDING", "OVERDUE"].includes(inv.status) && inv.dueDate < nowDate;
+          const daysPastDue = isPastDue
+            ? Math.floor((nowDate.getTime() - inv.dueDate.getTime()) / (24 * 60 * 60 * 1000))
+            : 0;
+
+          return {
+            invoiceNumber: inv.invoiceNumber,
+            customer: inv.restaurant.name,
+            amount: Number(inv.total).toFixed(2),
+            subtotal: Number(inv.subtotal).toFixed(2),
+            tax: Number(inv.tax).toFixed(2),
+            status: inv.status,
+            issueDate: inv.issueDate.toISOString().split("T")[0],
+            dueDate: inv.dueDate.toISOString().split("T")[0],
+            paidDate: inv.paidAt ? inv.paidAt.toISOString().split("T")[0] : "",
+            daysPastDue,
+          };
+        });
+        csvHeaders = ["invoiceNumber", "customer", "amount", "subtotal", "tax", "status", "issueDate", "dueDate", "paidDate", "daysPastDue"];
         break;
       }
 

@@ -2,6 +2,27 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { sendEmail, emailTemplates } from "@/lib/email";
 
+async function notifySupplierUsers(supplierId: string, title: string, message: string) {
+  const users = await prisma.user.findMany({
+    where: { supplierId },
+    select: { id: true },
+  });
+  for (const user of users) {
+    await prisma.notification.create({
+      data: {
+        type: "SYSTEM",
+        title,
+        message,
+        userId: user.id,
+        metadata: {
+          actionUrl: "/supplier/invoices",
+          action: "view_invoices",
+        },
+      },
+    });
+  }
+}
+
 export const supplierInvoiceEscalation = inngest.createFunction(
   { id: "supplier-invoice-escalation", name: "Supplier Invoice Escalation" },
   { cron: "0 10 * * *" }, // Daily 10 AM
@@ -76,6 +97,12 @@ export const supplierInvoiceEscalation = inngest.createFunction(
             });
           }
 
+          await notifySupplierUsers(
+            invoice.supplierId,
+            `Invoice ${invoice.invoiceNumber} requires manual review`,
+            `Invoice for ${invoice.restaurant.name} is ${daysOverdue} days overdue ($${Number(invoice.total).toFixed(2)}). Direct outreach recommended.`
+          );
+
           escalations++;
         } else if (daysOverdue >= 14 && lastTier < 2) {
           // Tier 2: Overdue notice
@@ -119,6 +146,12 @@ export const supplierInvoiceEscalation = inngest.createFunction(
             });
           }
 
+          await notifySupplierUsers(
+            invoice.supplierId,
+            `Overdue notice sent: ${invoice.invoiceNumber}`,
+            `Overdue notice sent to ${invoice.restaurant.name} for $${Number(invoice.total).toFixed(2)} (${daysOverdue} days overdue).`
+          );
+
           overdueNotices++;
         } else if (daysOverdue >= 7 && lastTier < 1) {
           // Tier 1: Reminder
@@ -154,6 +187,12 @@ export const supplierInvoiceEscalation = inngest.createFunction(
               },
             },
           });
+
+          await notifySupplierUsers(
+            invoice.supplierId,
+            `Payment reminder sent: ${invoice.invoiceNumber}`,
+            `Reminder sent to ${invoice.restaurant.name} for $${Number(invoice.total).toFixed(2)} (${daysOverdue} days overdue).`
+          );
 
           reminders++;
         }

@@ -120,6 +120,26 @@ export const supplierOrderAnomaly = inngest.createFunction(
         },
       });
 
+      // Notify supplier users
+      const supplierUsers = await prisma.user.findMany({
+        where: { supplierId },
+        select: { id: true },
+      });
+      for (const su of supplierUsers) {
+        await prisma.notification.create({
+          data: {
+            type: "ORDER_UPDATE",
+            title: `Unusual Order from ${order.restaurant.name}`,
+            message: anomalies[0],
+            userId: su.id,
+            metadata: {
+              actionUrl: "/supplier/orders",
+              action: "view_orders",
+            },
+          },
+        });
+      }
+
       return { orderId, anomalies: anomalies.length };
     } catch (err) {
       console.error("[supplier-order-anomaly] failed:", err);

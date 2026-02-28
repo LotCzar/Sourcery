@@ -163,6 +163,26 @@ Highlight key trends and suggest actions (stock up, reduce inventory, etc.). Be 
           },
         });
 
+        // Notify supplier users about new forecast
+        const users = await prisma.user.findMany({
+          where: { supplierId: supplier.id },
+          select: { id: true },
+        });
+        for (const user of users) {
+          await prisma.notification.create({
+            data: {
+              type: "SYSTEM",
+              title: "Weekly Demand Forecast Ready",
+              message: `New demand forecast: ${productTrends.filter((p) => p.trend === "increasing").length} products trending up, ${productTrends.filter((p) => p.trend === "decreasing").length} trending down.`,
+              userId: user.id,
+              metadata: {
+                actionUrl: "/supplier/insights",
+                action: "view_insights",
+              },
+            },
+          });
+        }
+
         insightsCreated++;
       }
 

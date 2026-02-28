@@ -44,6 +44,7 @@ import {
   Mail,
   User,
   MessageSquare,
+  Download,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupplierOrders, useUpdateSupplierOrder } from "@/hooks/use-supplier-orders";
@@ -280,6 +281,14 @@ export default function SupplierOrdersPage() {
             Manage incoming orders from restaurants
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => window.open("/api/supplier/analytics/export?type=orders&period=30d", "_blank")}
+        >
+          <Download className="h-4 w-4 mr-2" />
+          Export CSV
+        </Button>
       </div>
 
       {/* Filters */}
