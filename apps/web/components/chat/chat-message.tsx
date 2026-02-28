@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { Bot, User } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ChatMessage } from "@/hooks/use-chat-stream";
 
 interface ChatMessageProps {
@@ -34,7 +36,15 @@ export function ChatMessageBubble({ message }: ChatMessageProps) {
             : "bg-muted text-foreground"
         )}
       >
-        <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        {isUser ? (
+          <p className="whitespace-pre-wrap break-words">{message.content}</p>
+        ) : (
+          <div className="prose prose-sm dark:prose-invert max-w-none break-words">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {message.content}
+            </ReactMarkdown>
+          </div>
+        )}
         {message.isStreaming && !message.content && (
           <span className="inline-flex gap-1">
             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-current [animation-delay:-0.3s]" />

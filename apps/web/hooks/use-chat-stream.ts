@@ -44,6 +44,12 @@ const READ_ONLY_TOOLS = new Set([
   "get_pricing_suggestions",
   "get_customer_health",
   "get_supplier_insights",
+  "get_return_summary",
+  "get_invoice_overview",
+  "get_driver_schedule",
+  "get_low_stock",
+  "get_promotions",
+  "generate_pick_list",
 ]);
 
 // Map mutating tools to the query keys they should invalidate
@@ -67,6 +73,19 @@ const TOOL_CACHE_MAP: Record<string, readonly (readonly string[])[]> = {
   // Supplier mutating tools
   update_product: [queryKeys.supplier.products.all, queryKeys.supplier.dashboard],
   send_customer_message: [queryKeys.messages.unread],
+  adjust_supplier_inventory: [queryKeys.supplier.products.all, queryKeys.supplier.inventory.all, queryKeys.supplier.dashboard],
+  create_promotion: [queryKeys.supplier.promotions() as readonly string[], queryKeys.supplier.dashboard],
+  manage_return: [queryKeys.supplier.returns.all, queryKeys.supplier.dashboard],
+  bulk_update_orders: [queryKeys.supplier.orders.all, queryKeys.supplier.dashboard],
+  assign_driver: [queryKeys.supplier.orders.all, queryKeys.supplier.drivers],
+  create_product: [queryKeys.supplier.products.all, queryKeys.supplier.dashboard],
+  bulk_update_prices: [queryKeys.supplier.products.all, queryKeys.supplier.dashboard],
+  manage_promotion: [queryKeys.supplier.promotions() as readonly string[], queryKeys.supplier.dashboard],
+  generate_invoice: [queryKeys.supplier.invoices.all, queryKeys.supplier.orders.all, queryKeys.supplier.dashboard],
+  record_payment: [queryKeys.supplier.invoices.all, queryKeys.supplier.dashboard],
+  handle_dispute: [queryKeys.supplier.invoices.all],
+  broadcast_message: [queryKeys.messages.unread],
+  update_delivery_eta: [queryKeys.supplier.orders.all],
 };
 
 function invalidateCachesForTool(toolName: string, queryClient: QueryClient) {
@@ -243,6 +262,7 @@ export function useChatStream(options?: ChatStreamOptions) {
                           : m
                       )
                     );
+                    setActiveToolCalls([]);
                     break;
 
                   case "error":
@@ -258,6 +278,7 @@ export function useChatStream(options?: ChatStreamOptions) {
                           : m
                       )
                     );
+                    setActiveToolCalls([]);
                     break;
                 }
               } catch {
@@ -283,6 +304,7 @@ export function useChatStream(options?: ChatStreamOptions) {
         }
       } finally {
         setIsLoading(false);
+        setActiveToolCalls([]);
         abortRef.current = null;
       }
     },

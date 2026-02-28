@@ -59,6 +59,32 @@ export async function executeSupplierTool(
         return await getDriverSchedule(input, context);
       case "manage_return":
         return await manageReturn(input, context);
+      case "bulk_update_orders":
+        return await bulkUpdateOrders(input, context);
+      case "assign_driver":
+        return await assignDriver(input, context);
+      case "generate_pick_list":
+        return await generatePickList(input, context);
+      case "create_product":
+        return await createProduct(input, context);
+      case "bulk_update_prices":
+        return await bulkUpdatePrices(input, context);
+      case "get_low_stock":
+        return await getLowStock(input, context);
+      case "manage_promotion":
+        return await managePromotion(input, context);
+      case "get_promotions":
+        return await getPromotions(input, context);
+      case "generate_invoice":
+        return await generateInvoice(input, context);
+      case "record_payment":
+        return await recordPayment(input, context);
+      case "handle_dispute":
+        return await handleDispute(input, context);
+      case "broadcast_message":
+        return await broadcastMessage(input, context);
+      case "update_delivery_eta":
+        return await updateDeliveryEta(input, context);
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -1287,5 +1313,736 @@ async function manageReturn(
       creditAmount: updated.creditAmount ? Number(updated.creditAmount) : null,
     },
     message: `Return ${updated.returnNumber} ${input.action === "APPROVED" ? (input.credit_amount ? `approved with $${input.credit_amount} credit` : "approved") : "rejected"}`,
+  };
+}
+
+// ─── Group 1: Order Workflow ─────────────────────────────────────────────────
+
+const VALID_STATUS_TRANSITIONS: Record<string, string[]> = {
+  PENDING: ["CONFIRMED", "CANCELLED"],
+  CONFIRMED: ["PROCESSING", "CANCELLED"],
+  PROCESSING: ["SHIPPED", "CANCELLED"],
+  SHIPPED: ["IN_TRANSIT", "DELIVERED"],
+  IN_TRANSIT: ["DELIVERED"],
+};
+
+async function bulkUpdateOrders(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const orders = await prisma.order.findMany({
+    where: { id: { in: input.order_ids }, supplierId: context.supplierId },
+    select: { id: true, orderNumber: true, status: true },
+  });
+
+  const foundIds = new Set(orders.map((o) => o.id));
+  const updated: string[] = [];
+  const failed: { id: string; reason: string }[] = [];
+
+  // Flag missing orders
+  for (const id of input.order_ids) {
+    if (!foundIds.has(id)) {
+      failed.push({ id, reason: "Order not found" });
+    }
+  }
+
+  for (const order of orders) {
+    const allowed = VALID_STATUS_TRANSITIONS[order.status] || [];
+    if (!allowed.includes(input.status)) {
+      failed.push({
+        id: order.id,
+        reason: `Cannot transition from ${order.status} to ${input.status}`,
+      });
+      continue;
+    }
+
+    try {
+      const updateData: any = { status: input.status };
+      if (input.status === "SHIPPED") {
+        updateData.shippedAt = new Date();
+        if (input.driver_id) updateData.driverId = input.driver_id;
+      }
+      if (input.tracking_notes) updateData.trackingNotes = input.tracking_notes;
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: updateData,
+      });
+
+      updated.push(order.orderNumber);
+
+      // Emit status change event
+      try {
+        const { inngest } = await import("@/lib/inngest/client");
+        await inngest.send({
+          name: "order/status.changed",
+          data: {
+            orderId: order.id,
+            previousStatus: order.status,
+            newStatus: input.status,
+          },
+        });
+      } catch {
+        // Non-critical — don't fail the update
+      }
+    } catch {
+      failed.push({ id: order.id, reason: "Update failed" });
+    }
+  }
+
+  return {
+    success: true,
+    updated: updated.length,
+    updatedOrders: updated,
+    failed,
+    message: `${updated.length} order(s) updated to ${input.status}${failed.length > 0 ? `, ${failed.length} failed` : ""}`,
+  };
+}
+
+async function assignDriver(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, supplierId: context.supplierId },
+    select: { id: true, orderNumber: true, status: true },
+  });
+
+  if (!order) return { error: "Order not found" };
+
+  // Verify driver belongs to this supplier
+  const driver = await prisma.user.findFirst({
+    where: { id: input.driver_id, supplierId: context.supplierId },
+    select: { id: true, firstName: true, lastName: true },
+  });
+
+  if (!driver) return { error: "Driver not found or does not belong to your supplier" };
+
+  const updated = await prisma.order.update({
+    where: { id: order.id },
+    data: { driverId: driver.id },
+    select: { id: true, orderNumber: true, status: true, driverId: true },
+  });
+
+  return {
+    success: true,
+    order: updated,
+    driverName: `${driver.firstName || ""} ${driver.lastName || ""}`.trim(),
+    message: `Driver ${driver.firstName || ""} ${driver.lastName || ""} assigned to order ${order.orderNumber}`.trim(),
+  };
+}
+
+async function generatePickList(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const targetDate = input.date ? new Date(input.date) : new Date();
+  if (!input.date) targetDate.setDate(targetDate.getDate() + 1); // default to tomorrow
+  const dayStart = new Date(targetDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(targetDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      supplierId: context.supplierId,
+      deliveryDate: { gte: dayStart, lte: dayEnd },
+      status: { in: ["CONFIRMED", "PROCESSING"] },
+    },
+    include: {
+      restaurant: { select: { name: true } },
+      items: {
+        include: {
+          product: { select: { id: true, name: true, category: true, unit: true } },
+        },
+      },
+    },
+  });
+
+  // Aggregate items by product
+  const productAgg: Record<string, {
+    product: string;
+    category: string;
+    unit: string;
+    totalQuantity: number;
+    orders: { orderNumber: string; customer: string; quantity: number }[];
+  }> = {};
+
+  for (const order of orders) {
+    for (const item of order.items) {
+      const pid = item.productId;
+      if (!productAgg[pid]) {
+        productAgg[pid] = {
+          product: item.product.name,
+          category: item.product.category,
+          unit: item.product.unit,
+          totalQuantity: 0,
+          orders: [],
+        };
+      }
+      const qty = Number(item.quantity);
+      productAgg[pid].totalQuantity += qty;
+      productAgg[pid].orders.push({
+        orderNumber: order.orderNumber,
+        customer: order.restaurant.name,
+        quantity: qty,
+      });
+    }
+  }
+
+  const pickList = Object.values(productAgg)
+    .sort((a, b) => a.category.localeCompare(b.category) || a.product.localeCompare(b.product))
+    .map((item) => ({
+      ...item,
+      totalQuantity: Math.round(item.totalQuantity * 100) / 100,
+      orderCount: item.orders.length,
+    }));
+
+  return {
+    date: dayStart.toISOString().split("T")[0],
+    totalOrders: orders.length,
+    totalProducts: pickList.length,
+    pickList,
+  };
+}
+
+// ─── Group 2: Product & Catalog ──────────────────────────────────────────────
+
+async function createProduct(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const product = await prisma.supplierProduct.create({
+    data: {
+      name: input.name,
+      category: input.category,
+      price: input.price,
+      unit: input.unit,
+      description: input.description || null,
+      sku: input.sku || null,
+      brand: input.brand || null,
+      stockQuantity: input.stock_quantity ?? null,
+      reorderPoint: input.reorder_point ?? null,
+      supplierId: context.supplierId,
+    },
+  });
+
+  return {
+    success: true,
+    product: {
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      price: Number(product.price),
+      unit: product.unit,
+      sku: product.sku,
+      brand: product.brand,
+      inStock: product.inStock,
+      stockQuantity: product.stockQuantity,
+    },
+    message: `Product "${product.name}" added to your catalog`,
+  };
+}
+
+async function bulkUpdatePrices(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const results: { updated: number; failed: number; changes: { name: string; oldPrice: number; newPrice: number }[] } = {
+    updated: 0,
+    failed: 0,
+    changes: [],
+  };
+
+  if (input.updates && Array.isArray(input.updates)) {
+    // Mode A: explicit product_id + price pairs
+    const productIds = input.updates.map((u: any) => u.product_id);
+    const products = await prisma.supplierProduct.findMany({
+      where: { id: { in: productIds }, supplierId: context.supplierId },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    for (const update of input.updates) {
+      const product = productMap.get(update.product_id);
+      if (!product) {
+        results.failed++;
+        continue;
+      }
+
+      try {
+        const oldPrice = Number(product.price);
+        await prisma.supplierProduct.update({
+          where: { id: product.id },
+          data: { price: update.price },
+        });
+        await prisma.priceHistory.create({
+          data: { productId: product.id, price: update.price },
+        });
+        results.updated++;
+        results.changes.push({ name: product.name, oldPrice, newPrice: update.price });
+      } catch {
+        results.failed++;
+      }
+    }
+  } else if (input.category && input.percentage !== undefined) {
+    // Mode B: category + percentage
+    const products = await prisma.supplierProduct.findMany({
+      where: { supplierId: context.supplierId, category: input.category },
+    });
+
+    for (const product of products) {
+      try {
+        const oldPrice = Number(product.price);
+        const newPrice = Math.round(oldPrice * (1 + input.percentage / 100) * 100) / 100;
+        await prisma.supplierProduct.update({
+          where: { id: product.id },
+          data: { price: newPrice },
+        });
+        await prisma.priceHistory.create({
+          data: { productId: product.id, price: newPrice },
+        });
+        results.updated++;
+        results.changes.push({ name: product.name, oldPrice, newPrice });
+      } catch {
+        results.failed++;
+      }
+    }
+  } else {
+    return { error: "Provide either an updates array or category+percentage" };
+  }
+
+  return {
+    success: true,
+    ...results,
+    message: `${results.updated} product price(s) updated${results.failed > 0 ? `, ${results.failed} failed` : ""}`,
+  };
+}
+
+async function getLowStock(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const where: any = {
+    supplierId: context.supplierId,
+    stockQuantity: { not: null },
+    reorderPoint: { not: null },
+  };
+  if (input.category) where.category = input.category;
+
+  const products = await prisma.supplierProduct.findMany({
+    where,
+    orderBy: { name: "asc" },
+  });
+
+  const lowStock = products
+    .filter((p) => p.stockQuantity !== null && p.reorderPoint !== null && p.stockQuantity <= p.reorderPoint)
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      currentStock: p.stockQuantity!,
+      reorderPoint: p.reorderPoint!,
+      deficit: p.reorderPoint! - p.stockQuantity!,
+      price: Number(p.price),
+      unit: p.unit,
+    }));
+
+  return {
+    totalLowStock: lowStock.length,
+    products: lowStock,
+    message: lowStock.length > 0
+      ? `${lowStock.length} product(s) below reorder point`
+      : "All products are above reorder point",
+  };
+}
+
+// ─── Group 3: Promotions ─────────────────────────────────────────────────────
+
+async function managePromotion(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const promotion = await prisma.promotion.findFirst({
+    where: { id: input.promotion_id, supplierId: context.supplierId },
+    include: { products: { select: { id: true, name: true } } },
+  });
+
+  if (!promotion) return { error: "Promotion not found" };
+
+  if (input.action === "delete") {
+    await prisma.promotion.delete({ where: { id: promotion.id } });
+    return {
+      success: true,
+      message: `Promotion deleted`,
+    };
+  }
+
+  if (input.action === "activate") {
+    const now = new Date();
+    if (promotion.endDate < now) {
+      return { error: "Cannot activate a promotion with an expired end date" };
+    }
+    const updated = await prisma.promotion.update({
+      where: { id: promotion.id },
+      data: { isActive: true },
+    });
+    return {
+      success: true,
+      promotion: {
+        id: updated.id,
+        type: updated.type,
+        value: Number(updated.value),
+        isActive: updated.isActive,
+        startDate: updated.startDate,
+        endDate: updated.endDate,
+      },
+      message: `Promotion activated`,
+    };
+  }
+
+  if (input.action === "deactivate") {
+    const updated = await prisma.promotion.update({
+      where: { id: promotion.id },
+      data: { isActive: false },
+    });
+    return {
+      success: true,
+      promotion: {
+        id: updated.id,
+        type: updated.type,
+        value: Number(updated.value),
+        isActive: updated.isActive,
+      },
+      message: `Promotion deactivated`,
+    };
+  }
+
+  return { error: "Invalid action. Use activate, deactivate, or delete." };
+}
+
+async function getPromotions(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const where: any = { supplierId: context.supplierId };
+  if (input.status === "active") where.isActive = true;
+  else if (input.status === "inactive") where.isActive = false;
+
+  const promotions = await prisma.promotion.findMany({
+    where,
+    take: input.limit || 20,
+    orderBy: { createdAt: "desc" },
+    include: { products: { select: { id: true, name: true } } },
+  });
+
+  return {
+    promotions: promotions.map((p) => ({
+      id: p.id,
+      type: p.type,
+      value: Number(p.value),
+      description: p.description,
+      minOrderAmount: p.minOrderAmount ? Number(p.minOrderAmount) : null,
+      startDate: p.startDate,
+      endDate: p.endDate,
+      isActive: p.isActive,
+      products: p.products,
+    })),
+    total: promotions.length,
+  };
+}
+
+// ─── Group 4: Invoicing ──────────────────────────────────────────────────────
+
+async function generateInvoice(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, supplierId: context.supplierId },
+    include: {
+      restaurant: { select: { id: true, name: true } },
+      invoice: { select: { id: true } },
+    },
+  });
+
+  if (!order) return { error: "Order not found" };
+  if (order.status !== "DELIVERED") {
+    return { error: `Order status is ${order.status}. Only DELIVERED orders can be invoiced.` };
+  }
+  if (order.invoice) {
+    return { error: "An invoice already exists for this order" };
+  }
+
+  const invoiceCount = await prisma.invoice.count({
+    where: { supplierId: context.supplierId },
+  });
+  const invoiceNumber = `INV-${context.supplierId.slice(-4).toUpperCase()}-${String(invoiceCount + 1).padStart(5, "0")}`;
+
+  const dueDate = new Date();
+  dueDate.setDate(dueDate.getDate() + 30);
+
+  const invoice = await prisma.invoice.create({
+    data: {
+      invoiceNumber,
+      subtotal: order.subtotal,
+      tax: order.tax,
+      total: order.total,
+      dueDate,
+      restaurantId: order.restaurantId,
+      supplierId: context.supplierId,
+      orderId: order.id,
+    },
+  });
+
+  return {
+    success: true,
+    invoice: {
+      id: invoice.id,
+      invoiceNumber: invoice.invoiceNumber,
+      customer: order.restaurant.name,
+      subtotal: Number(invoice.subtotal),
+      tax: Number(invoice.tax),
+      total: Number(invoice.total),
+      issueDate: invoice.issueDate,
+      dueDate: invoice.dueDate,
+      status: invoice.status,
+    },
+    message: `Invoice ${invoiceNumber} generated for order ${order.orderNumber}`,
+  };
+}
+
+async function recordPayment(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: input.invoice_id, supplierId: context.supplierId },
+    include: { restaurant: { select: { name: true } } },
+  });
+
+  if (!invoice) return { error: "Invoice not found" };
+  if (invoice.status === "PAID") return { error: "Invoice is already fully paid" };
+  if (invoice.status === "CANCELLED") return { error: "Cannot record payment on a cancelled invoice" };
+
+  const existingPaid = invoice.paidAmount ? Number(invoice.paidAmount) : 0;
+  const newPaidTotal = Math.round((existingPaid + input.amount) * 100) / 100;
+  const invoiceTotal = Number(invoice.total);
+
+  const isFullyPaid = newPaidTotal >= invoiceTotal;
+  const newStatus = isFullyPaid ? "PAID" : "PARTIALLY_PAID";
+
+  const updated = await prisma.invoice.update({
+    where: { id: invoice.id },
+    data: {
+      paidAmount: newPaidTotal,
+      paidAt: isFullyPaid ? new Date() : null,
+      paymentMethod: input.payment_method || null,
+      paymentReference: input.reference || null,
+      status: newStatus,
+    },
+  });
+
+  return {
+    success: true,
+    invoice: {
+      id: updated.id,
+      invoiceNumber: updated.invoiceNumber,
+      customer: invoice.restaurant.name,
+      total: Number(updated.total),
+      paidAmount: Number(updated.paidAmount),
+      remaining: Math.round((invoiceTotal - newPaidTotal) * 100) / 100,
+      status: updated.status,
+      paidAt: updated.paidAt,
+    },
+    message: isFullyPaid
+      ? `Invoice ${updated.invoiceNumber} fully paid ($${input.amount})`
+      : `$${input.amount} recorded on invoice ${updated.invoiceNumber} ($${Math.round((invoiceTotal - newPaidTotal) * 100) / 100} remaining)`,
+  };
+}
+
+async function handleDispute(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const invoice = await prisma.invoice.findFirst({
+    where: { id: input.invoice_id, supplierId: context.supplierId },
+  });
+
+  if (!invoice) return { error: "Invoice not found" };
+
+  if (input.action === "dispute") {
+    if (invoice.status === "DISPUTED") return { error: "Invoice is already disputed" };
+    const previousStatus = invoice.status;
+    const updated = await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: "DISPUTED",
+        notes: input.notes ? `[DISPUTE] ${input.notes}` : invoice.notes,
+      },
+    });
+    return {
+      success: true,
+      invoice: {
+        id: updated.id,
+        invoiceNumber: updated.invoiceNumber,
+        status: updated.status,
+        previousStatus,
+        notes: updated.notes,
+      },
+      message: `Invoice ${updated.invoiceNumber} flagged as disputed`,
+    };
+  }
+
+  if (input.action === "resolve") {
+    if (invoice.status !== "DISPUTED") return { error: "Invoice is not currently disputed" };
+    const resolvedStatus = invoice.paidAmount && Number(invoice.paidAmount) >= Number(invoice.total)
+      ? "PAID"
+      : "PENDING";
+    const updated = await prisma.invoice.update({
+      where: { id: invoice.id },
+      data: {
+        status: resolvedStatus,
+        notes: input.notes ? `[RESOLVED] ${input.notes}` : invoice.notes,
+      },
+    });
+    return {
+      success: true,
+      invoice: {
+        id: updated.id,
+        invoiceNumber: updated.invoiceNumber,
+        status: updated.status,
+        notes: updated.notes,
+      },
+      message: `Invoice ${updated.invoiceNumber} dispute resolved, status set to ${resolvedStatus}`,
+    };
+  }
+
+  return { error: "Invalid action. Use dispute or resolve." };
+}
+
+// ─── Group 5: Communication ──────────────────────────────────────────────────
+
+async function broadcastMessage(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  let restaurantIds: string[] = input.customer_ids || [];
+
+  if (restaurantIds.length === 0) {
+    // Get all active customers (have at least one non-cancelled order)
+    const relationships = await prisma.restaurantSupplier.findMany({
+      where: { supplierId: context.supplierId },
+      select: { restaurantId: true },
+    });
+    restaurantIds = relationships.map((r) => r.restaurantId);
+  }
+
+  const sent: string[] = [];
+  const failed: { customerId: string; reason: string }[] = [];
+
+  for (const restaurantId of restaurantIds) {
+    // Find most recent non-cancelled order for this customer
+    const recentOrder = await prisma.order.findFirst({
+      where: {
+        supplierId: context.supplierId,
+        restaurantId,
+        status: { not: "CANCELLED" },
+      },
+      orderBy: { createdAt: "desc" },
+      select: { id: true, orderNumber: true },
+    });
+
+    if (!recentOrder) {
+      failed.push({ customerId: restaurantId, reason: "No recent orders found" });
+      continue;
+    }
+
+    try {
+      const content = input.subject
+        ? `**${input.subject}**\n\n${input.message}`
+        : input.message;
+
+      await prisma.orderMessage.create({
+        data: {
+          content,
+          orderId: recentOrder.id,
+          senderId: context.userId,
+          isInternal: false,
+        },
+      });
+      sent.push(restaurantId);
+    } catch {
+      failed.push({ customerId: restaurantId, reason: "Failed to send message" });
+    }
+  }
+
+  return {
+    success: true,
+    sent: sent.length,
+    failed: failed.length,
+    failures: failed.length > 0 ? failed : undefined,
+    message: `Message sent to ${sent.length} customer(s)${failed.length > 0 ? `, ${failed.length} failed` : ""}`,
+  };
+}
+
+async function updateDeliveryEta(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, supplierId: context.supplierId },
+    include: {
+      restaurant: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!order) return { error: "Order not found" };
+
+  const estimatedDeliveryAt = new Date(input.estimated_delivery_at);
+
+  await prisma.order.update({
+    where: { id: order.id },
+    data: { estimatedDeliveryAt },
+  });
+
+  // Send message on order if custom message provided
+  if (input.message) {
+    await prisma.orderMessage.create({
+      data: {
+        content: input.message,
+        orderId: order.id,
+        senderId: context.userId,
+        isInternal: false,
+      },
+    });
+  }
+
+  // Create notification for restaurant users
+  const restaurantUsers = await prisma.user.findMany({
+    where: { restaurantId: order.restaurantId },
+    select: { id: true },
+  });
+
+  for (const user of restaurantUsers) {
+    await prisma.notification.create({
+      data: {
+        type: "DELIVERY_UPDATE",
+        title: "Delivery ETA Updated",
+        message: input.message || `Estimated delivery for order ${order.orderNumber} updated to ${estimatedDeliveryAt.toLocaleString()}`,
+        userId: user.id,
+        metadata: { orderId: order.id, orderNumber: order.orderNumber },
+      },
+    });
+  }
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      estimatedDeliveryAt,
+    },
+    notifiedUsers: restaurantUsers.length,
+    message: `Delivery ETA for ${order.orderNumber} updated to ${estimatedDeliveryAt.toLocaleString()}`,
   };
 }

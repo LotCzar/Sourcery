@@ -763,4 +763,704 @@ describe("Supplier Chat Tools", () => {
       expect(result.error).toContain("already approved");
     });
   });
+
+  // ── bulk_update_orders ──
+  describe("bulk_update_orders", () => {
+    it("updates multiple orders to CONFIRMED", async () => {
+      const orders = [
+        { id: "o1", orderNumber: "ORD-001", status: "PENDING" },
+        { id: "o2", orderNumber: "ORD-002", status: "PENDING" },
+      ];
+      prismaMock.order.findMany.mockResolvedValue(orders as any);
+      prismaMock.order.update.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "bulk_update_orders",
+        { order_ids: ["o1", "o2"], status: "CONFIRMED" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.updated).toBe(2);
+      expect(result.failed).toHaveLength(0);
+      expect(prismaMock.order.update).toHaveBeenCalledTimes(2);
+    });
+
+    it("reports invalid status transitions as failures", async () => {
+      const orders = [
+        { id: "o1", orderNumber: "ORD-001", status: "DELIVERED" },
+      ];
+      prismaMock.order.findMany.mockResolvedValue(orders as any);
+
+      const result = await executeSupplierTool(
+        "bulk_update_orders",
+        { order_ids: ["o1"], status: "CONFIRMED" },
+        context
+      );
+
+      expect(result.updated).toBe(0);
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].reason).toContain("Cannot transition");
+    });
+
+    it("reports missing orders as failures", async () => {
+      prismaMock.order.findMany.mockResolvedValue([] as any);
+
+      const result = await executeSupplierTool(
+        "bulk_update_orders",
+        { order_ids: ["missing_id"], status: "CONFIRMED" },
+        context
+      );
+
+      expect(result.updated).toBe(0);
+      expect(result.failed).toHaveLength(1);
+      expect(result.failed[0].reason).toBe("Order not found");
+    });
+  });
+
+  // ── assign_driver ──
+  describe("assign_driver", () => {
+    it("assigns a driver to an order", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1", orderNumber: "ORD-001", status: "CONFIRMED",
+      } as any);
+      prismaMock.user.findFirst.mockResolvedValue({
+        id: "driver_1", firstName: "John", lastName: "Smith",
+      } as any);
+      prismaMock.order.update.mockResolvedValue({
+        id: "o1", orderNumber: "ORD-001", status: "CONFIRMED", driverId: "driver_1",
+      } as any);
+
+      const result = await executeSupplierTool(
+        "assign_driver",
+        { order_id: "o1", driver_id: "driver_1" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.driverName).toBe("John Smith");
+    });
+
+    it("returns error when driver not found", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1", orderNumber: "ORD-001", status: "CONFIRMED",
+      } as any);
+      prismaMock.user.findFirst.mockResolvedValue(null);
+
+      const result = await executeSupplierTool(
+        "assign_driver",
+        { order_id: "o1", driver_id: "invalid" },
+        context
+      );
+
+      expect(result.error).toContain("Driver not found");
+    });
+
+    it("returns error when order not found", async () => {
+      prismaMock.order.findFirst.mockResolvedValue(null);
+
+      const result = await executeSupplierTool(
+        "assign_driver",
+        { order_id: "invalid", driver_id: "driver_1" },
+        context
+      );
+
+      expect(result.error).toBe("Order not found");
+    });
+  });
+
+  // ── generate_pick_list ──
+  describe("generate_pick_list", () => {
+    it("generates a pick list grouped by product", async () => {
+      const orders = [
+        {
+          id: "o1",
+          orderNumber: "ORD-001",
+          restaurant: { name: "Restaurant A" },
+          items: [
+            {
+              productId: "prod_1",
+              quantity: new Decimal("10"),
+              product: { id: "prod_1", name: "Tomatoes", category: "PRODUCE", unit: "POUND" },
+            },
+          ],
+        },
+        {
+          id: "o2",
+          orderNumber: "ORD-002",
+          restaurant: { name: "Restaurant B" },
+          items: [
+            {
+              productId: "prod_1",
+              quantity: new Decimal("5"),
+              product: { id: "prod_1", name: "Tomatoes", category: "PRODUCE", unit: "POUND" },
+            },
+          ],
+        },
+      ];
+      prismaMock.order.findMany.mockResolvedValue(orders as any);
+
+      const result = await executeSupplierTool(
+        "generate_pick_list",
+        { date: "2026-03-01" },
+        context
+      );
+
+      expect(result.totalOrders).toBe(2);
+      expect(result.pickList).toHaveLength(1);
+      expect(result.pickList[0].product).toBe("Tomatoes");
+      expect(result.pickList[0].totalQuantity).toBe(15);
+      expect(result.pickList[0].orderCount).toBe(2);
+    });
+  });
+
+  // ── create_product ──
+  describe("create_product", () => {
+    it("creates a new product", async () => {
+      prismaMock.supplierProduct.create.mockResolvedValue({
+        id: "new_prod",
+        name: "Organic Kale",
+        category: "PRODUCE",
+        price: new Decimal("3.99"),
+        unit: "POUND",
+        sku: null,
+        brand: null,
+        inStock: true,
+        stockQuantity: null,
+      } as any);
+
+      const result = await executeSupplierTool(
+        "create_product",
+        { name: "Organic Kale", category: "PRODUCE", price: 3.99, unit: "POUND" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.product.name).toBe("Organic Kale");
+      expect(result.product.price).toBe(3.99);
+      expect(prismaMock.supplierProduct.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ supplierId: "sup_1" }),
+        })
+      );
+    });
+  });
+
+  // ── bulk_update_prices ──
+  describe("bulk_update_prices", () => {
+    it("updates prices with explicit product-price pairs", async () => {
+      const products = [createMockProduct()];
+      prismaMock.supplierProduct.findMany.mockResolvedValue(products as any);
+      prismaMock.supplierProduct.update.mockResolvedValue({} as any);
+      prismaMock.priceHistory.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "bulk_update_prices",
+        { updates: [{ product_id: "prod_1", price: 5.99 }] },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.updated).toBe(1);
+      expect(result.changes[0].oldPrice).toBe(4.99);
+      expect(result.changes[0].newPrice).toBe(5.99);
+      expect(prismaMock.priceHistory.create).toHaveBeenCalledOnce();
+    });
+
+    it("updates prices by category percentage", async () => {
+      const products = [
+        createMockProduct({ id: "p1", price: new Decimal("10.00") }),
+        createMockProduct({ id: "p2", price: new Decimal("20.00") }),
+      ];
+      prismaMock.supplierProduct.findMany.mockResolvedValue(products as any);
+      prismaMock.supplierProduct.update.mockResolvedValue({} as any);
+      prismaMock.priceHistory.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "bulk_update_prices",
+        { category: "PRODUCE", percentage: 10 },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.updated).toBe(2);
+      expect(result.changes[0].newPrice).toBe(11);
+      expect(result.changes[1].newPrice).toBe(22);
+    });
+
+    it("returns error when no mode specified", async () => {
+      const result = await executeSupplierTool(
+        "bulk_update_prices",
+        {},
+        context
+      );
+
+      expect(result.error).toContain("Provide either");
+    });
+  });
+
+  // ── get_low_stock ──
+  describe("get_low_stock", () => {
+    it("returns products below reorder point", async () => {
+      const products = [
+        createMockProduct({ id: "p1", stockQuantity: 5, reorderPoint: 20 }),
+        createMockProduct({ id: "p2", stockQuantity: 50, reorderPoint: 10 }),
+      ];
+      prismaMock.supplierProduct.findMany.mockResolvedValue(products as any);
+
+      const result = await executeSupplierTool("get_low_stock", {}, context);
+
+      expect(result.totalLowStock).toBe(1);
+      expect(result.products[0].currentStock).toBe(5);
+      expect(result.products[0].deficit).toBe(15);
+    });
+
+    it("returns empty list when all stock is healthy", async () => {
+      const products = [
+        createMockProduct({ stockQuantity: 50, reorderPoint: 10 }),
+      ];
+      prismaMock.supplierProduct.findMany.mockResolvedValue(products as any);
+
+      const result = await executeSupplierTool("get_low_stock", {}, context);
+
+      expect(result.totalLowStock).toBe(0);
+      expect(result.message).toContain("above reorder point");
+    });
+  });
+
+  // ── manage_promotion ──
+  describe("manage_promotion", () => {
+    it("activates a promotion", async () => {
+      const futureDate = new Date();
+      futureDate.setDate(futureDate.getDate() + 30);
+      prismaMock.promotion.findFirst.mockResolvedValue({
+        id: "promo_1",
+        type: "PERCENTAGE_OFF",
+        value: new Decimal("10"),
+        isActive: false,
+        startDate: new Date(),
+        endDate: futureDate,
+        products: [],
+      } as any);
+      prismaMock.promotion.update.mockResolvedValue({
+        id: "promo_1",
+        type: "PERCENTAGE_OFF",
+        value: new Decimal("10"),
+        isActive: true,
+        startDate: new Date(),
+        endDate: futureDate,
+      } as any);
+
+      const result = await executeSupplierTool(
+        "manage_promotion",
+        { promotion_id: "promo_1", action: "activate" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.promotion.isActive).toBe(true);
+    });
+
+    it("rejects activation of expired promotion", async () => {
+      const pastDate = new Date();
+      pastDate.setDate(pastDate.getDate() - 10);
+      prismaMock.promotion.findFirst.mockResolvedValue({
+        id: "promo_1",
+        type: "PERCENTAGE_OFF",
+        value: new Decimal("10"),
+        isActive: false,
+        startDate: new Date(pastDate.getTime() - 30 * 24 * 60 * 60 * 1000),
+        endDate: pastDate,
+        products: [],
+      } as any);
+
+      const result = await executeSupplierTool(
+        "manage_promotion",
+        { promotion_id: "promo_1", action: "activate" },
+        context
+      );
+
+      expect(result.error).toContain("expired");
+    });
+
+    it("deletes a promotion", async () => {
+      prismaMock.promotion.findFirst.mockResolvedValue({
+        id: "promo_1",
+        products: [],
+      } as any);
+      prismaMock.promotion.delete.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "manage_promotion",
+        { promotion_id: "promo_1", action: "delete" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(prismaMock.promotion.delete).toHaveBeenCalledOnce();
+    });
+
+    it("returns error for non-existent promotion", async () => {
+      prismaMock.promotion.findFirst.mockResolvedValue(null);
+
+      const result = await executeSupplierTool(
+        "manage_promotion",
+        { promotion_id: "invalid", action: "activate" },
+        context
+      );
+
+      expect(result.error).toBe("Promotion not found");
+    });
+  });
+
+  // ── get_promotions ──
+  describe("get_promotions", () => {
+    it("returns all promotions", async () => {
+      const promotions = [
+        {
+          id: "promo_1",
+          type: "PERCENTAGE_OFF",
+          value: new Decimal("15"),
+          description: "Summer sale",
+          minOrderAmount: null,
+          startDate: new Date(),
+          endDate: new Date(),
+          isActive: true,
+          products: [{ id: "prod_1", name: "Tomatoes" }],
+        },
+      ];
+      prismaMock.promotion.findMany.mockResolvedValue(promotions as any);
+
+      const result = await executeSupplierTool(
+        "get_promotions",
+        { status: "active" },
+        context
+      );
+
+      expect(result.promotions).toHaveLength(1);
+      expect(result.promotions[0].value).toBe(15);
+      expect(result.promotions[0].products).toHaveLength(1);
+    });
+  });
+
+  // ── generate_invoice ──
+  describe("generate_invoice", () => {
+    it("generates an invoice for a delivered order", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1",
+        orderNumber: "ORD-001",
+        status: "DELIVERED",
+        subtotal: new Decimal("100.00"),
+        tax: new Decimal("8.25"),
+        total: new Decimal("108.25"),
+        restaurantId: "rest_1",
+        restaurant: { id: "rest_1", name: "Test Diner" },
+        invoice: null,
+      } as any);
+      prismaMock.invoice.count.mockResolvedValue(5);
+      prismaMock.invoice.create.mockResolvedValue({
+        id: "inv_new",
+        invoiceNumber: "INV-P_01-00006",
+        subtotal: new Decimal("100.00"),
+        tax: new Decimal("8.25"),
+        total: new Decimal("108.25"),
+        issueDate: new Date(),
+        dueDate: new Date(),
+        status: "PENDING",
+      } as any);
+
+      const result = await executeSupplierTool(
+        "generate_invoice",
+        { order_id: "o1" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invoice.total).toBe(108.25);
+      expect(prismaMock.invoice.create).toHaveBeenCalledOnce();
+    });
+
+    it("rejects non-delivered orders", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1",
+        status: "PROCESSING",
+        invoice: null,
+        restaurant: { id: "rest_1", name: "Test" },
+      } as any);
+
+      const result = await executeSupplierTool(
+        "generate_invoice",
+        { order_id: "o1" },
+        context
+      );
+
+      expect(result.error).toContain("PROCESSING");
+    });
+
+    it("rejects if invoice already exists", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1",
+        status: "DELIVERED",
+        invoice: { id: "existing" },
+        restaurant: { id: "rest_1", name: "Test" },
+      } as any);
+
+      const result = await executeSupplierTool(
+        "generate_invoice",
+        { order_id: "o1" },
+        context
+      );
+
+      expect(result.error).toContain("already exists");
+    });
+  });
+
+  // ── record_payment ──
+  describe("record_payment", () => {
+    it("records a full payment", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue({
+        ...createMockInvoice({ status: "PENDING", paidAmount: null }),
+        restaurant: { name: "Test Diner" },
+      } as any);
+      prismaMock.invoice.update.mockResolvedValue({
+        id: "inv_1",
+        invoiceNumber: "INV-001",
+        total: new Decimal("108.25"),
+        paidAmount: new Decimal("108.25"),
+        status: "PAID",
+        paidAt: new Date(),
+      } as any);
+
+      const result = await executeSupplierTool(
+        "record_payment",
+        { invoice_id: "inv_1", amount: 108.25, payment_method: "BANK_TRANSFER" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invoice.status).toBe("PAID");
+      expect(result.invoice.remaining).toBe(0);
+    });
+
+    it("records a partial payment", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue({
+        ...createMockInvoice({ status: "PENDING", paidAmount: null }),
+        restaurant: { name: "Test Diner" },
+      } as any);
+      prismaMock.invoice.update.mockResolvedValue({
+        id: "inv_1",
+        invoiceNumber: "INV-001",
+        total: new Decimal("108.25"),
+        paidAmount: new Decimal("50.00"),
+        status: "PARTIALLY_PAID",
+        paidAt: null,
+      } as any);
+
+      const result = await executeSupplierTool(
+        "record_payment",
+        { invoice_id: "inv_1", amount: 50 },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invoice.status).toBe("PARTIALLY_PAID");
+      expect(result.invoice.remaining).toBe(58.25);
+    });
+
+    it("rejects payment on already paid invoice", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue({
+        ...createMockInvoice({ status: "PAID" }),
+        restaurant: { name: "Test Diner" },
+      } as any);
+
+      const result = await executeSupplierTool(
+        "record_payment",
+        { invoice_id: "inv_1", amount: 50 },
+        context
+      );
+
+      expect(result.error).toContain("already fully paid");
+    });
+  });
+
+  // ── handle_dispute ──
+  describe("handle_dispute", () => {
+    it("flags an invoice as disputed", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue(
+        createMockInvoice({ status: "PENDING" }) as any
+      );
+      prismaMock.invoice.update.mockResolvedValue({
+        id: "inv_1",
+        invoiceNumber: "INV-001",
+        status: "DISPUTED",
+        notes: "[DISPUTE] Amount doesn't match PO",
+      } as any);
+
+      const result = await executeSupplierTool(
+        "handle_dispute",
+        { invoice_id: "inv_1", action: "dispute", notes: "Amount doesn't match PO" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invoice.status).toBe("DISPUTED");
+    });
+
+    it("resolves a disputed invoice", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue(
+        createMockInvoice({ status: "DISPUTED", paidAmount: null }) as any
+      );
+      prismaMock.invoice.update.mockResolvedValue({
+        id: "inv_1",
+        invoiceNumber: "INV-001",
+        status: "PENDING",
+        notes: "[RESOLVED] Issue corrected",
+      } as any);
+
+      const result = await executeSupplierTool(
+        "handle_dispute",
+        { invoice_id: "inv_1", action: "resolve", notes: "Issue corrected" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.invoice.status).toBe("PENDING");
+    });
+
+    it("rejects dispute on already disputed invoice", async () => {
+      prismaMock.invoice.findFirst.mockResolvedValue(
+        createMockInvoice({ status: "DISPUTED" }) as any
+      );
+
+      const result = await executeSupplierTool(
+        "handle_dispute",
+        { invoice_id: "inv_1", action: "dispute" },
+        context
+      );
+
+      expect(result.error).toContain("already disputed");
+    });
+  });
+
+  // ── broadcast_message ──
+  describe("broadcast_message", () => {
+    it("sends messages to specified customers", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1", orderNumber: "ORD-001",
+      } as any);
+      prismaMock.orderMessage.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "broadcast_message",
+        { message: "Holiday schedule update", customer_ids: ["rest_1"] },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sent).toBe(1);
+      expect(prismaMock.orderMessage.create).toHaveBeenCalledOnce();
+    });
+
+    it("sends to all active customers when no IDs provided", async () => {
+      prismaMock.restaurantSupplier.findMany.mockResolvedValue([
+        { restaurantId: "rest_1" },
+        { restaurantId: "rest_2" },
+      ] as any);
+      prismaMock.order.findFirst
+        .mockResolvedValueOnce({ id: "o1", orderNumber: "ORD-001" } as any)
+        .mockResolvedValueOnce({ id: "o2", orderNumber: "ORD-002" } as any);
+      prismaMock.orderMessage.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "broadcast_message",
+        { message: "We are closed Monday" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.sent).toBe(2);
+    });
+
+    it("handles customers with no recent orders", async () => {
+      prismaMock.restaurantSupplier.findMany.mockResolvedValue([
+        { restaurantId: "rest_1" },
+      ] as any);
+      prismaMock.order.findFirst.mockResolvedValue(null);
+
+      const result = await executeSupplierTool(
+        "broadcast_message",
+        { message: "Test message" },
+        context
+      );
+
+      expect(result.sent).toBe(0);
+      expect(result.failed).toBe(1);
+    });
+  });
+
+  // ── update_delivery_eta ──
+  describe("update_delivery_eta", () => {
+    it("updates delivery ETA and notifies customers", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1",
+        orderNumber: "ORD-001",
+        restaurantId: "rest_1",
+        restaurant: { id: "rest_1", name: "Test Diner" },
+      } as any);
+      prismaMock.order.update.mockResolvedValue({} as any);
+      prismaMock.user.findMany.mockResolvedValue([
+        { id: "user_1" },
+        { id: "user_2" },
+      ] as any);
+      prismaMock.notification.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "update_delivery_eta",
+        {
+          order_id: "o1",
+          estimated_delivery_at: "2026-03-01T15:00:00Z",
+          message: "Running 30 minutes late",
+        },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.notifiedUsers).toBe(2);
+      expect(prismaMock.orderMessage.create).toHaveBeenCalledOnce();
+      expect(prismaMock.notification.create).toHaveBeenCalledTimes(2);
+    });
+
+    it("returns error for non-existent order", async () => {
+      prismaMock.order.findFirst.mockResolvedValue(null);
+
+      const result = await executeSupplierTool(
+        "update_delivery_eta",
+        { order_id: "invalid", estimated_delivery_at: "2026-03-01T15:00:00Z" },
+        context
+      );
+
+      expect(result.error).toBe("Order not found");
+    });
+
+    it("updates ETA without message when not provided", async () => {
+      prismaMock.order.findFirst.mockResolvedValue({
+        id: "o1",
+        orderNumber: "ORD-001",
+        restaurantId: "rest_1",
+        restaurant: { id: "rest_1", name: "Test Diner" },
+      } as any);
+      prismaMock.order.update.mockResolvedValue({} as any);
+      prismaMock.user.findMany.mockResolvedValue([{ id: "user_1" }] as any);
+      prismaMock.notification.create.mockResolvedValue({} as any);
+
+      const result = await executeSupplierTool(
+        "update_delivery_eta",
+        { order_id: "o1", estimated_delivery_at: "2026-03-01T15:00:00Z" },
+        context
+      );
+
+      expect(result.success).toBe(true);
+      expect(prismaMock.orderMessage.create).not.toHaveBeenCalled();
+    });
+  });
 });

@@ -60,7 +60,8 @@ You have access to the following tools:
 - duplicate_order: Create a new order from an existing one
 - get_notifications: View recent notifications
 - mark_notifications_read: Mark notifications as read
-- schedule_order: Set delivery date and submit an order`;
+- schedule_order: Set delivery date and submit an order
+- send_order_message: Send a message to a supplier or leave a note on an order`;
 
   if (orgContext?.isOrgAdmin) {
     prompt += `
@@ -103,12 +104,17 @@ Guidelines:
 30. For marking invoices paid, use mark_invoice_paid. Ask for payment method if not specified.
 31. When asked about menu items, dishes, or recipes, use get_menu_items.
 32. When asked about delivery tracking or order ETA, use get_delivery_status.
-33. When a user wants to reorder or copy a previous order, prefer duplicate_order over manually creating with create_draft_order.`;
+33. When a user wants to reorder or copy a previous order, prefer duplicate_order over manually creating with create_draft_order.
+34. When a user wants to send a message to a supplier about an order or leave a note, use send_order_message.
+35. When a user asks about their notifications or alerts, use get_notifications.
+36. When a user wants to dismiss or clear notifications, use mark_notifications_read.
+37. When a user wants to schedule a delivery or set a future delivery date, use schedule_order.
+38. When a user wants to add a new item to their inventory tracking, use add_inventory_item.`;
 
   if (orgContext?.isOrgAdmin) {
     prompt += `
-34. When an org admin asks to compare restaurants or see cross-restaurant data, use compare_restaurants or org_summary.
-35. When an org admin asks for benchmarks, offer both 'platform' and 'organization' scope options.`;
+39. When an org admin asks to compare restaurants or see cross-restaurant data, use compare_restaurants or org_summary.
+40. When an org admin asks for benchmarks, offer both 'platform' and 'organization' scope options.`;
   }
 
   if (planTier === "STARTER") {

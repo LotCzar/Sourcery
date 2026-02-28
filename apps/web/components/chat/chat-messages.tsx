@@ -46,9 +46,12 @@ export function ChatMessages({ messages, activeToolCalls }: ChatMessagesProps) {
   return (
     <div className="flex-1 overflow-y-auto p-4">
       <div className="space-y-4">
-        {messages.map((message) => (
-          <ChatMessageBubble key={message.id} message={message} />
-        ))}
+        {messages
+          .filter((m) => m.role !== "tool")
+          .filter((m) => !(m.role === "assistant" && !m.content && !m.isStreaming))
+          .map((message) => (
+            <ChatMessageBubble key={message.id} message={message} />
+          ))}
 
         {activeToolCalls.length > 0 && (
           <div className="ml-11 space-y-1">

@@ -45,7 +45,7 @@ export function SupplierChatSidebar() {
   const queryClient = useQueryClient();
 
   const { data: conversations } = useQuery({
-    queryKey: queryKeys.chat.conversations,
+    queryKey: queryKeys.supplier.conversations,
     queryFn: () =>
       apiFetch<{ data: ConversationItem[] }>("/api/supplier/ai/conversations"),
     enabled: isOpen,
@@ -59,7 +59,7 @@ export function SupplierChatSidebar() {
         body: JSON.stringify({ conversationId: id }),
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplier.conversations });
     },
   });
 
@@ -67,7 +67,7 @@ export function SupplierChatSidebar() {
   useEffect(() => {
     if (conversationId) {
       setCurrentConversationId(conversationId);
-      queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplier.conversations });
     }
   }, [conversationId, queryClient]);
 
@@ -103,7 +103,7 @@ export function SupplierChatSidebar() {
             title: string;
             messages: ChatMessage[];
           };
-        }>(`/api/ai/conversations/${id}`);
+        }>(`/api/supplier/ai/conversations/${id}`);
         if (result.data?.messages) {
           setMessages(result.data.messages);
         }
