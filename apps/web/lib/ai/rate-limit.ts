@@ -19,21 +19,23 @@ export interface RateLimitResult {
 }
 
 /**
- * Checks whether a restaurant can make another AI call for the given feature.
+ * Checks whether a restaurant or supplier can make another AI call for the given feature.
  *
  * - Enterprise tier: always allowed (no DB query)
- * - WEEKLY_DIGEST: always allowed (system exempt)
+ * - WEEKLY_DIGEST / SUPPLIER_DIGEST: always allowed (system exempt)
  * - PARSE_MENU + PARSE_RECEIPT share the "parse" bucket
+ * - CHAT + SUPPLIER_CHAT share the "chat" bucket
  */
 export async function checkAiRateLimit(
-  restaurantId: string,
+  entityId: string,
   feature: AiFeature,
-  planTier: PlanTier
+  planTier: PlanTier,
+  entityType: "restaurant" | "supplier" = "restaurant"
 ): Promise<RateLimitResult> {
   const resetAt = getNextPeriodStart();
 
-  // WEEKLY_DIGEST is system-exempt
-  if (feature === "WEEKLY_DIGEST") {
+  // System-exempt features
+  if (feature === "WEEKLY_DIGEST" || feature === "SUPPLIER_DIGEST") {
     return {
       allowed: true,
       limit: Infinity,
@@ -76,12 +78,13 @@ export async function checkAiRateLimit(
   const features = FEATURE_GROUPS[limitKey];
   const periodStart = getPeriodStart();
 
+  const whereClause =
+    entityType === "supplier"
+      ? { supplierId: entityId, feature: { in: features }, periodStart }
+      : { restaurantId: entityId, feature: { in: features }, periodStart };
+
   const used = await prisma.aiUsageLog.count({
-    where: {
-      restaurantId,
-      feature: { in: features },
-      periodStart,
-    },
+    where: whereClause,
   });
 
   const remaining = Math.max(0, limit - used);

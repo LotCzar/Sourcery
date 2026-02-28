@@ -61,4 +61,10 @@ export type FreshSheetEvents = {
       supplierEmail: string;
     };
   };
+  "supplier/demand-forecast.scheduled": { data: Record<string, never> };
+  "supplier/customer-health.scheduled": { data: Record<string, never> };
+  "supplier/digest.scheduled": { data: Record<string, never> };
+  "supplier/pricing.scheduled": { data: Record<string, never> };
+  "supplier/customer-followup.scheduled": { data: Record<string, never> };
+  "supplier/invoice-escalation.scheduled": { data: Record<string, never> };
 };

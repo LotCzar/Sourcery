@@ -92,7 +92,12 @@ export interface RateLimitInfo {
   resetAt: string;
 }
 
-export function useChatStream() {
+export interface ChatStreamOptions {
+  endpoint?: string;
+}
+
+export function useChatStream(options?: ChatStreamOptions) {
+  const endpoint = options?.endpoint || "/api/ai/chat";
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [activeToolCalls, setActiveToolCalls] = useState<ActiveToolCall[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,7 +131,7 @@ export function useChatStream() {
       abortRef.current = controller;
 
       try {
-        const response = await fetch("/api/ai/chat", {
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

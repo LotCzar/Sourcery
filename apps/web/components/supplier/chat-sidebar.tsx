@@ -1,0 +1,201 @@
+"use client";
+
+import { useState, useEffect, useCallback, useRef } from "react";
+import { MessageSquarePlus, Trash2, History, AlertTriangle } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { ChatMessages } from "@/components/chat/chat-messages";
+import { ChatInput } from "@/components/chat/chat-input";
+import { useChatStream, type ChatMessage } from "@/hooks/use-chat-stream";
+import { apiFetch } from "@/lib/api";
+import { queryKeys } from "@/lib/query-keys";
+
+interface ConversationItem {
+  id: string;
+  title: string;
+  messageCount: number;
+  updatedAt: string;
+}
+
+interface SupplierChatSidebarProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+export function SupplierChatSidebar({ open, onOpenChange }: SupplierChatSidebarProps) {
+  const {
+    messages,
+    activeToolCalls,
+    isLoading,
+    conversationId,
+    rateLimitInfo,
+    sendMessage,
+    abort,
+    clearMessages,
+    setConversationId,
+    setMessages,
+  } = useChatStream({ endpoint: "/api/supplier/ai/chat" });
+
+  const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const { data: conversations } = useQuery({
+    queryKey: queryKeys.chat.conversations,
+    queryFn: () =>
+      apiFetch<{ data: ConversationItem[] }>("/api/supplier/ai/conversations"),
+    enabled: open,
+  });
+
+  const deleteConversation = useMutation({
+    mutationFn: (id: string) =>
+      apiFetch("/api/supplier/ai/conversations", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ conversationId: id }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
+    },
+  });
+
+  // Sync conversationId from stream hook
+  useEffect(() => {
+    if (conversationId) {
+      setCurrentConversationId(conversationId);
+      queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
+    }
+  }, [conversationId, queryClient]);
+
+  const handleNewChat = useCallback(() => {
+    clearMessages();
+    setCurrentConversationId(null);
+  }, [clearMessages]);
+
+  const handleSelectConversation = useCallback(
+    async (id: string) => {
+      clearMessages();
+      setConversationId(id);
+      setCurrentConversationId(id);
+      try {
+        const result = await apiFetch<{
+          data: {
+            id: string;
+            title: string;
+            messages: ChatMessage[];
+          };
+        }>(`/api/ai/conversations/${id}`);
+        if (result.data?.messages) {
+          setMessages(result.data.messages);
+        }
+      } catch {
+        // User sees empty chat but can still send
+      }
+    },
+    [clearMessages, setConversationId, setMessages]
+  );
+
+  const handleDeleteConversation = useCallback(
+    (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      deleteConversation.mutate(id);
+      if (currentConversationId === id) {
+        handleNewChat();
+      }
+    },
+    [deleteConversation, currentConversationId, handleNewChat]
+  );
+
+  const handleSend = useCallback(
+    (message: string) => {
+      sendMessage(message, currentConversationId);
+    },
+    [sendMessage, currentConversationId]
+  );
+
+  const showHistory = messages.length === 0 && !isLoading;
+  const conversationList = conversations?.data || [];
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col p-0 sm:max-w-md"
+      >
+        <SheetHeader className="border-b px-4 py-3">
+          <div className="flex items-center justify-between pr-8">
+            <SheetTitle className="text-base">FreshSheet AI</SheetTitle>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNewChat}
+              className="h-8 gap-1.5"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
+              New
+            </Button>
+          </div>
+          <SheetDescription className="sr-only">
+            AI assistant for managing your supplier operations
+          </SheetDescription>
+        </SheetHeader>
+
+        {rateLimitInfo && (
+          <div className="mx-3 mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div>
+              <p className="font-medium">Chat limit reached</p>
+              <p className="text-xs text-amber-700">
+                You&apos;ve used {rateLimitInfo.used} of {rateLimitInfo.limit} chat messages this month. Resets{" "}
+                {new Date(rateLimitInfo.resetAt).toLocaleDateString()}.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {showHistory && conversationList.length > 0 ? (
+          <div className="flex-1 overflow-y-auto">
+            <div className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-muted-foreground">
+              <History className="h-3 w-3" />
+              Recent conversations
+            </div>
+            <div className="space-y-0.5 px-2">
+              {conversationList.map((conv) => (
+                <button
+                  key={conv.id}
+                  onClick={() => handleSelectConversation(conv.id)}
+                  className="group flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm hover:bg-muted"
+                >
+                  <span className="flex-1 truncate">{conv.title}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {conv.messageCount} msgs
+                  </span>
+                  <button
+                    onClick={(e) => handleDeleteConversation(e, conv.id)}
+                    className="hidden shrink-0 rounded p-1 hover:bg-destructive/10 hover:text-destructive group-hover:block"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <ChatMessages
+            messages={messages}
+            activeToolCalls={activeToolCalls}
+          />
+        )}
+
+        <ChatInput onSend={handleSend} onAbort={abort} isLoading={isLoading} disabled={!!rateLimitInfo} />
+      </SheetContent>
+    </Sheet>
+  );
+}

@@ -37,6 +37,8 @@ export const FEATURE_TO_LIMIT_KEY: Record<AiFeature, LimitKey | null> = {
   PARSE_RECEIPT: "parseOpsPerMonth",
   SEARCH: "searchOpsPerMonth",
   WEEKLY_DIGEST: null,
+  SUPPLIER_CHAT: "chatOpsPerMonth",
+  SUPPLIER_DIGEST: null,
 };
 
 /**
@@ -44,7 +46,7 @@ export const FEATURE_TO_LIMIT_KEY: Record<AiFeature, LimitKey | null> = {
  * Used to count all features in a group when checking rate limits.
  */
 export const FEATURE_GROUPS: Record<LimitKey, AiFeature[]> = {
-  chatOpsPerMonth: ["CHAT"],
+  chatOpsPerMonth: ["CHAT", "SUPPLIER_CHAT"],
   parseOpsPerMonth: ["PARSE_MENU", "PARSE_RECEIPT"],
   searchOpsPerMonth: ["SEARCH"],
 };

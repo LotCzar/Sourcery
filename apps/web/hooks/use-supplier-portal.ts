@@ -81,3 +81,30 @@ export function useBulkPriceUpdate() {
     },
   });
 }
+
+export function useSupplierInsights(type?: string, status?: string) {
+  const params = new URLSearchParams();
+  if (type) params.set("type", type);
+  if (status) params.set("status", status);
+  const qs = params.toString();
+
+  return useQuery({
+    queryKey: [...queryKeys.supplier.insights, type, status],
+    queryFn: () =>
+      apiFetch<any>(`/api/supplier/insights${qs ? `?${qs}` : ""}`),
+  });
+}
+
+export function useUpdateInsight() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) =>
+      apiFetch<any>(`/api/supplier/insights/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplier.insights });
+    },
+  });
+}

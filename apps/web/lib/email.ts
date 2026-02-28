@@ -339,6 +339,64 @@ export const emailTemplates = {
     `,
   }),
 
+  supplierWeeklyDigest: (supplierName: string, aiSummary: string, metrics: { totalRevenue: number; orderCount: number; newCustomers: number; outstandingInvoices: number; overdueInvoices: number }) => ({
+    subject: `Weekly Business Digest: ${escapeHtml(supplierName)}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Weekly Business Digest</h1>
+        <p>${escapeHtml(aiSummary)}</p>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px 0;"><strong>Total Revenue</strong></td>
+            <td style="padding: 8px 0; text-align: right;">$${metrics.totalRevenue.toFixed(2)}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px 0;"><strong>Orders</strong></td>
+            <td style="padding: 8px 0; text-align: right;">${metrics.orderCount}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px 0;"><strong>New Customers</strong></td>
+            <td style="padding: 8px 0; text-align: right;">${metrics.newCustomers}</td>
+          </tr>
+          <tr style="border-bottom: 1px solid #eee;">
+            <td style="padding: 8px 0;"><strong>Outstanding Invoices</strong></td>
+            <td style="padding: 8px 0; text-align: right;">${metrics.outstandingInvoices}</td>
+          </tr>
+          <tr>
+            <td style="padding: 8px 0;"><strong>Overdue Invoices</strong></td>
+            <td style="padding: 8px 0; text-align: right;">${metrics.overdueInvoices}</td>
+          </tr>
+        </table>
+        <div style="text-align: center; margin-top: 24px;">
+          <a href="/supplier" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">View Dashboard</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
+  supplierCustomerFollowup: (restaurantName: string, supplierName: string, message: string) => ({
+    subject: `A message from ${escapeHtml(supplierName)}`,
+    html: `
+      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
+        <h1 style="color: #1a1a1a;">Hello from ${escapeHtml(supplierName)}</h1>
+        <p>Hi ${escapeHtml(restaurantName)},</p>
+        <div style="background: #f5f5f5; padding: 16px; border-radius: 8px; margin: 16px 0;">
+          <p style="margin: 0; color: #333;">${escapeHtml(message)}</p>
+        </div>
+        <p>Log in to your FreshSheet dashboard to place an order or reply.</p>
+        <div style="text-align: center; margin: 24px 0;">
+          <a href="/dashboard" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Go to Dashboard</a>
+        </div>
+        <p style="color: #666; font-size: 14px; margin-top: 24px;">
+          This email was sent by FreshSheet on behalf of ${escapeHtml(supplierName)}. Please do not reply to this email.
+        </p>
+      </div>
+    `,
+  }),
+
   weeklyDigest: (restaurantName: string, aiSummary: string, metrics: { totalSpend: number; orderCount: number; lowStockCount: number; priceAlerts: number; wastePercent: number; overdueInvoices: number }) => ({
     subject: `Weekly Digest: ${escapeHtml(restaurantName)}`,
     html: `

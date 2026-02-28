@@ -4,7 +4,8 @@ import { getPeriodStart } from "./plan-config";
 
 interface TrackAiUsagePayload {
   feature: AiFeature;
-  restaurantId: string;
+  restaurantId?: string | null;
+  supplierId?: string | null;
   userId: string | null;
   inputTokens: number;
   outputTokens: number;
@@ -23,7 +24,8 @@ export async function trackAiUsage(payload: TrackAiUsagePayload): Promise<void> 
     await prisma.aiUsageLog.create({
       data: {
         feature: payload.feature,
-        restaurantId: payload.restaurantId,
+        restaurantId: payload.restaurantId ?? null,
+        supplierId: payload.supplierId ?? null,
         userId: payload.userId,
         inputTokens: payload.inputTokens,
         outputTokens: payload.outputTokens,
