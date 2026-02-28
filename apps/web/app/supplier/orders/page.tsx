@@ -168,14 +168,7 @@ export default function SupplierOrdersPage() {
   const { data: unreadData } = useUnreadCount();
   const updateOrder = useUpdateSupplierOrder();
 
-  const unreadByOrder: Record<string, number> = {};
-  if (unreadData?.data) {
-    for (const item of unreadData.data) {
-      if (item.orderId) {
-        unreadByOrder[item.orderId] = (unreadByOrder[item.orderId] || 0) + 1;
-      }
-    }
-  }
+  const totalUnread = unreadData?.data?.unreadCount ?? 0;
 
   const orders: Order[] = result?.data ?? [];
   const drivers = driversResult?.data ?? [];
@@ -274,7 +267,15 @@ export default function SupplierOrdersPage() {
       {/* Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Orders</h1>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-2">
+            Orders
+            {totalUnread > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2 py-0.5 text-sm font-medium text-red-700">
+                <MessageSquare className="h-3.5 w-3.5" />
+                {totalUnread} unread
+              </span>
+            )}
+          </h1>
           <p className="text-muted-foreground">
             Manage incoming orders from restaurants
           </p>
@@ -350,14 +351,8 @@ export default function SupplierOrdersPage() {
                           </span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1">
+                      <p className="text-sm text-muted-foreground">
                         {order.restaurant.name} • {order._count.items} items
-                        {unreadByOrder[order.id] > 0 && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
-                            <MessageSquare className="h-3 w-3" />
-                            {unreadByOrder[order.id]}
-                          </span>
-                        )}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(order.createdAt)}
