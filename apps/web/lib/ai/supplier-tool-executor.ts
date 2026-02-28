@@ -47,6 +47,18 @@ export async function executeSupplierTool(
         return await getSupplierInsights(input, context);
       case "send_customer_message":
         return await sendCustomerMessage(input, context);
+      case "get_return_summary":
+        return await getReturnSummary(input, context);
+      case "adjust_supplier_inventory":
+        return await adjustSupplierInventory(input, context);
+      case "create_promotion":
+        return await createPromotion(input, context);
+      case "get_invoice_overview":
+        return await getInvoiceOverview(input, context);
+      case "get_driver_schedule":
+        return await getDriverSchedule(input, context);
+      case "manage_return":
+        return await manageReturn(input, context);
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -841,5 +853,439 @@ async function sendCustomerMessage(
     success: true,
     messageId: message.id,
     message: `Message sent on order ${order.orderNumber}`,
+  };
+}
+
+// ─── New Tool Implementations ────────────────────────────────────────────────
+
+async function getReturnSummary(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const { start, end } = getDateRange(input.period || "last_30_days");
+
+  const where: any = {
+    order: { supplierId: context.supplierId },
+    createdAt: { gte: start, lte: end },
+  };
+
+  const returns = await prisma.returnRequest.findMany({
+    where,
+    include: {
+      order: {
+        select: {
+          orderNumber: true,
+          restaurant: { select: { name: true } },
+        },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  // Filter by product name if provided
+  let filteredReturns = returns;
+  if (input.product_name) {
+    const searchLower = input.product_name.toLowerCase();
+    filteredReturns = returns.filter((r) => {
+      const items = (r.items as any[]) || [];
+      return items.some((i: any) =>
+        (i.productName || "").toLowerCase().includes(searchLower)
+      );
+    });
+  }
+
+  // Aggregate by product
+  const productStats: Record<string, { name: string; count: number; credited: number }> = {};
+  const typeBreakdown: Record<string, number> = {};
+
+  let totalCredited = 0;
+
+  for (const ret of filteredReturns) {
+    typeBreakdown[ret.type] = (typeBreakdown[ret.type] || 0) + 1;
+    if (ret.creditAmount) totalCredited += Number(ret.creditAmount);
+
+    const items = (ret.items as any[]) || [];
+    for (const item of items) {
+      const pid = item.productId || item.productName || "unknown";
+      if (!productStats[pid]) {
+        productStats[pid] = { name: item.productName || "Unknown", count: 0, credited: 0 };
+      }
+      productStats[pid].count++;
+      if (ret.creditAmount) {
+        productStats[pid].credited += Number(ret.creditAmount) / items.length;
+      }
+    }
+  }
+
+  // Get total units sold for return rate calculation
+  const orderItems = await prisma.orderItem.findMany({
+    where: {
+      order: {
+        supplierId: context.supplierId,
+        status: { not: "CANCELLED" },
+        createdAt: { gte: start, lte: end },
+      },
+    },
+    select: { productId: true, quantity: true },
+  });
+
+  const totalSold: Record<string, number> = {};
+  for (const item of orderItems) {
+    totalSold[item.productId] = (totalSold[item.productId] || 0) + Number(item.quantity);
+  }
+
+  const productBreakdown = Object.entries(productStats)
+    .map(([pid, stats]) => ({
+      productId: pid,
+      name: stats.name,
+      returnCount: stats.count,
+      unitsSold: totalSold[pid] || 0,
+      returnRate: totalSold[pid] ? Math.round((stats.count / totalSold[pid]) * 100 * 10) / 10 : null,
+      totalCredited: Math.round(stats.credited * 100) / 100,
+    }))
+    .sort((a, b) => b.returnCount - a.returnCount);
+
+  return {
+    period: input.period || "last_30_days",
+    totalReturns: filteredReturns.length,
+    totalCredited: Math.round(totalCredited * 100) / 100,
+    byStatus: {
+      pending: filteredReturns.filter((r) => r.status === "PENDING").length,
+      approved: filteredReturns.filter((r) => r.status === "APPROVED").length,
+      rejected: filteredReturns.filter((r) => r.status === "REJECTED").length,
+      creditIssued: filteredReturns.filter((r) => r.status === "CREDIT_ISSUED").length,
+      resolved: filteredReturns.filter((r) => r.status === "RESOLVED").length,
+    },
+    byType: typeBreakdown,
+    productBreakdown: productBreakdown.slice(0, 10),
+    recentReturns: filteredReturns.slice(0, 5).map((r) => ({
+      id: r.id,
+      returnNumber: r.returnNumber,
+      type: r.type,
+      status: r.status,
+      reason: r.reason,
+      customer: r.order.restaurant.name,
+      orderNumber: r.order.orderNumber,
+      creditAmount: r.creditAmount ? Number(r.creditAmount) : null,
+      hasPhotos: ((r.photoUrls as any[]) || []).length > 0,
+      createdAt: r.createdAt,
+    })),
+  };
+}
+
+async function adjustSupplierInventory(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const product = await prisma.supplierProduct.findFirst({
+    where: { id: input.product_id, supplierId: context.supplierId },
+  });
+
+  if (!product) return { error: "Product not found" };
+
+  const updateData: any = {};
+  if (input.stock_quantity !== undefined) updateData.stockQuantity = input.stock_quantity;
+  if (input.reorder_point !== undefined) updateData.reorderPoint = input.reorder_point;
+  if (input.expiration_date !== undefined) updateData.expirationDate = new Date(input.expiration_date);
+
+  if (Object.keys(updateData).length === 0) {
+    return { error: "No fields to update. Provide stock_quantity, reorder_point, or expiration_date." };
+  }
+
+  const updated = await prisma.supplierProduct.update({
+    where: { id: input.product_id },
+    data: updateData,
+    select: {
+      id: true,
+      name: true,
+      stockQuantity: true,
+      reorderPoint: true,
+      expirationDate: true,
+      inStock: true,
+    },
+  });
+
+  return {
+    success: true,
+    product: updated,
+    message: `Inventory updated for ${updated.name}`,
+  };
+}
+
+async function createPromotion(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const productConnect = input.product_ids?.length > 0
+    ? { connect: input.product_ids.map((id: string) => ({ id })) }
+    : undefined;
+
+  // Verify products belong to this supplier
+  if (input.product_ids?.length > 0) {
+    const products = await prisma.supplierProduct.findMany({
+      where: { id: { in: input.product_ids }, supplierId: context.supplierId },
+      select: { id: true },
+    });
+    if (products.length !== input.product_ids.length) {
+      return { error: "One or more product IDs not found or don't belong to your supplier" };
+    }
+  }
+
+  const promotion = await prisma.promotion.create({
+    data: {
+      type: input.type,
+      value: input.value,
+      description: input.description || null,
+      minOrderAmount: input.min_order_amount || null,
+      startDate: new Date(input.start_date),
+      endDate: new Date(input.end_date),
+      isActive: false, // Draft
+      supplierId: context.supplierId,
+      products: productConnect,
+    },
+    include: {
+      products: { select: { id: true, name: true } },
+    },
+  });
+
+  return {
+    success: true,
+    promotion: {
+      id: promotion.id,
+      type: promotion.type,
+      value: Number(promotion.value),
+      description: promotion.description,
+      minOrderAmount: promotion.minOrderAmount ? Number(promotion.minOrderAmount) : null,
+      startDate: promotion.startDate,
+      endDate: promotion.endDate,
+      isActive: promotion.isActive,
+      products: promotion.products,
+    },
+    message: `Draft promotion created: ${promotion.type} ${Number(promotion.value)}${promotion.type === "PERCENTAGE_OFF" ? "%" : ""} off`,
+  };
+}
+
+async function getInvoiceOverview(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const { start, end } = getDateRange(input.period);
+
+  // Get all invoices in period
+  const invoices = await prisma.invoice.findMany({
+    where: {
+      supplierId: context.supplierId,
+      ...(input.period ? { issueDate: { gte: start, lte: end } } : {}),
+    },
+    include: {
+      restaurant: { select: { id: true, name: true } },
+    },
+  });
+
+  const outstanding = invoices.filter((i) =>
+    ["PENDING", "OVERDUE", "PARTIALLY_PAID"].includes(i.status)
+  );
+  const overdue = invoices.filter((i) => i.status === "OVERDUE");
+  const paid = invoices.filter((i) => i.status === "PAID");
+
+  const totalOutstanding = outstanding.reduce(
+    (sum, i) => sum + Number(i.total) - (i.paidAmount ? Number(i.paidAmount) : 0),
+    0
+  );
+  const totalOverdue = overdue.reduce(
+    (sum, i) => sum + Number(i.total) - (i.paidAmount ? Number(i.paidAmount) : 0),
+    0
+  );
+
+  // Top 5 debtors by overdue amount
+  const debtorMap: Record<string, { name: string; amount: number; count: number }> = {};
+  for (const inv of outstanding) {
+    const rid = inv.restaurantId;
+    if (!debtorMap[rid]) {
+      debtorMap[rid] = { name: inv.restaurant.name, amount: 0, count: 0 };
+    }
+    debtorMap[rid].amount += Number(inv.total) - (inv.paidAmount ? Number(inv.paidAmount) : 0);
+    debtorMap[rid].count++;
+  }
+  const topDebtors = Object.values(debtorMap)
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 5)
+    .map((d) => ({
+      name: d.name,
+      outstandingAmount: Math.round(d.amount * 100) / 100,
+      invoiceCount: d.count,
+    }));
+
+  // Average days-to-pay for paid invoices
+  let totalDaysToPay = 0;
+  let paidWithDates = 0;
+  for (const inv of paid) {
+    if (inv.paidAt) {
+      const days = (inv.paidAt.getTime() - inv.issueDate.getTime()) / (24 * 60 * 60 * 1000);
+      totalDaysToPay += days;
+      paidWithDates++;
+    }
+  }
+
+  return {
+    summary: {
+      totalInvoices: invoices.length,
+      outstandingCount: outstanding.length,
+      outstandingAmount: Math.round(totalOutstanding * 100) / 100,
+      overdueCount: overdue.length,
+      overdueAmount: Math.round(totalOverdue * 100) / 100,
+      paidCount: paid.length,
+      avgDaysToPay: paidWithDates > 0 ? Math.round(totalDaysToPay / paidWithDates) : null,
+    },
+    byStatus: {
+      pending: invoices.filter((i) => i.status === "PENDING").length,
+      paid: paid.length,
+      overdue: overdue.length,
+      partiallyPaid: invoices.filter((i) => i.status === "PARTIALLY_PAID").length,
+      cancelled: invoices.filter((i) => i.status === "CANCELLED").length,
+      disputed: invoices.filter((i) => i.status === "DISPUTED").length,
+    },
+    topDebtors,
+  };
+}
+
+async function getDriverSchedule(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const targetDate = input.date ? new Date(input.date) : new Date();
+  const dayStart = new Date(targetDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(targetDate);
+  dayEnd.setHours(23, 59, 59, 999);
+
+  const orders = await prisma.order.findMany({
+    where: {
+      supplierId: context.supplierId,
+      deliveryDate: { gte: dayStart, lte: dayEnd },
+      status: { not: "CANCELLED" },
+    },
+    select: {
+      id: true,
+      orderNumber: true,
+      status: true,
+      deliveryDate: true,
+      driverId: true,
+      restaurant: { select: { name: true, address: true, city: true } },
+      items: { select: { id: true } },
+    },
+    orderBy: { deliveryDate: "asc" },
+  });
+
+  // Group by driver
+  const driverGroups: Record<string, typeof orders> = {};
+  for (const order of orders) {
+    const driverId = order.driverId || "unassigned";
+    if (!driverGroups[driverId]) driverGroups[driverId] = [];
+    driverGroups[driverId].push(order);
+  }
+
+  // Resolve driver names
+  const driverIds = Object.keys(driverGroups).filter((id) => id !== "unassigned");
+  const drivers = driverIds.length > 0
+    ? await prisma.user.findMany({
+        where: { id: { in: driverIds } },
+        select: { id: true, firstName: true, lastName: true },
+      })
+    : [];
+  const driverNameMap = new Map(
+    drivers.map((d) => [d.id, `${d.firstName || ""} ${d.lastName || ""}`.trim()])
+  );
+
+  const schedule = Object.entries(driverGroups).map(([driverId, driverOrders]) => ({
+    driverId,
+    driverName: driverId === "unassigned" ? "Unassigned" : (driverNameMap.get(driverId) || "Unknown"),
+    deliveryCount: driverOrders.length,
+    orders: driverOrders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      status: o.status,
+      customer: o.restaurant.name,
+      address: o.restaurant.address,
+      city: o.restaurant.city,
+      itemCount: o.items.length,
+    })),
+  }));
+
+  return {
+    date: dayStart.toISOString().split("T")[0],
+    totalDeliveries: orders.length,
+    assignedDrivers: schedule.filter((s) => s.driverId !== "unassigned").length,
+    unassignedOrders: driverGroups["unassigned"]?.length || 0,
+    schedule,
+  };
+}
+
+async function manageReturn(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  // Find return and verify it belongs to this supplier
+  const returnRequest = await prisma.returnRequest.findFirst({
+    where: {
+      id: input.return_id,
+      order: { supplierId: context.supplierId },
+    },
+    include: {
+      order: { select: { id: true, orderNumber: true, supplierId: true, restaurantId: true } },
+    },
+  });
+
+  if (!returnRequest) return { error: "Return request not found" };
+  if (returnRequest.status !== "PENDING") {
+    return { error: `Return is already ${returnRequest.status.toLowerCase()}, cannot update` };
+  }
+
+  const updateData: any = {
+    status: input.action,
+    resolution: input.resolution || null,
+    reviewedById: context.userId,
+    reviewedAt: new Date(),
+    resolvedAt: new Date(),
+  };
+
+  if (input.action === "APPROVED" && input.credit_amount) {
+    updateData.status = "CREDIT_ISSUED";
+    updateData.creditAmount = input.credit_amount;
+  }
+
+  const updated = await prisma.returnRequest.update({
+    where: { id: input.return_id },
+    data: updateData,
+    select: {
+      id: true,
+      returnNumber: true,
+      status: true,
+      creditAmount: true,
+      resolution: true,
+    },
+  });
+
+  // Emit return status changed event
+  const { inngest } = await import("@/lib/inngest/client");
+  await inngest.send({
+    name: "return/status.changed",
+    data: {
+      returnId: returnRequest.id,
+      orderId: returnRequest.order.id,
+      previousStatus: returnRequest.status,
+      newStatus: updated.status,
+      restaurantId: returnRequest.order.restaurantId,
+      supplierId: returnRequest.order.supplierId,
+    },
+  });
+
+  return {
+    success: true,
+    return: {
+      ...updated,
+      creditAmount: updated.creditAmount ? Number(updated.creditAmount) : null,
+    },
+    message: `Return ${updated.returnNumber} ${input.action === "APPROVED" ? (input.credit_amount ? `approved with $${input.credit_amount} credit` : "approved") : "rejected"}`,
   };
 }

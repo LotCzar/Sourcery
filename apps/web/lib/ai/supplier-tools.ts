@@ -355,4 +355,148 @@ export const supplierAiTools: Anthropic.Tool[] = [
       required: ["order_id", "message"],
     },
   },
+  {
+    name: "get_return_summary",
+    description:
+      "Get returns overview with quality metrics, return rates by product, and common reasons.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        period: {
+          type: "string",
+          enum: ["this_week", "last_week", "this_month", "last_month", "last_30_days", "last_90_days"],
+          description: "Time period for returns analysis (default: last_30_days)",
+        },
+        product_name: {
+          type: "string",
+          description: "Filter by product name",
+        },
+      },
+    },
+  },
+  {
+    name: "adjust_supplier_inventory",
+    description:
+      "Update stock quantity, set reorder point, or record batch expiration date for a product.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        product_id: {
+          type: "string",
+          description: "The product ID to adjust",
+        },
+        stock_quantity: {
+          type: "number",
+          description: "New stock quantity",
+        },
+        reorder_point: {
+          type: "number",
+          description: "Reorder point threshold",
+        },
+        expiration_date: {
+          type: "string",
+          description: "Batch expiration date (ISO format)",
+        },
+      },
+      required: ["product_id"],
+    },
+  },
+  {
+    name: "create_promotion",
+    description:
+      "Create a draft promotion for your products.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        type: {
+          type: "string",
+          enum: ["PERCENTAGE_OFF", "FLAT_DISCOUNT", "FREE_DELIVERY", "BUY_X_GET_Y"],
+          description: "Promotion type",
+        },
+        value: {
+          type: "number",
+          description: "Discount value (percentage or flat amount)",
+        },
+        description: {
+          type: "string",
+          description: "Promotion description",
+        },
+        product_ids: {
+          type: "array",
+          items: { type: "string" },
+          description: "Product IDs to apply promotion to",
+        },
+        min_order_amount: {
+          type: "number",
+          description: "Minimum order amount for promotion",
+        },
+        start_date: {
+          type: "string",
+          description: "Start date (ISO format)",
+        },
+        end_date: {
+          type: "string",
+          description: "End date (ISO format)",
+        },
+      },
+      required: ["type", "value", "start_date", "end_date"],
+    },
+  },
+  {
+    name: "get_invoice_overview",
+    description:
+      "Get aggregated invoice statistics: total outstanding, overdue amounts, biggest debtors, payment trends.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        period: {
+          type: "string",
+          enum: ["this_week", "last_week", "this_month", "last_month", "last_30_days", "last_90_days"],
+          description: "Time period for invoice analysis",
+        },
+      },
+    },
+  },
+  {
+    name: "get_driver_schedule",
+    description:
+      "View driver assignments and delivery load for a specific date.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        date: {
+          type: "string",
+          description: "Date to check (ISO format, defaults to today)",
+        },
+      },
+    },
+  },
+  {
+    name: "manage_return",
+    description:
+      "Approve or reject a return request and optionally issue a credit.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        return_id: {
+          type: "string",
+          description: "The return request ID",
+        },
+        action: {
+          type: "string",
+          enum: ["APPROVED", "REJECTED"],
+          description: "Action to take on the return",
+        },
+        credit_amount: {
+          type: "number",
+          description: "Credit amount to issue (for approved returns)",
+        },
+        resolution: {
+          type: "string",
+          description: "Resolution notes",
+        },
+      },
+      required: ["return_id", "action"],
+    },
+  },
 ];

@@ -68,6 +68,15 @@ export type FreshSheetEvents = {
   "supplier/customer-followup.scheduled": { data: Record<string, never> };
   "supplier/invoice-escalation.scheduled": { data: Record<string, never> };
   "supplier/low-stock.scheduled": { data: Record<string, never> };
+  "supplier/route-optimizer.scheduled": { data: Record<string, never> };
+  "supplier/expiration-prevention.scheduled": { data: Record<string, never> };
+  "supplier/revenue-forecast.scheduled": { data: Record<string, never> };
+  "supplier/churn-warning.scheduled": { data: Record<string, never> };
+  "supplier/auto-promotions.scheduled": { data: Record<string, never> };
+  "supplier/quality-trends.scheduled": { data: Record<string, never> };
+  "supplier/delivery-digest.scheduled": { data: Record<string, never> };
+  "supplier/payment-collection.scheduled": { data: Record<string, never> };
+  "supplier/seasonal-prep.scheduled": { data: Record<string, never> };
   "return/status.changed": {
     data: {
       returnId: string;

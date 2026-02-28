@@ -34,10 +34,19 @@ import {
   supplierCustomerFollowup,
   supplierInvoiceEscalation,
   supplierLowStockAlerts,
+  supplierRouteOptimizer,
+  supplierExpirationPrevention,
+  supplierRevenueForecast,
+  supplierChurnWarning,
+  supplierAutoPromotions,
+  supplierQualityTrends,
+  supplierDeliveryDigest,
+  supplierPaymentCollection,
+  supplierSeasonalPrep,
   returnNotification,
 } from "@/lib/inngest/functions";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
-  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts, approvalNotification, messageNotification, accountingInvoiceSync, accountingBatchSync, deliveryTracking, usageAlerts, tokenRefresh, posPushSync, supplierVerificationNotify, supplierDemandForecast, supplierCustomerHealth, supplierWeeklyDigest, supplierPricingSuggestions, supplierOrderAnomaly, supplierCustomerFollowup, supplierInvoiceEscalation, supplierLowStockAlerts, returnNotification],
+  functions: [autoReorder, priceMonitor, supplierFollowup, invoiceGenerator, consumptionAnalysis, menuSync, orderAnomaly, proactiveOrdering, invoiceReminders, weeklyDigest, inventoryReconciliation, deliveryScheduling, supplierPerformance, budgetAlerts, substitutionSuggestions, contractPriceAlerts, approvalNotification, messageNotification, accountingInvoiceSync, accountingBatchSync, deliveryTracking, usageAlerts, tokenRefresh, posPushSync, supplierVerificationNotify, supplierDemandForecast, supplierCustomerHealth, supplierWeeklyDigest, supplierPricingSuggestions, supplierOrderAnomaly, supplierCustomerFollowup, supplierInvoiceEscalation, supplierLowStockAlerts, supplierRouteOptimizer, supplierExpirationPrevention, supplierRevenueForecast, supplierChurnWarning, supplierAutoPromotions, supplierQualityTrends, supplierDeliveryDigest, supplierPaymentCollection, supplierSeasonalPrep, returnNotification],
 });
