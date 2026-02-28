@@ -50,10 +50,16 @@ describe("GET /api/supplier/dashboard", () => {
       _min: {},
       _max: {},
     } as any);
+    prismaMock.invoice.count.mockResolvedValueOnce(1); // overdue invoices
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(2); // out of stock
 
     // top products
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
+
+    // at-risk customer queries
+    prismaMock.order.findMany.mockResolvedValueOnce([]); // recent customers
+    prismaMock.order.findMany.mockResolvedValueOnce([]); // older customers
 
     const response = await GET();
     const { status, data } = await parseResponse(response);
@@ -66,6 +72,8 @@ describe("GET /api/supplier/dashboard", () => {
     expect(data.data.stats.shippedOrders).toBe(1);
     expect(data.data.stats.deliveredOrdersThisMonth).toBe(5);
     expect(data.data.stats.totalRevenue).toBe(5000);
+    expect(data.data.briefing.overdueInvoiceCount).toBe(1);
+    expect(data.data.briefing.outOfStockCount).toBe(2);
   });
 
   it("returns Decimal→Number conversion on recentOrders", async () => {
@@ -90,9 +98,15 @@ describe("GET /api/supplier/dashboard", () => {
       _min: {},
       _max: {},
     } as any);
+    prismaMock.invoice.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
 
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
+
+    // at-risk customer queries
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
 
     const response = await GET();
     const { status, data } = await parseResponse(response);
@@ -122,8 +136,14 @@ describe("GET /api/supplier/dashboard", () => {
       _min: {},
       _max: {},
     } as any);
+    prismaMock.invoice.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([] as any);
     prismaMock.supplierProduct.findMany.mockResolvedValueOnce([]);
+
+    // at-risk customer queries
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
 
     const response = await GET();
     const { status, data } = await parseResponse(response);
@@ -151,6 +171,8 @@ describe("GET /api/supplier/dashboard", () => {
       _min: {},
       _max: {},
     } as any);
+    prismaMock.invoice.count.mockResolvedValueOnce(0);
+    prismaMock.supplierProduct.count.mockResolvedValueOnce(0);
 
     prismaMock.orderItem.groupBy.mockResolvedValueOnce([
       {
@@ -168,6 +190,10 @@ describe("GET /api/supplier/dashboard", () => {
         price: new Decimal("4.99"),
       },
     ] as any);
+
+    // at-risk customer queries
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
+    prismaMock.order.findMany.mockResolvedValueOnce([]);
 
     const response = await GET();
     const { status, data } = await parseResponse(response);
