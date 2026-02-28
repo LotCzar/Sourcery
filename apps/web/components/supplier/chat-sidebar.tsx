@@ -17,6 +17,7 @@ import { ChatInput } from "@/components/chat/chat-input";
 import { useChatStream, type ChatMessage } from "@/hooks/use-chat-stream";
 import { apiFetch } from "@/lib/api";
 import { queryKeys } from "@/lib/query-keys";
+import { useSupplierChat } from "@/lib/supplier-chat-context";
 
 interface ConversationItem {
   id: string;
@@ -25,12 +26,8 @@ interface ConversationItem {
   updatedAt: string;
 }
 
-interface SupplierChatSidebarProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}
-
-export function SupplierChatSidebar({ open, onOpenChange }: SupplierChatSidebarProps) {
+export function SupplierChatSidebar() {
+  const { isOpen, closeChat, pendingMessage, clearPendingMessage } = useSupplierChat();
   const {
     messages,
     activeToolCalls,
@@ -51,7 +48,7 @@ export function SupplierChatSidebar({ open, onOpenChange }: SupplierChatSidebarP
     queryKey: queryKeys.chat.conversations,
     queryFn: () =>
       apiFetch<{ data: ConversationItem[] }>("/api/supplier/ai/conversations"),
-    enabled: open,
+    enabled: isOpen,
   });
 
   const deleteConversation = useMutation({
@@ -73,6 +70,21 @@ export function SupplierChatSidebar({ open, onOpenChange }: SupplierChatSidebarP
       queryClient.invalidateQueries({ queryKey: queryKeys.chat.conversations });
     }
   }, [conversationId, queryClient]);
+
+  // Auto-send pending message when sidebar opens
+  const pendingHandled = useRef(false);
+  useEffect(() => {
+    if (isOpen && pendingMessage && !pendingHandled.current) {
+      pendingHandled.current = true;
+      clearMessages();
+      setConversationId(null);
+      sendMessage(pendingMessage, null);
+      clearPendingMessage();
+    }
+    if (!pendingMessage) {
+      pendingHandled.current = false;
+    }
+  }, [isOpen, pendingMessage, clearMessages, setConversationId, sendMessage, clearPendingMessage]);
 
   const handleNewChat = useCallback(() => {
     clearMessages();
@@ -124,7 +136,7 @@ export function SupplierChatSidebar({ open, onOpenChange }: SupplierChatSidebarP
   const conversationList = conversations?.data || [];
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet open={isOpen} onOpenChange={(open) => !open && closeChat()}>
       <SheetContent
         side="right"
         className="flex w-full flex-col p-0 sm:max-w-md"

@@ -1,15 +1,14 @@
 "use client";
 
 import { UserButton } from "@clerk/nextjs";
-import { Bell, MessageSquare } from "lucide-react";
+import { Bell, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useSupplierChat } from "@/lib/supplier-chat-context";
 
-interface SupplierHeaderProps {
-  onToggleChat?: () => void;
-}
+export function SupplierHeader() {
+  const { toggleChat } = useSupplierChat();
 
-export function SupplierHeader({ onToggleChat }: SupplierHeaderProps) {
   return (
     <header className="flex h-16 items-center justify-between border-b bg-card px-6 relative z-20" style={{ overflow: "visible" }}>
       {/* Left side - placeholder for search or title */}
@@ -19,11 +18,9 @@ export function SupplierHeader({ onToggleChat }: SupplierHeaderProps) {
 
       {/* Actions */}
       <div className="flex items-center gap-4 relative z-50">
-        {onToggleChat && (
-          <Button variant="ghost" size="icon" onClick={onToggleChat} title="AI Assistant">
-            <MessageSquare className="h-5 w-5" />
-          </Button>
-        )}
+        <Button variant="ghost" size="icon" onClick={toggleChat} title="AI Assistant">
+          <Sparkles className="h-5 w-5" />
+        </Button>
 
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
