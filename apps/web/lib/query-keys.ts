@@ -84,6 +84,7 @@ export const queryKeys = {
     analytics: (period?: string) => ["supplier", "analytics", period] as const,
     customers: (search?: string) => ["supplier", "customers", search] as const,
     drivers: ["supplier", "drivers"] as const,
+    deliveryZones: ["supplier", "delivery-zones"] as const,
     promotions: Object.assign(
       (status?: string) => ["supplier", "promotions", status] as const,
       { detail: (id: string) => ["supplier", "promotions", "detail", id] as const }

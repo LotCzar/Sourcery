@@ -1,6 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import {
   Card,
   CardContent,
@@ -38,6 +40,8 @@ import {
   Trash2,
   Check,
   X,
+  Download,
+  Upload,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -113,6 +117,14 @@ export default function SupplierProductsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState(initialFormData);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    updated: number;
+    errors: { row: number; message: string }[];
+  } | null>(null);
 
   const { data: result, isLoading, error } = useSupplierProducts(selectedCategory);
   const createProduct = useCreateSupplierProduct();
@@ -204,6 +216,63 @@ export default function SupplierProductsPage() {
     }).format(amount);
   };
 
+  const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async () => {
+    if (!importFile) return;
+    setImporting(true);
+    setImportResult(null);
+
+    try {
+      const formDataObj = new FormData();
+      formDataObj.append("file", importFile);
+
+      const res = await fetch("/api/supplier/products/import", {
+        method: "POST",
+        body: formDataObj,
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        toast({ title: "Import failed", description: data.error, variant: "destructive" });
+        return;
+      }
+
+      setImportResult(data);
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplier.products.all });
+
+      if (data.errors.length === 0) {
+        toast({ title: `Import complete: ${data.created} created, ${data.updated} updated` });
+      } else {
+        toast({
+          title: `Import complete with ${data.errors.length} errors`,
+          description: `${data.created} created, ${data.updated} updated`,
+          variant: "destructive",
+        });
+      }
+    } catch {
+      toast({ title: "Import failed", variant: "destructive" });
+    } finally {
+      setImporting(false);
+    }
+  };
+
+  const handleExport = () => {
+    window.open("/api/supplier/products/export", "_blank");
+  };
+
+  const handleDownloadTemplate = () => {
+    const csv = "id,name,description,category,unit,price,minOrder,inStock\n";
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "products-template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
 
   const filteredProducts = products.filter((product) =>
@@ -239,22 +308,39 @@ export default function SupplierProductsPage() {
             Manage your product catalog
           </p>
         </div>
-        <Dialog
-          open={isDialogOpen}
-          onOpenChange={(open) => {
-            setIsDialogOpen(open);
-            if (!open) {
-              setFormData(initialFormData);
-              setEditingProduct(null);
-            }
-          }}
-        >
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Product
-            </Button>
-          </DialogTrigger>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setImportDialogOpen(true);
+              setImportFile(null);
+              setImportResult(null);
+            }}
+          >
+            <Upload className="mr-2 h-4 w-4" />
+            Import CSV
+          </Button>
+          <Dialog
+            open={isDialogOpen}
+            onOpenChange={(open) => {
+              setIsDialogOpen(open);
+              if (!open) {
+                setFormData(initialFormData);
+                setEditingProduct(null);
+              }
+            }}
+          >
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Product
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -447,7 +533,73 @@ export default function SupplierProductsPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
+
+      {/* Import Dialog */}
+      <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Import Products from CSV</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to create or update products in bulk.
+              Rows with an ID will update existing products; rows without will create new ones.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>CSV File</Label>
+              <Input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                onChange={(e) => {
+                  setImportFile(e.target.files?.[0] || null);
+                  setImportResult(null);
+                }}
+              />
+            </div>
+            <Button variant="link" className="px-0 h-auto" onClick={handleDownloadTemplate}>
+              <Download className="mr-1 h-3 w-3" />
+              Download CSV Template
+            </Button>
+            {importResult && (
+              <div className="rounded-lg border p-3 space-y-2">
+                <p className="text-sm font-medium">
+                  Results: {importResult.created} created, {importResult.updated} updated
+                </p>
+                {importResult.errors.length > 0 && (
+                  <div className="max-h-[120px] overflow-y-auto space-y-1">
+                    {importResult.errors.map((err, i) => (
+                      <p key={i} className="text-xs text-red-600">
+                        Row {err.row}: {err.message}
+                      </p>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setImportDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleImport} disabled={!importFile || importing}>
+              {importing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Importing...
+                </>
+              ) : (
+                <>
+                  <Upload className="mr-2 h-4 w-4" />
+                  Upload & Import
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Filters */}
       <Card>

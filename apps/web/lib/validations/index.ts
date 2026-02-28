@@ -554,6 +554,25 @@ export const UpdatePromotionSchema = z
     productIds: z.array(z.string()).optional(),
   });
 
+// Delivery Zones
+export const CreateDeliveryZoneSchema = z.object({
+  name: z.string().min(1).max(255),
+  zipCodes: z.array(z.string().min(1).max(20)).min(1),
+  deliveryFee: z.number().min(0),
+  minimumOrder: z.number().min(0).optional(),
+});
+
+export const UpdateDeliveryZoneSchema = z
+  .object({
+    name: z.string().min(1).max(255).optional(),
+    zipCodes: z.array(z.string().min(1).max(20)).min(1).optional(),
+    deliveryFee: z.number().min(0).optional(),
+    minimumOrder: z.number().min(0).nullable().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided",
+  });
+
 // AI Search
 export const AiSearchSchema = z.object({
   query: z.string().min(2).max(1000),

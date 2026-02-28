@@ -398,6 +398,7 @@ model PriceHistory {
 
 model DeliveryZone {
   id            String    @id @default(cuid())
+  name          String
   zipCodes      String[]
   deliveryFee   Decimal   @db.Decimal(10, 2)
   minimumOrder  Decimal?  @db.Decimal(10, 2)

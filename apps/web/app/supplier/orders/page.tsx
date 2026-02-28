@@ -43,10 +43,13 @@ import {
   Phone,
   Mail,
   User,
+  MessageSquare,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSupplierOrders, useUpdateSupplierOrder } from "@/hooks/use-supplier-orders";
 import { useSupplierDrivers } from "@/hooks/use-supplier-drivers";
+import { useUnreadCount } from "@/hooks/use-messages";
+import { OrderMessages } from "@/components/supplier/order-messages";
 
 interface OrderItem {
   id: string;
@@ -162,7 +165,17 @@ export default function SupplierOrdersPage() {
 
   const { data: result, isLoading, error } = useSupplierOrders(selectedStatus);
   const { data: driversResult } = useSupplierDrivers();
+  const { data: unreadData } = useUnreadCount();
   const updateOrder = useUpdateSupplierOrder();
+
+  const unreadByOrder: Record<string, number> = {};
+  if (unreadData?.data) {
+    for (const item of unreadData.data) {
+      if (item.orderId) {
+        unreadByOrder[item.orderId] = (unreadByOrder[item.orderId] || 0) + 1;
+      }
+    }
+  }
 
   const orders: Order[] = result?.data ?? [];
   const drivers = driversResult?.data ?? [];
@@ -337,8 +350,14 @@ export default function SupplierOrdersPage() {
                           </span>
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-muted-foreground flex items-center gap-1">
                         {order.restaurant.name} • {order._count.items} items
+                        {unreadByOrder[order.id] > 0 && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700">
+                            <MessageSquare className="h-3 w-3" />
+                            {unreadByOrder[order.id]}
+                          </span>
+                        )}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatDate(order.createdAt)}
@@ -512,6 +531,15 @@ export default function SupplierOrdersPage() {
                     </p>
                   </div>
                 )}
+
+                {/* Messages */}
+                <div>
+                  <h3 className="font-semibold mb-2 flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    Messages
+                  </h3>
+                  <OrderMessages orderId={selectedOrder.id} />
+                </div>
               </div>
 
               <DialogFooter>

@@ -29,6 +29,28 @@ export function useSupplierInvoices(status?: string) {
   });
 }
 
+export function useDownloadInvoicePdf(id: string) {
+  return {
+    download: () => {
+      window.open(`/api/supplier/invoices/${id}/pdf`, "_blank");
+    },
+  };
+}
+
+export function useSendInvoiceReminder() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) =>
+      apiFetch<{ success: boolean; sentTo: string }>(
+        `/api/supplier/invoices/${id}/remind`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.supplier.invoices.all });
+    },
+  });
+}
+
 export function useUpdateSupplierInvoice() {
   const queryClient = useQueryClient();
 

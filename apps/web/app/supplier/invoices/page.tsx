@@ -36,9 +36,15 @@ import {
   XCircle,
   AlertTriangle,
   DollarSign,
+  Download,
+  Send,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useSupplierInvoices, useUpdateSupplierInvoice } from "@/hooks/use-supplier-invoices";
+import {
+  useSupplierInvoices,
+  useUpdateSupplierInvoice,
+  useSendInvoiceReminder,
+} from "@/hooks/use-supplier-invoices";
 
 interface Invoice {
   id: string;
@@ -106,6 +112,7 @@ export default function SupplierInvoicesPage() {
 
   const { data: result, isLoading, error } = useSupplierInvoices(selectedStatus);
   const updateInvoice = useUpdateSupplierInvoice();
+  const sendReminder = useSendInvoiceReminder();
 
   const invoices: Invoice[] = result?.data ?? [];
   const stats = result?.stats ?? {
@@ -452,6 +459,53 @@ export default function SupplierInvoicesPage() {
           )}
 
           <DialogFooter className="flex-col sm:flex-row gap-2">
+            {selectedInvoice && (
+              <Button
+                variant="outline"
+                onClick={() =>
+                  window.open(
+                    `/api/supplier/invoices/${selectedInvoice.id}/pdf`,
+                    "_blank"
+                  )
+                }
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            )}
+            {selectedInvoice &&
+              (selectedInvoice.status === "PENDING" ||
+                selectedInvoice.status === "OVERDUE" ||
+                isOverdue(selectedInvoice)) && (
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    sendReminder.mutate(selectedInvoice.id, {
+                      onSuccess: (data) => {
+                        toast({
+                          title: "Reminder sent",
+                          description: `Email sent to ${data.sentTo}`,
+                        });
+                      },
+                      onError: (err) => {
+                        toast({
+                          title: "Failed to send reminder",
+                          description: err.message,
+                          variant: "destructive",
+                        });
+                      },
+                    })
+                  }
+                  disabled={sendReminder.isPending}
+                >
+                  {sendReminder.isPending ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
+                  )}
+                  Send Reminder
+                </Button>
+              )}
             {selectedInvoice?.status === "PENDING" && (
               <>
                 <Button
