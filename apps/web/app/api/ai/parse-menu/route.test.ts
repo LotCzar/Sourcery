@@ -68,20 +68,12 @@ describe("POST /api/ai/parse-menu", () => {
   });
 
   it("returns validation error when body is invalid", async () => {
-    mockValidateBody.mockReturnValue({
-      success: false,
-      response: NextResponse.json(
-        { error: "Validation failed", details: { menuText: ["Required"] } },
-        { status: 400 }
-      ),
-    });
-
     const request = createParseMenuRequest({});
     const response = await POST(request);
     const data = await response.json();
 
     expect(response.status).toBe(400);
-    expect(data.error).toBe("Validation failed");
+    expect(data.error).toBe("menuText is required");
   });
 
   it("parses menu successfully with valid JSON response", async () => {
