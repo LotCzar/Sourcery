@@ -18,6 +18,8 @@ import {
   UtensilsCrossed,
   ShieldCheck,
   RotateCcw,
+  Tag,
+  Plug,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -37,7 +39,11 @@ const navigation = [
   { name: "Inventory", href: "/inventory", icon: Warehouse },
   { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Price Alerts", href: "/price-alerts", icon: BellRing },
+  { name: "Promotions", href: "/promotions", icon: Tag },
   { name: "Notifications", href: "/notifications", icon: Bell },
+  { name: "Team", href: "/team", icon: Users, adminOnly: true },
+  { name: "Approvals", href: "/approvals", icon: ShieldCheck, adminOnly: true },
+  { name: "Integrations", href: "/integrations", icon: Plug, adminOnly: true },
   { name: "Verification", href: "/admin/suppliers", icon: ShieldCheck, adminOnly: true },
   { name: "Settings", href: "/settings", icon: Settings },
 ];

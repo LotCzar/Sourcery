@@ -16,6 +16,8 @@ import {
   Bell,
   Warehouse,
   RotateCcw,
+  MapPin,
+  Truck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -33,6 +35,8 @@ const navigation = [
   { name: "Notifications", href: "/supplier/notifications", icon: Bell },
   { name: "Team", href: "/supplier/team", icon: Users2 },
   { name: "Customers", href: "/supplier/customers", icon: Users },
+  { name: "Delivery Zones", href: "/supplier/delivery-zones", icon: MapPin },
+  { name: "Drivers", href: "/supplier/drivers", icon: Truck },
   { name: "Promotions", href: "/supplier/promotions", icon: Tag },
   { name: "Settings", href: "/supplier/settings", icon: Settings },
 ];
@@ -69,6 +73,8 @@ export function SupplierSidebar() {
             Notifications: "supplier-sidebar-notifications",
             Team: "supplier-sidebar-team",
             Customers: "supplier-sidebar-customers",
+            "Delivery Zones": "supplier-sidebar-delivery-zones",
+            Drivers: "supplier-sidebar-drivers",
             Promotions: "supplier-sidebar-promotions",
             Settings: "supplier-sidebar-settings",
           };

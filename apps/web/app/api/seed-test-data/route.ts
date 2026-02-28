@@ -4,6 +4,10 @@ import prisma from "@/lib/prisma";
 
 // POST - Seed test data for the current user's restaurant
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  }
+
   try {
     const { userId } = await auth();
 
@@ -374,6 +378,10 @@ export async function POST() {
 
 // DELETE - Clear test data
 export async function DELETE() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  }
+
   try {
     const { userId } = await auth();
 
