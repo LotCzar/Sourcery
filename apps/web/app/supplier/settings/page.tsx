@@ -69,6 +69,7 @@ import {
 } from "@/hooks/use-supplier-portal";
 import { useSupplierAiUsage, useSupplierAiUsageAnalytics } from "@/hooks/use-supplier-ai-usage";
 import { useSupplierBillingCheckout, useSupplierBillingPortal } from "@/hooks/use-supplier-billing";
+import { useUpdateSupplierPlan } from "@/hooks/use-update-supplier-plan";
 import { useTour } from "@/lib/tour-context";
 import { hasTier } from "@/lib/tier";
 
@@ -409,6 +410,7 @@ function PlanAndUsageSection({
   const { data: usageData, isLoading, isError } = useSupplierAiUsage();
   const billingCheckout = useSupplierBillingCheckout();
   const billingPortal = useSupplierBillingPortal();
+  const updatePlan = useUpdateSupplierPlan();
 
   const usage = usageData?.features;
   const hasSubscription = !!stripeSubscriptionId;
@@ -438,6 +440,21 @@ function PlanAndUsageSection({
       onError: (err) => {
         toast({
           title: "Failed to open billing portal",
+          description: err instanceof Error ? err.message : undefined,
+          variant: "destructive",
+        });
+      },
+    });
+  };
+
+  const handlePlanChange = (tier: string) => {
+    updatePlan.mutate(tier, {
+      onSuccess: () => {
+        toast({ title: `Plan updated to ${tier.charAt(0) + tier.slice(1).toLowerCase()}` });
+      },
+      onError: (err) => {
+        toast({
+          title: "Failed to update plan",
           description: err instanceof Error ? err.message : undefined,
           variant: "destructive",
         });
@@ -523,6 +540,24 @@ function PlanAndUsageSection({
                     {label}
                   </Button>
                 ))}
+              </div>
+              <Separator />
+              <div className="space-y-2">
+                <Label>Or change plan directly (no billing):</Label>
+                <Select
+                  value={usageData.tier}
+                  onValueChange={handlePlanChange}
+                  disabled={updatePlan.isPending}
+                >
+                  <SelectTrigger className="w-[220px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STARTER">Starter (Free)</SelectItem>
+                    <SelectItem value="PROFESSIONAL">Professional</SelectItem>
+                    <SelectItem value="ENTERPRISE">Enterprise</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           )}
