@@ -337,6 +337,11 @@ model Supplier {
   // Plan tier
   planTier      PlanTier     @default(STARTER)
 
+  // Stripe billing
+  stripeCustomerId      String?  @unique
+  stripeSubscriptionId  String?  @unique
+  stripePriceId         String?
+
   // Relations
   users         User[]
   products      SupplierProduct[]

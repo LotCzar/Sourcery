@@ -104,6 +104,8 @@ export const queryKeys = {
     ),
     insights: ["supplier", "insights"] as const,
     conversations: ["supplier", "conversations"] as const,
+    aiUsage: ["supplier", "ai-usage"] as const,
+    aiUsageAnalytics: (range: string) => ["supplier", "ai-usage", "analytics", range] as const,
   },
   promotions: {
     active: (supplierId?: string) => ["promotions", "active", supplierId] as const,

@@ -53,6 +53,9 @@ export async function GET() {
         deliveryFee: supplier.deliveryFee ? Number(supplier.deliveryFee) : null,
         leadTimeDays: supplier.leadTimeDays,
         status: supplier.status,
+        planTier: supplier.planTier,
+        stripeCustomerId: supplier.stripeCustomerId,
+        stripeSubscriptionId: supplier.stripeSubscriptionId,
         rating: supplier.rating ? Number(supplier.rating) : null,
         reviewCount: supplier.reviewCount,
         deliveryZones: supplier.deliveryZones.map((zone) => ({

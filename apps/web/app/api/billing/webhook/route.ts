@@ -44,8 +44,9 @@ export async function POST(request: Request) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
         const restaurantId = session.metadata?.restaurantId;
+        const supplierId = session.metadata?.supplierId;
 
-        if (!restaurantId || !session.subscription || !session.customer) break;
+        if ((!restaurantId && !supplierId) || !session.subscription || !session.customer) break;
 
         const subscriptionId =
           typeof session.subscription === "string"
@@ -62,15 +63,27 @@ export async function POST(request: Request) {
         const priceId = subscription.items.data[0]?.price?.id;
         const newTier = priceId ? getTierByPriceId(priceId) : null;
 
-        await prisma.restaurant.update({
-          where: { id: restaurantId },
-          data: {
-            stripeCustomerId: customerId,
-            stripeSubscriptionId: subscriptionId,
-            stripePriceId: priceId || null,
-            ...(newTier ? { planTier: newTier } : {}),
-          },
-        });
+        if (supplierId) {
+          await prisma.supplier.update({
+            where: { id: supplierId },
+            data: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              stripePriceId: priceId || null,
+              ...(newTier ? { planTier: newTier } : {}),
+            },
+          });
+        } else if (restaurantId) {
+          await prisma.restaurant.update({
+            where: { id: restaurantId },
+            data: {
+              stripeCustomerId: customerId,
+              stripeSubscriptionId: subscriptionId,
+              stripePriceId: priceId || null,
+              ...(newTier ? { planTier: newTier } : {}),
+            },
+          });
+        }
         break;
       }
 
@@ -79,8 +92,7 @@ export async function POST(request: Request) {
         const priceId = subscription.items.data[0]?.price?.id;
         const newTier = priceId ? getTierByPriceId(priceId) : null;
 
-        const subscriptionId =
-          typeof subscription.id === "string" ? subscription.id : subscription.id;
+        const subscriptionId = subscription.id;
 
         const restaurant = await prisma.restaurant.findUnique({
           where: { stripeSubscriptionId: subscriptionId },
@@ -94,6 +106,20 @@ export async function POST(request: Request) {
               stripePriceId: priceId || null,
             },
           });
+        } else {
+          const supplier = await prisma.supplier.findUnique({
+            where: { stripeSubscriptionId: subscriptionId },
+          });
+
+          if (supplier && newTier) {
+            await prisma.supplier.update({
+              where: { id: supplier.id },
+              data: {
+                planTier: newTier,
+                stripePriceId: priceId || null,
+              },
+            });
+          }
         }
         break;
       }
@@ -115,6 +141,21 @@ export async function POST(request: Request) {
               stripePriceId: null,
             },
           });
+        } else {
+          const supplier = await prisma.supplier.findUnique({
+            where: { stripeSubscriptionId: subscriptionId },
+          });
+
+          if (supplier) {
+            await prisma.supplier.update({
+              where: { id: supplier.id },
+              data: {
+                planTier: "STARTER",
+                stripeSubscriptionId: null,
+                stripePriceId: null,
+              },
+            });
+          }
         }
         break;
       }
