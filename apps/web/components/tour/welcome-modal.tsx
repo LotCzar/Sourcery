@@ -1,6 +1,6 @@
 "use client";
 
-import { Sparkles, ShoppingCart, BarChart3, Zap, Package, Users, Truck, MapPin, CheckCircle } from "lucide-react";
+import { Sparkles, ShoppingCart, BarChart3, Zap, Package, Users, Truck, MapPin, CheckCircle, Warehouse, RotateCcw } from "lucide-react";
 import { useTour } from "@/lib/tour-context";
 import { useTourState } from "@/hooks/use-tour";
 import {
@@ -46,14 +46,19 @@ export function WelcomeModal() {
             description: "View and fulfill restaurant orders in real-time",
           },
           {
-            icon: Package,
-            title: "Product Catalog",
-            description: "List your products and keep pricing up to date",
+            icon: Warehouse,
+            title: "Inventory & Invoices",
+            description: "Track stock levels, manage billing, and record payments",
           },
           {
-            icon: Truck,
-            title: "Delivery Tracking",
-            description: "Track shipments and manage delivery schedules",
+            icon: Sparkles,
+            title: "AI Insights",
+            description: "Get AI-powered briefings, analytics, and business recommendations",
+          },
+          {
+            icon: RotateCcw,
+            title: "Returns & Quality",
+            description: "Handle returns, review photo evidence, and issue credits",
           },
         ]
       : [

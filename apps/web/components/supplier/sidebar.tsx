@@ -58,14 +58,21 @@ export function SupplierSidebar() {
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
-          const tourAttr =
-            item.name === "Orders"
-              ? "supplier-sidebar-orders"
-              : item.name === "Products"
-                ? "supplier-sidebar-products"
-                : item.name === "Settings"
-                  ? "supplier-sidebar-settings"
-                  : undefined;
+          const tourMap: Record<string, string> = {
+            Orders: "supplier-sidebar-orders",
+            Products: "supplier-sidebar-products",
+            Inventory: "supplier-sidebar-inventory",
+            Invoices: "supplier-sidebar-invoices",
+            Returns: "supplier-sidebar-returns",
+            Analytics: "supplier-sidebar-analytics",
+            "AI Insights": "supplier-sidebar-insights",
+            Notifications: "supplier-sidebar-notifications",
+            Team: "supplier-sidebar-team",
+            Customers: "supplier-sidebar-customers",
+            Promotions: "supplier-sidebar-promotions",
+            Settings: "supplier-sidebar-settings",
+          };
+          const tourAttr = tourMap[item.name];
           const isActive =
             pathname === item.href ||
             (item.href !== "/supplier" && pathname.startsWith(item.href));

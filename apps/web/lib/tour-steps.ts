@@ -117,6 +117,14 @@ export const supplierTourSteps: TourStep[] = [
     placement: "bottom",
   },
   {
+    id: "supplier-ai-briefing",
+    target: '[data-tour="ai-briefing"]',
+    title: "AI Daily Briefing",
+    description:
+      "Start each day with an AI-generated summary of pending orders, low stock alerts, and key business updates.",
+    placement: "bottom",
+  },
+  {
     id: "supplier-quick-actions",
     target: '[data-tour="supplier-quick-actions"]',
     title: "Quick Actions",
@@ -149,11 +157,59 @@ export const supplierTourSteps: TourStep[] = [
     placement: "right",
   },
   {
-    id: "supplier-driver-management",
-    target: '[data-tour="supplier-sidebar-settings"]',
-    title: "Driver Management",
+    id: "supplier-sidebar-inventory",
+    target: '[data-tour="supplier-sidebar-inventory"]',
+    title: "Inventory Management",
     description:
-      "Add and manage your delivery drivers from Settings. Assign them to orders so restaurants can track deliveries in real-time.",
+      "Track stock levels, record adjustments with reasons, set reorder points, and monitor expiration dates.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-invoices",
+    target: '[data-tour="supplier-sidebar-invoices"]',
+    title: "Invoices & Billing",
+    description:
+      "Manage billing and payment tracking. Record partial payments, download PDF invoices, and send payment reminders.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-returns",
+    target: '[data-tour="supplier-sidebar-returns"]',
+    title: "Returns & Quality",
+    description:
+      "Handle return requests, review photo evidence of quality issues, and issue credits to restaurants.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-analytics",
+    target: '[data-tour="supplier-sidebar-analytics"]',
+    title: "Analytics",
+    description:
+      "View revenue trends, track performance metrics over time, and export data as CSV reports.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-insights",
+    target: '[data-tour="supplier-sidebar-insights"]',
+    title: "AI Insights",
+    description:
+      "Get AI-powered business insights and actionable recommendations to grow your sales and improve operations.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-notifications",
+    target: '[data-tour="supplier-sidebar-notifications"]',
+    title: "Notifications",
+    description:
+      "Stay on top of new orders, delivery updates, payment confirmations, and system alerts.",
+    placement: "right",
+  },
+  {
+    id: "supplier-sidebar-team",
+    target: '[data-tour="supplier-sidebar-team"]',
+    title: "Team Management",
+    description:
+      "Invite team members, assign roles, and manage your delivery drivers all in one place.",
     placement: "right",
   },
   {
