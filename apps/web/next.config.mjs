@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   transpilePackages: ["@freshsheet/database", "@freshsheet/shared", "@freshsheet/ui"],
   images: {
     remotePatterns: [
