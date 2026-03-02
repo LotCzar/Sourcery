@@ -1,5 +1,5 @@
 import prisma from "@/lib/prisma";
-import type { PlanTier } from "@/lib/tier";
+import { getSupplierToolTier, hasTier, type PlanTier } from "@/lib/tier";
 
 interface SupplierToolContext {
   userId: string;
@@ -13,6 +13,16 @@ export async function executeSupplierTool(
   input: Record<string, any>,
   context: SupplierToolContext
 ): Promise<any> {
+  const requiredTier = getSupplierToolTier(name);
+  if (!hasTier(context.planTier, requiredTier)) {
+    return {
+      error: "upgrade_required",
+      message: `The ${name} tool requires a ${requiredTier} plan. You are currently on the ${context.planTier} plan. Please upgrade at Settings to access this feature.`,
+      requiredTier,
+      currentTier: context.planTier,
+    };
+  }
+
   try {
     switch (name) {
       case "get_supplier_orders":

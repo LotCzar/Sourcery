@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierDemandForecast = inngest.createFunction(
   { id: "supplier-demand-forecast", name: "Supplier Demand Forecast" },
@@ -10,12 +11,14 @@ export const supplierDemandForecast = inngest.createFunction(
     try {
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-demand-forecast"))) continue;
+
         // Get last 12 weeks of order items grouped by product
         const twelveWeeksAgo = new Date();
         twelveWeeksAgo.setDate(twelveWeeksAgo.getDate() - 84);

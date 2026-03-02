@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierExpirationPrevention = inngest.createFunction(
   { id: "supplier-expiration-prevention", name: "Supplier Expiration Loss Prevention" },
@@ -10,12 +11,14 @@ export const supplierExpirationPrevention = inngest.createFunction(
     try {
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-expiration-prevention"))) continue;
+
         // Get products with expiration dates set
         const products = await prisma.supplierProduct.findMany({
           where: {

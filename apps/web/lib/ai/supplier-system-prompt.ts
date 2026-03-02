@@ -1,4 +1,4 @@
-import type { PlanTier } from "@/lib/tier";
+import { type PlanTier, PROFESSIONAL_SUPPLIER_TOOL_NAMES } from "@/lib/tier";
 
 function sanitizePromptInput(input: string): string {
   return input
@@ -87,7 +87,9 @@ Guidelines:
   if (planTier === "STARTER") {
     prompt += `
 
-Note: This supplier account is on the Starter plan. Some advanced analytics features may have limited availability.`;
+IMPORTANT - Subscription Tier Notice:
+This supplier account is on the Starter plan. The following tools require a Professional plan and will return an upgrade message if called: ${PROFESSIONAL_SUPPLIER_TOOL_NAMES.join(", ")}.
+When the user asks about features powered by these tools, let them know this is a Professional feature and suggest upgrading in Settings.`;
   }
 
   return prompt;

@@ -1,5 +1,6 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierDeliveryDigest = inngest.createFunction(
   { id: "supplier-delivery-digest", name: "Supplier Delivery Performance Digest" },
@@ -8,12 +9,14 @@ export const supplierDeliveryDigest = inngest.createFunction(
     try {
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-delivery-digest"))) continue;
+
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
         const todayEnd = new Date();

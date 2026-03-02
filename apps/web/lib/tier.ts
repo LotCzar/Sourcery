@@ -71,3 +71,51 @@ export const ROUTE_TIER = {
 export const PROFESSIONAL_TOOL_NAMES = Object.entries(TOOL_TIER)
   .filter(([, tier]) => tier === "PROFESSIONAL")
   .map(([name]) => name);
+
+// ---------------------------------------------------------------------------
+// Supplier AI Tool Tier Map
+// Tools not listed here default to STARTER (available to all).
+// ---------------------------------------------------------------------------
+
+export const SUPPLIER_TOOL_TIER: Record<string, PlanTier> = {
+  get_demand_forecast: "PROFESSIONAL",
+  get_pricing_suggestions: "PROFESSIONAL",
+  get_customer_health: "PROFESSIONAL",
+  get_supplier_insights: "PROFESSIONAL",
+  get_delivery_performance: "PROFESSIONAL",
+  get_revenue_summary: "PROFESSIONAL",
+};
+
+export function getSupplierToolTier(name: string): PlanTier {
+  return SUPPLIER_TOOL_TIER[name] ?? "STARTER";
+}
+
+// ---------------------------------------------------------------------------
+// Supplier Inngest Background Job Tier Map
+// Jobs not listed here default to STARTER (run for all tiers).
+// ---------------------------------------------------------------------------
+
+export const SUPPLIER_JOB_TIER: Record<string, PlanTier> = {
+  "supplier-demand-forecast": "PROFESSIONAL",
+  "supplier-pricing-suggestions": "PROFESSIONAL",
+  "supplier-customer-health": "PROFESSIONAL",
+  "supplier-churn-warning": "PROFESSIONAL",
+  "supplier-revenue-forecast": "PROFESSIONAL",
+  "supplier-auto-promotions": "PROFESSIONAL",
+  "supplier-quality-trends": "PROFESSIONAL",
+  "supplier-delivery-digest": "PROFESSIONAL",
+  "supplier-expiration-prevention": "PROFESSIONAL",
+  "supplier-seasonal-prep": "PROFESSIONAL",
+};
+
+export function getSupplierJobTier(id: string): PlanTier {
+  return SUPPLIER_JOB_TIER[id] ?? "STARTER";
+}
+
+// ---------------------------------------------------------------------------
+// Names of Professional-gated supplier tools (for system prompt)
+// ---------------------------------------------------------------------------
+
+export const PROFESSIONAL_SUPPLIER_TOOL_NAMES = Object.entries(SUPPLIER_TOOL_TIER)
+  .filter(([, tier]) => tier === "PROFESSIONAL")
+  .map(([name]) => name);

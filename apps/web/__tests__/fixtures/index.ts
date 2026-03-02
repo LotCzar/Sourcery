@@ -61,6 +61,7 @@ export function createMockSupplier(overrides?: Record<string, unknown>) {
     deliveryFee: new Decimal("10.00"),
     leadTimeDays: 2,
     status: "VERIFIED" as const,
+    planTier: "PROFESSIONAL" as const,
     verifiedAt: new Date("2024-01-01"),
     rating: new Decimal("4.50"),
     reviewCount: 10,

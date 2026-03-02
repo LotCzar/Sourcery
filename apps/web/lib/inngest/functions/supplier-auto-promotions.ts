@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierAutoPromotions = inngest.createFunction(
   { id: "supplier-auto-promotions", name: "Supplier Auto-Promotion Engine" },
@@ -10,12 +11,14 @@ export const supplierAutoPromotions = inngest.createFunction(
     try {
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-auto-promotions"))) continue;
+
         const now = new Date();
         const twoWeeksAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
         const fourWeeksAgo = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000);

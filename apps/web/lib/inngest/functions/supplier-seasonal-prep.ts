@@ -2,6 +2,7 @@ import { inngest } from "../client";
 import prisma from "@/lib/prisma";
 import { getAnthropicClient } from "@/lib/anthropic";
 import { trackAiUsage } from "@/lib/ai/usage";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierSeasonalPrep = inngest.createFunction(
   { id: "supplier-seasonal-prep", name: "Supplier Seasonal Prep Alerts" },
@@ -16,12 +17,14 @@ export const supplierSeasonalPrep = inngest.createFunction(
 
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-seasonal-prep"))) continue;
+
         const now = new Date();
         const nextMonth = now.getMonth() + 1;
         const nextMonthYear = nextMonth > 11 ? now.getFullYear() + 1 : now.getFullYear();

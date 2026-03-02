@@ -1,5 +1,6 @@
 import { inngest } from "../client";
 import prisma from "@/lib/prisma";
+import { getSupplierJobTier, hasTier, type PlanTier } from "@/lib/tier";
 
 export const supplierCustomerHealth = inngest.createFunction(
   { id: "supplier-customer-health", name: "Supplier Customer Health Scoring" },
@@ -8,12 +9,14 @@ export const supplierCustomerHealth = inngest.createFunction(
     try {
       const suppliers = await prisma.supplier.findMany({
         where: { status: "VERIFIED" },
-        select: { id: true, name: true },
+        select: { id: true, name: true, planTier: true },
       });
 
       let insightsCreated = 0;
 
       for (const supplier of suppliers) {
+        if (!hasTier(supplier.planTier as PlanTier, getSupplierJobTier("supplier-customer-health"))) continue;
+
         const relationships = await prisma.restaurantSupplier.findMany({
           where: { supplierId: supplier.id },
           include: {
