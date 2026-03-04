@@ -190,6 +190,9 @@ model User {
   @@index([clerkId])
   @@index([email])
   @@index([organizationId])
+  @@index([restaurantId])
+  @@index([supplierId])
+  @@index([role])
 }
 
 // ============================================
@@ -478,16 +481,16 @@ model Order {
 
   // Relations
   restaurantId  String
-  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id])
+  restaurant    Restaurant  @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   supplierId    String
-  supplier      Supplier    @relation(fields: [supplierId], references: [id])
+  supplier      Supplier    @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   createdById   String?
   createdBy     User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   driverId      String?
-  driver        User?       @relation("DriverDeliveries", fields: [driverId], references: [id])
+  driver        User?       @relation("DriverDeliveries", fields: [driverId], references: [id], onDelete: SetNull)
 
   items          OrderItem[]
   invoice        Invoice?
@@ -676,10 +679,10 @@ model Invoice {
 
   // Relations
   restaurantId    String
-  restaurant      Restaurant    @relation(fields: [restaurantId], references: [id])
+  restaurant      Restaurant    @relation(fields: [restaurantId], references: [id], onDelete: Cascade)
 
   supplierId      String
-  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  supplier        Supplier      @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   orderId         String?       @unique
   order           Order?        @relation(fields: [orderId], references: [id])
@@ -999,9 +1002,9 @@ model ReturnRequest {
   orderId       String
   order         Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
   createdById   String
-  createdBy     User          @relation("ReturnCreator", fields: [createdById], references: [id])
+  createdBy     User          @relation("ReturnCreator", fields: [createdById], references: [id], onDelete: Cascade)
   reviewedById  String?
-  reviewedBy    User?         @relation("ReturnReviewer", fields: [reviewedById], references: [id])
+  reviewedBy    User?         @relation("ReturnReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   reviewedAt    DateTime?
 
   createdAt     DateTime      @default(now())
