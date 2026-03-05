@@ -339,7 +339,10 @@ export async function POST(request: Request) {
 
           send("done", { conversationId: conversation.id });
         } catch (err: any) {
-          console.error("Chat stream error:", err);
+          const errorDetail = err?.status
+            ? `${err.status} ${JSON.stringify(err?.error || err?.message)}`
+            : err?.message || String(err);
+          console.error("Chat stream error:", errorDetail);
           send("error", { message: "An error occurred while processing your request." });
         } finally {
           controller.close();
