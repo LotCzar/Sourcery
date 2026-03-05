@@ -152,21 +152,28 @@ export async function POST(request: Request) {
     rawHistory.push({ role: "user", content: message });
 
     // Ensure no consecutive same-role messages (Claude API requirement).
-    // This can happen if a previous request saved the user message but
-    // failed before saving the assistant response.
+    // This can happen when multiple tool_use/tool_result pairs are stored
+    // as individual DB records, or if a previous request failed mid-stream.
     const history: Anthropic.MessageParam[] = [];
     for (const msg of rawHistory) {
       const prev = history[history.length - 1];
       if (prev && prev.role === msg.role) {
         // Merge consecutive same-role messages
-        const prevText = typeof prev.content === "string" ? prev.content : "";
-        const currText = typeof msg.content === "string" ? msg.content : "";
-        if (prevText && currText) {
-          prev.content = `${prevText}\n\n${currText}`;
-        }
-        // If either is array content (tool_use/tool_result), keep the later one
-        if (!prevText || !currText) {
-          history[history.length - 1] = msg;
+        const prevIsArray = Array.isArray(prev.content);
+        const currIsArray = Array.isArray(msg.content);
+
+        if (!prevIsArray && !currIsArray) {
+          // Both are plain text — concatenate
+          prev.content = `${prev.content}\n\n${msg.content}`;
+        } else {
+          // At least one is array content (tool_use/tool_result) — merge blocks
+          const prevBlocks = prevIsArray
+            ? (prev.content as any[])
+            : [{ type: "text" as const, text: prev.content as string }];
+          const currBlocks = currIsArray
+            ? (msg.content as any[])
+            : [{ type: "text" as const, text: msg.content as string }];
+          prev.content = [...prevBlocks, ...currBlocks] as any;
         }
       } else {
         history.push(msg);
@@ -253,7 +260,19 @@ export async function POST(request: Request) {
             });
 
             if (response.stop_reason === "tool_use") {
-              // Process tool calls
+              // Push assistant message with all tool_use blocks ONCE
+              messages.push({
+                role: "assistant",
+                content: response.content,
+              });
+
+              // Process all tool calls and collect results
+              const toolResults: Array<{
+                type: "tool_result";
+                tool_use_id: string;
+                content: string;
+              }> = [];
+
               for (const block of response.content) {
                 if (block.type === "tool_use") {
                   send("tool_call", {
@@ -273,6 +292,12 @@ export async function POST(request: Request) {
                     id: block.id,
                     name: block.name,
                     result,
+                  });
+
+                  toolResults.push({
+                    type: "tool_result",
+                    tool_use_id: block.id,
+                    content: JSON.stringify(result),
                   });
 
                   // Save tool call and result to DB
@@ -296,24 +321,14 @@ export async function POST(request: Request) {
                       conversationId: conversation.id,
                     },
                   });
-
-                  // Update messages for next iteration
-                  messages.push({
-                    role: "assistant",
-                    content: response.content,
-                  });
-                  messages.push({
-                    role: "user",
-                    content: [
-                      {
-                        type: "tool_result",
-                        tool_use_id: block.id,
-                        content: JSON.stringify(result),
-                      },
-                    ],
-                  });
                 }
               }
+
+              // Push all tool results as a single user message
+              messages.push({
+                role: "user",
+                content: toolResults,
+              });
             } else {
               // Final text response
               continueLoop = false;
