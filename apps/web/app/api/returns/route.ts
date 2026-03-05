@@ -137,8 +137,8 @@ export async function POST(request: Request) {
       },
     });
 
-    // Emit Inngest event
-    await inngest.send({
+    // Emit Inngest event (fire-and-forget)
+    inngest.send({
       name: "return/status.changed",
       data: {
         returnId: returnRequest.id,
@@ -148,7 +148,7 @@ export async function POST(request: Request) {
         restaurantId: user.restaurant.id,
         supplierId: order.supplierId,
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

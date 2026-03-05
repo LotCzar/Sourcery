@@ -32,14 +32,14 @@ export async function POST() {
       );
     }
 
-    await inngest.send({
+    inngest.send({
       name: "pos/sync.requested",
       data: {
         integrationId: integration.id,
         restaurantId: user.restaurant.id,
         provider: integration.provider,
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

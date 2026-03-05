@@ -22,7 +22,7 @@ interface AiUsageData {
 export function useAiUsage() {
   return useQuery({
     queryKey: queryKeys.aiUsage.all,
-    queryFn: () => apiFetch<AiUsageData>("/api/ai/usage"),
+    queryFn: () => apiFetch<{ data: AiUsageData }>("/api/ai/usage"),
     staleTime: 60 * 1000, // 60 seconds
   });
 }

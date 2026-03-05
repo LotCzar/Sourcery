@@ -29,7 +29,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: string) =>
       apiFetch(`/api/notifications/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify({ isRead: true }),
       }),
     onSuccess: () => {

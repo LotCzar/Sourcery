@@ -164,10 +164,35 @@ export async function PATCH(
     if (!validation.success) return validation.response;
     const data = validation.data;
 
+    const VALID_INVOICE_TRANSITIONS: Record<string, string[]> = {
+      PENDING: ["PAID", "PARTIALLY_PAID", "OVERDUE", "CANCELLED"],
+      OVERDUE: ["PAID", "PARTIALLY_PAID", "CANCELLED", "DISPUTED"],
+      PARTIALLY_PAID: ["PAID", "CANCELLED"],
+      DISPUTED: ["PAID", "CANCELLED"],
+    };
+
     const updateData: any = {};
 
     // Handle status updates
     if (data.action) {
+      const actionToStatus: Record<string, string> = {
+        markPaid: "PAID",
+        markPartiallyPaid: "PARTIALLY_PAID",
+        markOverdue: "OVERDUE",
+        markDisputed: "DISPUTED",
+        cancel: "CANCELLED",
+      };
+      const targetStatus = actionToStatus[data.action];
+      if (targetStatus) {
+        const allowedTransitions = VALID_INVOICE_TRANSITIONS[invoice.status];
+        if (!allowedTransitions || !allowedTransitions.includes(targetStatus)) {
+          return NextResponse.json(
+            { error: `Cannot transition invoice from ${invoice.status} to ${targetStatus}` },
+            { status: 400 }
+          );
+        }
+      }
+
       switch (data.action) {
         case "markPaid":
           updateData.status = "PAID";

@@ -11,4 +11,9 @@ vi.mock("@/lib/prisma", () => ({
 
 beforeEach(() => {
   mockReset(prismaMock);
+  // Make $transaction execute the callback with the mock client so
+  // transactional code paths work in tests.
+  prismaMock.$transaction.mockImplementation((fn: any) =>
+    typeof fn === "function" ? fn(prismaMock) : Promise.resolve(fn)
+  );
 });

@@ -957,7 +957,7 @@ function UsageSection() {
   const billingPortal = useBillingPortal();
   const { toast } = useToast();
 
-  const usage = usageData?.features;
+  const usage = usageData?.data?.features;
   const restaurant = settingsData?.data?.restaurant;
   const hasSubscription = !!restaurant?.stripeSubscriptionId;
 
@@ -1035,7 +1035,7 @@ function UsageSection() {
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
             <Badge variant="outline" className="text-sm">
-              {usageData.tier}
+              {usageData.data.tier}
             </Badge>
           </div>
 
@@ -1061,10 +1061,10 @@ function UsageSection() {
                 ] as const).map(({ tier, label }) => (
                   <Button
                     key={tier}
-                    variant={usageData.tier === tier ? "default" : "outline"}
+                    variant={usageData.data.tier === tier ? "default" : "outline"}
                     size="sm"
                     onClick={() => handleBillingCheckout(tier)}
-                    disabled={billingCheckout.isPending || usageData.tier === tier}
+                    disabled={billingCheckout.isPending || usageData.data.tier === tier}
                   >
                     {billingCheckout.isPending && (
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -1077,7 +1077,7 @@ function UsageSection() {
               <div className="space-y-2">
                 <Label>Or change plan directly (no billing):</Label>
                 <Select
-                  value={usageData.tier}
+                  value={usageData.data.tier}
                   onValueChange={handlePlanChange}
                   disabled={updatePlan.isPending}
                 >
@@ -1095,7 +1095,7 @@ function UsageSection() {
           )}
 
           <p className="text-xs text-muted-foreground">
-            Resets on {new Date(usageData.resetAt).toLocaleDateString()}
+            Resets on {new Date(usageData.data.resetAt).toLocaleDateString()}
           </p>
         </CardContent>
       </Card>

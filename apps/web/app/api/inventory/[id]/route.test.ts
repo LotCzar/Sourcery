@@ -113,6 +113,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("RECEIVED adds to quantity", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("50") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 
@@ -133,6 +134,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("USED subtracts from quantity", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("50") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 
@@ -153,6 +155,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("WASTE subtracts from quantity", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("50") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 
@@ -173,6 +176,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("COUNT sets absolute quantity", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("50") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 
@@ -193,6 +197,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("floors quantity at 0 (no negative)", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("5") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 
@@ -212,6 +217,7 @@ describe("PATCH /api/inventory/[id]", () => {
   it("creates inventory log entry", async () => {
     const existingItem = createMockInventoryItem({ currentQuantity: new Decimal("50") });
     prismaMock.inventoryItem.findFirst.mockResolvedValueOnce(existingItem as any);
+    prismaMock.inventoryItem.findUniqueOrThrow.mockResolvedValueOnce(existingItem as any);
     prismaMock.inventoryItem.update.mockResolvedValueOnce({} as any);
     prismaMock.inventoryLog.create.mockResolvedValueOnce({} as any);
 

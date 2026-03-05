@@ -135,7 +135,7 @@ export async function PATCH(
         posIntegration.provider === "SQUARE" &&
         posIntegration.accessToken
       ) {
-        await inngest.send({
+        inngest.send({
           name: "pos/push.requested",
           data: {
             integrationId: posIntegration.id,
@@ -143,7 +143,7 @@ export async function PATCH(
             provider: "SQUARE",
             menuItemIds: [id],
           },
-        });
+        }).catch(() => {});
       }
     }
 

@@ -47,7 +47,7 @@ interface SupplierAiUsageAnalyticsData {
 export function useSupplierAiUsage() {
   return useQuery({
     queryKey: queryKeys.supplier.aiUsage,
-    queryFn: () => apiFetch<SupplierAiUsageData>("/api/supplier/ai/usage"),
+    queryFn: () => apiFetch<{ data: SupplierAiUsageData }>("/api/supplier/ai/usage"),
     staleTime: 60 * 1000, // 60 seconds
   });
 }

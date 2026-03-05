@@ -178,7 +178,17 @@ export async function PATCH(
         updateData.resolvedAt = new Date();
         if (data.resolution) updateData.resolution = data.resolution;
 
-        // Update order status to RETURNED for full returns
+        // Update order status to RETURNED for full returns — only if order is DELIVERED
+        const relatedOrder = await prisma.order.findUnique({
+          where: { id: returnRequest.orderId },
+          select: { status: true },
+        });
+        if (relatedOrder && relatedOrder.status !== "DELIVERED") {
+          return NextResponse.json(
+            { error: `Cannot mark order as RETURNED — order status is ${relatedOrder.status}, expected DELIVERED` },
+            { status: 400 }
+          );
+        }
         await prisma.order.update({
           where: { id: returnRequest.orderId },
           data: { status: "RETURNED" },
@@ -210,8 +220,8 @@ export async function PATCH(
       data: updateData,
     });
 
-    // Emit Inngest event
-    await inngest.send({
+    // Emit Inngest event (fire-and-forget)
+    inngest.send({
       name: "return/status.changed",
       data: {
         returnId: id,
@@ -221,7 +231,7 @@ export async function PATCH(
         restaurantId: returnRequest.order.restaurantId,
         supplierId: returnRequest.order.supplierId,
       },
-    });
+    }).catch(() => {});
 
     return NextResponse.json({
       success: true,

@@ -26,23 +26,22 @@ export async function apiFetch<T>(
     }
   }
 
+  const { headers: optionHeaders, ...restOptions } = options || {};
+
   const response = await fetch(url, {
-    headers: {
-      ...headers,
-      ...(options?.headers as Record<string, string>),
-    },
-    ...options,
+    ...restOptions,
+    headers: { ...headers, ...(optionHeaders as Record<string, string>) },
   });
 
-  const data = await response.json();
-
   if (!response.ok) {
+    let data: any;
+    try { data = await response.json(); } catch { data = {}; }
     throw new ApiError(
-      data.error || "Request failed",
+      data.error || `Request failed (${response.status})`,
       response.status,
       data.details
     );
   }
 
-  return data;
+  return await response.json();
 }

@@ -42,7 +42,7 @@ export function useUpdatePriceAlert() {
   return useMutation({
     mutationFn: ({ id, ...data }: { id: string; [key: string]: any }) =>
       apiFetch(`/api/price-alerts/${id}`, {
-        method: "PUT",
+        method: "PATCH",
         body: JSON.stringify(data),
       }),
     onSuccess: () => {

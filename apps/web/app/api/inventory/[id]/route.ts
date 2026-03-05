@@ -153,48 +153,51 @@ export async function PATCH(
 
     // If adjusting quantity
     if (adjustQuantity !== undefined && changeType) {
-      const previousQuantity = Number(existingItem.currentQuantity);
-      let newQuantity: number;
+      const result = await prisma.$transaction(async (tx) => {
+        // Re-read inside transaction for consistency
+        const item = await tx.inventoryItem.findUniqueOrThrow({
+          where: { id: id },
+        });
 
-      if (changeType === "COUNT") {
-        // For count, adjustQuantity is the new absolute quantity
-        newQuantity = adjustQuantity;
-      } else if (changeType === "USED" || changeType === "WASTE") {
-        // These reduce inventory
-        newQuantity = previousQuantity - Math.abs(adjustQuantity);
-      } else {
-        // RECEIVED, ADJUSTED, TRANSFERRED add to inventory
-        newQuantity = previousQuantity + adjustQuantity;
-      }
+        const previousQuantity = Number(item.currentQuantity);
+        let newQuantity: number;
 
-      // Don't allow negative inventory
-      if (newQuantity < 0) newQuantity = 0;
+        if (changeType === "COUNT") {
+          newQuantity = adjustQuantity;
+        } else if (changeType === "USED" || changeType === "WASTE") {
+          newQuantity = previousQuantity - Math.abs(adjustQuantity);
+        } else {
+          newQuantity = previousQuantity + adjustQuantity;
+        }
 
-      // Update item quantity
-      await prisma.inventoryItem.update({
-        where: { id: id },
-        data: { currentQuantity: newQuantity },
+        if (newQuantity < 0) newQuantity = 0;
+
+        await tx.inventoryItem.update({
+          where: { id: id },
+          data: { currentQuantity: newQuantity },
+        });
+
+        await tx.inventoryLog.create({
+          data: {
+            inventoryItemId: id,
+            changeType,
+            quantity: changeType === "COUNT" ? newQuantity - previousQuantity : adjustQuantity,
+            previousQuantity,
+            newQuantity,
+            notes: adjustmentNotes || null,
+            reference: reference || null,
+            createdById: user.id,
+          },
+        });
+
+        return { previousQuantity, newQuantity };
       });
 
-      // Create log entry
-      await prisma.inventoryLog.create({
-        data: {
-          inventoryItemId: id,
-          changeType,
-          quantity: changeType === "COUNT" ? newQuantity - previousQuantity : adjustQuantity,
-          previousQuantity,
-          newQuantity,
-          notes: adjustmentNotes || null,
-          reference: reference || null,
-          createdById: user.id,
-        },
-      });
-
-      // Check if below par level and emit event
+      // Check if below par level and emit event (outside transaction)
       const itemParLevel = existingItem.parLevel
         ? Number(existingItem.parLevel)
         : null;
-      if (itemParLevel && newQuantity < itemParLevel) {
+      if (itemParLevel && result.newQuantity < itemParLevel) {
         inngest
           .send({
             name: "inventory/below.par",
@@ -202,7 +205,7 @@ export async function PATCH(
               inventoryItemId: id,
               restaurantId: user.restaurant.id,
               itemName: existingItem.name,
-              currentQuantity: newQuantity,
+              currentQuantity: result.newQuantity,
               parLevel: itemParLevel,
             },
           })
@@ -214,8 +217,8 @@ export async function PATCH(
         data: {
           id: existingItem.id,
           name: existingItem.name,
-          previousQuantity,
-          newQuantity,
+          previousQuantity: result.previousQuantity,
+          newQuantity: result.newQuantity,
           changeType,
         },
       });

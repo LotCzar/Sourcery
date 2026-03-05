@@ -119,9 +119,16 @@ export async function executeTool(
 
 async function searchProducts(
   input: Record<string, any>,
-  _context: ToolContext
+  context: ToolContext
 ) {
-  const where: any = {};
+  // Scope to suppliers linked to this restaurant
+  const linkedSupplierIds = await prisma.restaurantSupplier.findMany({
+    where: { restaurantId: context.restaurantId },
+    select: { supplierId: true },
+  });
+  const where: any = {
+    supplierId: { in: linkedSupplierIds.map((s) => s.supplierId) },
+  };
 
   if (input.query) {
     where.name = { contains: input.query, mode: "insensitive" };
@@ -269,6 +276,12 @@ async function createDraftOrder(
   });
 
   if (!supplier) return { error: "Supplier not found" };
+
+  // Verify supplier is linked to this restaurant
+  const link = await prisma.restaurantSupplier.findFirst({
+    where: { restaurantId: context.restaurantId, supplierId: input.supplier_id },
+  });
+  if (!link) return { error: "Supplier is not linked to your restaurant." };
 
   const productIds = input.items.map((i: any) => i.product_id);
   const products = await prisma.supplierProduct.findMany({
@@ -3449,9 +3462,9 @@ async function cancelOrder(
 
   if (!order) return { error: "Order not found or does not belong to your restaurant." };
 
-  const nonCancellable = ["SHIPPED", "IN_TRANSIT", "DELIVERED", "CANCELLED", "RETURNED"];
-  if (nonCancellable.includes(order.status)) {
-    return { error: `Cannot cancel order with status ${order.status}. Only DRAFT, AWAITING_APPROVAL, PENDING, CONFIRMED, or PROCESSING orders can be cancelled.` };
+  const cancellable = ["DRAFT", "AWAITING_APPROVAL", "PENDING"];
+  if (!cancellable.includes(order.status)) {
+    return { error: `Cannot cancel order with status ${order.status}. Only DRAFT, AWAITING_APPROVAL, or PENDING orders can be cancelled.` };
   }
 
   const previousStatus = order.status;

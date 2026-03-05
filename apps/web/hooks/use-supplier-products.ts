@@ -17,7 +17,7 @@ export function useSupplierProducts(category?: string) {
   const url = `/api/supplier/products${queryString ? `?${queryString}` : ""}`;
 
   return useQuery({
-    queryKey: queryKeys.supplier.products.all,
+    queryKey: ["supplier", "products", category ?? "ALL"],
     queryFn: () => apiFetch<SupplierProductsResponse>(url),
   });
 }

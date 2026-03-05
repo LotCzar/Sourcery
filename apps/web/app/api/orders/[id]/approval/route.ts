@@ -37,58 +37,95 @@ export async function POST(
       return NextResponse.json({ error: "Insufficient permissions to review approvals" }, { status: 403 });
     }
 
-    const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        restaurantId: user.restaurant.id,
-        status: "AWAITING_APPROVAL",
-      },
-      include: { supplier: true },
-    });
+    const restaurantId = user.restaurant!.id;
+    const restaurantName = user.restaurant!.name;
 
-    if (!order) {
-      return NextResponse.json({ error: "Order not found or not awaiting approval" }, { status: 404 });
-    }
-
-    // Find the pending approval
-    const approval = await prisma.orderApproval.findFirst({
-      where: { orderId, status: "PENDING" },
-      include: { requestedBy: true },
-    });
-
-    if (!approval) {
-      return NextResponse.json({ error: "No pending approval found" }, { status: 404 });
-    }
-
-    // Update approval record
-    await prisma.orderApproval.update({
-      where: { id: approval.id },
-      data: {
-        status,
-        notes,
-        reviewedById: user.id,
-        reviewedAt: new Date(),
-      },
-    });
-
-    const reviewerName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
-
-    if (status === "APPROVED") {
-      // Calculate expected delivery date
-      const deliveryDate = new Date();
-      deliveryDate.setDate(deliveryDate.getDate() + order.supplier.leadTimeDays);
-
-      // Transition to PENDING
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: "PENDING", deliveryDate },
+    const result = await prisma.$transaction(async (tx) => {
+      const order = await tx.order.findFirst({
+        where: {
+          id: orderId,
+          restaurantId,
+          status: "AWAITING_APPROVAL",
+        },
+        include: { supplier: true },
       });
 
-      // Send email to supplier
+      if (!order) {
+        return { error: "Order not found or not awaiting approval", status: 404 } as const;
+      }
+
+      const approval = await tx.orderApproval.findFirst({
+        where: { orderId, status: "PENDING" },
+        include: { requestedBy: true },
+      });
+
+      if (!approval) {
+        return { error: "No pending approval found", status: 404 } as const;
+      }
+
+      await tx.orderApproval.update({
+        where: { id: approval.id },
+        data: {
+          status,
+          notes,
+          reviewedById: user.id,
+          reviewedAt: new Date(),
+        },
+      });
+
+      if (status === "APPROVED") {
+        const deliveryDate = new Date();
+        deliveryDate.setDate(deliveryDate.getDate() + order.supplier.leadTimeDays);
+
+        const updatedOrder = await tx.order.update({
+          where: { id: orderId },
+          data: { status: "PENDING", deliveryDate },
+        });
+
+        await tx.notification.create({
+          data: {
+            type: "ORDER_UPDATE",
+            title: "Order Approved",
+            message: `Your order ${order.orderNumber} has been approved and submitted to the supplier.`,
+            userId: approval.requestedById,
+            metadata: { orderId, status: "APPROVED" },
+          },
+        });
+
+        return { order, approval, updatedOrder } as const;
+      } else {
+        const updatedOrder = await tx.order.update({
+          where: { id: orderId },
+          data: { status: "DRAFT" },
+        });
+
+        await tx.notification.create({
+          data: {
+            type: "ORDER_UPDATE",
+            title: "Order Rejected",
+            message: `Your order ${order.orderNumber} was rejected.${notes ? ` Reason: ${notes}` : ""}`,
+            userId: approval.requestedById,
+            metadata: { orderId, status: "REJECTED", notes },
+          },
+        });
+
+        return { order, approval, updatedOrder } as const;
+      }
+    });
+
+    if ("error" in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
+    }
+
+    const { order, approval, updatedOrder } = result;
+    const reviewerName = `${user.firstName || ""} ${user.lastName || ""}`.trim() || user.email;
+
+    // Send emails outside the transaction
+    if (status === "APPROVED") {
       if (order.supplier.email) {
         const template = emailTemplates.orderPlaced(
           order.orderNumber,
-          user.restaurant.name,
+          restaurantName,
           Number(order.total)
         );
         sendEmail({
@@ -98,18 +135,6 @@ export async function POST(
         });
       }
 
-      // Notify requester
-      await prisma.notification.create({
-        data: {
-          type: "ORDER_UPDATE",
-          title: "Order Approved",
-          message: `Your order ${order.orderNumber} has been approved by ${reviewerName} and submitted to the supplier.`,
-          userId: approval.requestedById,
-          metadata: { orderId, status: "APPROVED" },
-        },
-      });
-
-      // Send approval decision email to requester
       if (approval.requestedBy.email) {
         const template = emailTemplates.approvalDecision(
           order.orderNumber,
@@ -123,36 +148,7 @@ export async function POST(
           html: template.html,
         });
       }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...updatedOrder,
-          subtotal: Number(updatedOrder.subtotal),
-          tax: Number(updatedOrder.tax),
-          deliveryFee: Number(updatedOrder.deliveryFee),
-          total: Number(updatedOrder.total),
-        },
-      });
     } else {
-      // REJECTED — transition back to DRAFT
-      const updatedOrder = await prisma.order.update({
-        where: { id: orderId },
-        data: { status: "DRAFT" },
-      });
-
-      // Notify requester
-      await prisma.notification.create({
-        data: {
-          type: "ORDER_UPDATE",
-          title: "Order Rejected",
-          message: `Your order ${order.orderNumber} was rejected by ${reviewerName}.${notes ? ` Reason: ${notes}` : ""}`,
-          userId: approval.requestedById,
-          metadata: { orderId, status: "REJECTED", notes },
-        },
-      });
-
-      // Send rejection email to requester
       if (approval.requestedBy.email) {
         const template = emailTemplates.approvalDecision(
           order.orderNumber,
@@ -166,18 +162,18 @@ export async function POST(
           html: template.html,
         });
       }
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          ...updatedOrder,
-          subtotal: Number(updatedOrder.subtotal),
-          tax: Number(updatedOrder.tax),
-          deliveryFee: Number(updatedOrder.deliveryFee),
-          total: Number(updatedOrder.total),
-        },
-      });
     }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...updatedOrder,
+        subtotal: Number(updatedOrder.subtotal),
+        tax: Number(updatedOrder.tax),
+        deliveryFee: Number(updatedOrder.deliveryFee),
+        total: Number(updatedOrder.total),
+      },
+    });
   } catch (error: any) {
     console.error("Review approval error:", error);
     return NextResponse.json(

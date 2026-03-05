@@ -61,15 +61,20 @@ export async function POST(request: Request) {
         continue;
       }
 
-      const currentQty = product.stockQuantity ?? 0;
-      const newQty = Math.max(0, currentQty + adj.quantity);
+      await prisma.$transaction(async (tx) => {
+        const current = await tx.supplierProduct.findUniqueOrThrow({
+          where: { id: adj.productId },
+        });
+        const currentQty = current.stockQuantity ?? 0;
+        const newQty = Math.max(0, currentQty + adj.quantity);
 
-      await prisma.supplierProduct.update({
-        where: { id: adj.productId },
-        data: {
-          stockQuantity: newQty,
-          inStock: newQty > 0,
-        },
+        await tx.supplierProduct.update({
+          where: { id: adj.productId },
+          data: {
+            stockQuantity: newQty,
+            inStock: newQty > 0,
+          },
+        });
       });
 
       results.updated.push(adj.productId);
