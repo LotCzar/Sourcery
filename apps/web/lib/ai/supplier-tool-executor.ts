@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { sendEmail, emailTemplates } from "@/lib/email";
 import { getSupplierToolTier, hasTier, type PlanTier } from "@/lib/tier";
 
 interface SupplierToolContext {
@@ -95,6 +96,32 @@ export async function executeSupplierTool(
         return await broadcastMessage(input, context);
       case "update_delivery_eta":
         return await updateDeliveryEta(input, context);
+      case "get_drivers":
+        return await getDrivers(input, context);
+      case "create_driver":
+        return await createDriver(input, context);
+      case "update_driver":
+        return await updateDriver(input, context);
+      case "get_delivery_zones":
+        return await getDeliveryZones(input, context);
+      case "create_delivery_zone":
+        return await createDeliveryZone(input, context);
+      case "update_delivery_zone":
+        return await updateDeliveryZone(input, context);
+      case "get_order_messages":
+        return await getOrderMessages(input, context);
+      case "get_supplier_team":
+        return await getSupplierTeam(input, context);
+      case "manage_supplier_team":
+        return await manageSupplierTeam(input, context);
+      case "update_supplier_settings":
+        return await updateSupplierSettings(input, context);
+      case "get_return_details":
+        return await getReturnDetails(input, context);
+      case "schedule_delivery":
+        return await scheduleDelivery(input, context);
+      case "export_supplier_data":
+        return await exportSupplierData(input, context);
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -2055,4 +2082,540 @@ async function updateDeliveryEta(
     notifiedUsers: restaurantUsers.length,
     message: `Delivery ETA for ${order.orderNumber} updated to ${estimatedDeliveryAt.toLocaleString()}`,
   };
+}
+
+// ─── New Supplier Tools ────────────────────────────────────────────────────
+
+async function getDrivers(
+  _input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const drivers = await prisma.user.findMany({
+    where: { supplierId: context.supplierId, role: "DRIVER" },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      email: true,
+      phone: true,
+      clerkId: true,
+      createdAt: true,
+      _count: { select: { driverDeliveries: { where: { status: "DELIVERED" } } } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    count: drivers.length,
+    drivers: drivers.map((d) => ({
+      id: d.id,
+      name: `${d.firstName || ""} ${d.lastName || ""}`.trim(),
+      email: d.email,
+      phone: d.phone,
+      isPending: d.clerkId.startsWith("driver_pending_"),
+      deliveryCount: d._count.driverDeliveries,
+      joinedAt: d.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function createDriver(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (!["SUPPLIER_ADMIN", "SUPPLIER_REP"].includes(context.userRole)) {
+    return { error: "Only supplier admins and reps can add drivers." };
+  }
+
+  const existing = await prisma.user.findUnique({ where: { email: input.email } });
+  if (existing?.supplierId === context.supplierId && existing?.role === "DRIVER") {
+    return { error: "This user is already a driver for your supplier." };
+  }
+
+  if (existing) {
+    // Re-assign existing user as driver
+    const updated = await prisma.user.update({
+      where: { id: existing.id },
+      data: { role: "DRIVER", supplierId: context.supplierId, firstName: input.first_name, lastName: input.last_name || null, phone: input.phone || null },
+    });
+    return {
+      success: true,
+      driver: { id: updated.id, email: updated.email, name: `${updated.firstName || ""} ${updated.lastName || ""}`.trim() },
+      message: `${updated.firstName || updated.email} added as driver.`,
+    };
+  }
+
+  const driver = await prisma.user.create({
+    data: {
+      clerkId: `driver_pending_${crypto.randomUUID()}`,
+      email: input.email,
+      firstName: input.first_name,
+      lastName: input.last_name || null,
+      phone: input.phone || null,
+      role: "DRIVER",
+      supplierId: context.supplierId,
+    },
+  });
+
+  return {
+    success: true,
+    driver: { id: driver.id, email: driver.email, name: `${driver.firstName || ""} ${driver.lastName || ""}`.trim() },
+    message: `Driver ${driver.firstName || driver.email} created.`,
+  };
+}
+
+async function updateDriver(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const driver = await prisma.user.findFirst({
+    where: { id: input.driver_id, supplierId: context.supplierId, role: "DRIVER" },
+  });
+  if (!driver) return { error: "Driver not found or does not belong to your supplier." };
+
+  const updateData: any = {};
+  if (input.first_name !== undefined) updateData.firstName = input.first_name;
+  if (input.last_name !== undefined) updateData.lastName = input.last_name;
+  if (input.phone !== undefined) updateData.phone = input.phone;
+
+  const updated = await prisma.user.update({ where: { id: driver.id }, data: updateData });
+
+  return {
+    success: true,
+    driver: { id: updated.id, name: `${updated.firstName || ""} ${updated.lastName || ""}`.trim(), phone: updated.phone },
+    message: `Driver ${updated.firstName || updated.email} updated.`,
+  };
+}
+
+async function getDeliveryZones(
+  _input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const zones = await prisma.deliveryZone.findMany({
+    where: { supplierId: context.supplierId },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    count: zones.length,
+    zones: zones.map((z) => ({
+      id: z.id,
+      name: z.name,
+      zipCodes: z.zipCodes,
+      deliveryFee: Number(z.deliveryFee),
+      minimumOrder: z.minimumOrder ? Number(z.minimumOrder) : null,
+      createdAt: z.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function createDeliveryZone(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (context.userRole !== "SUPPLIER_ADMIN") {
+    return { error: "Only supplier admins can create delivery zones." };
+  }
+
+  const zone = await prisma.deliveryZone.create({
+    data: {
+      name: input.name,
+      zipCodes: input.zip_codes,
+      deliveryFee: input.delivery_fee,
+      minimumOrder: input.minimum_order ?? null,
+      supplierId: context.supplierId,
+    },
+  });
+
+  return {
+    success: true,
+    zone: {
+      id: zone.id,
+      name: zone.name,
+      zipCodes: zone.zipCodes,
+      deliveryFee: Number(zone.deliveryFee),
+      minimumOrder: zone.minimumOrder ? Number(zone.minimumOrder) : null,
+    },
+    message: `Delivery zone "${zone.name}" created with ${zone.zipCodes.length} zip codes.`,
+  };
+}
+
+async function updateDeliveryZone(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (context.userRole !== "SUPPLIER_ADMIN") {
+    return { error: "Only supplier admins can update delivery zones." };
+  }
+
+  const zone = await prisma.deliveryZone.findFirst({
+    where: { id: input.zone_id, supplierId: context.supplierId },
+  });
+  if (!zone) return { error: "Delivery zone not found or does not belong to your supplier." };
+
+  const updateData: any = {};
+  if (input.name !== undefined) updateData.name = input.name;
+  if (input.zip_codes !== undefined) updateData.zipCodes = input.zip_codes;
+  if (input.delivery_fee !== undefined) updateData.deliveryFee = input.delivery_fee;
+  if (input.minimum_order !== undefined) updateData.minimumOrder = input.minimum_order;
+
+  const updated = await prisma.deliveryZone.update({ where: { id: zone.id }, data: updateData });
+
+  return {
+    success: true,
+    zone: {
+      id: updated.id,
+      name: updated.name,
+      deliveryFee: Number(updated.deliveryFee),
+      minimumOrder: updated.minimumOrder ? Number(updated.minimumOrder) : null,
+    },
+    message: `Delivery zone "${updated.name}" updated.`,
+  };
+}
+
+async function getOrderMessages(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, supplierId: context.supplierId },
+    select: { id: true, orderNumber: true },
+  });
+  if (!order) return { error: "Order not found or does not belong to your supplier." };
+
+  const messages = await prisma.orderMessage.findMany({
+    where: { orderId: order.id, isInternal: false },
+    include: { sender: { select: { id: true, firstName: true, lastName: true, role: true } } },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return {
+    orderNumber: order.orderNumber,
+    count: messages.length,
+    messages: messages.map((m) => ({
+      id: m.id,
+      content: m.content,
+      sender: `${m.sender.firstName || ""} ${m.sender.lastName || ""}`.trim(),
+      senderRole: m.sender.role,
+      createdAt: m.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function getSupplierTeam(
+  _input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (context.userRole !== "SUPPLIER_ADMIN") {
+    return { error: "Only supplier admins can view team members." };
+  }
+
+  const members = await prisma.user.findMany({
+    where: { supplierId: context.supplierId, role: { in: ["SUPPLIER_ADMIN", "SUPPLIER_REP"] } },
+    select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, clerkId: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return {
+    count: members.length,
+    members: members.map((m) => ({
+      id: m.id,
+      name: `${m.firstName || ""} ${m.lastName || ""}`.trim(),
+      email: m.email,
+      phone: m.phone,
+      role: m.role,
+      isPending: m.clerkId.startsWith("staff_pending_"),
+      joinedAt: m.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function manageSupplierTeam(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (context.userRole !== "SUPPLIER_ADMIN") {
+    return { error: "Only supplier admins can manage team members." };
+  }
+
+  if (input.action === "invite") {
+    if (!input.email) return { error: "Email is required to invite a team member." };
+
+    const existing = await prisma.user.findUnique({ where: { email: input.email } });
+    if (existing?.supplierId === context.supplierId) {
+      return { error: "This user is already a member of your supplier." };
+    }
+
+    const role = input.role || "SUPPLIER_REP";
+    const newMember = await prisma.user.create({
+      data: {
+        clerkId: `staff_pending_${crypto.randomUUID()}`,
+        email: input.email,
+        firstName: input.first_name || null,
+        lastName: input.last_name || null,
+        phone: input.phone || null,
+        role,
+        supplierId: context.supplierId,
+      },
+    });
+
+    // Send invitation email
+    const inviter = await prisma.user.findUnique({ where: { id: context.userId }, select: { firstName: true, lastName: true } });
+    const supplier = await prisma.supplier.findUnique({ where: { id: context.supplierId }, select: { name: true } });
+    const inviterName = `${inviter?.firstName || ""} ${inviter?.lastName || ""}`.trim();
+    const template = emailTemplates.supplierTeamInvitation(input.first_name || "Team Member", supplier?.name || "", role, inviterName);
+    sendEmail({ to: input.email, subject: template.subject, html: template.html });
+
+    return {
+      success: true,
+      member: { id: newMember.id, email: newMember.email, role: newMember.role },
+      message: `Invitation sent to ${input.email} as ${role}.`,
+    };
+  }
+
+  if (input.action === "update") {
+    if (!input.member_id) return { error: "member_id is required to update a team member." };
+
+    const member = await prisma.user.findFirst({
+      where: { id: input.member_id, supplierId: context.supplierId },
+    });
+    if (!member) return { error: "Team member not found." };
+
+    const updateData: any = {};
+    if (input.first_name !== undefined) updateData.firstName = input.first_name;
+    if (input.last_name !== undefined) updateData.lastName = input.last_name;
+    if (input.role !== undefined) updateData.role = input.role;
+    if (input.phone !== undefined) updateData.phone = input.phone;
+
+    const updated = await prisma.user.update({ where: { id: member.id }, data: updateData });
+
+    return {
+      success: true,
+      member: { id: updated.id, name: `${updated.firstName || ""} ${updated.lastName || ""}`.trim(), role: updated.role },
+      message: `Team member updated.`,
+    };
+  }
+
+  if (input.action === "remove") {
+    if (!input.member_id) return { error: "member_id is required to remove a team member." };
+
+    const member = await prisma.user.findFirst({
+      where: { id: input.member_id, supplierId: context.supplierId },
+    });
+    if (!member) return { error: "Team member not found." };
+    if (member.id === context.userId) return { error: "Cannot remove yourself." };
+
+    await prisma.user.update({ where: { id: member.id }, data: { supplierId: null, role: "SUPPLIER_REP" } });
+
+    return {
+      success: true,
+      message: `${member.firstName || member.email} has been removed from the team.`,
+    };
+  }
+
+  return { error: "Invalid action. Use 'invite', 'update', or 'remove'." };
+}
+
+async function updateSupplierSettings(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  if (context.userRole !== "SUPPLIER_ADMIN") {
+    return { error: "Only supplier admins can update settings." };
+  }
+
+  const updateData: any = {};
+  if (input.name !== undefined) updateData.name = input.name;
+  if (input.description !== undefined) updateData.description = input.description;
+  if (input.email !== undefined) updateData.email = input.email;
+  if (input.phone !== undefined) updateData.phone = input.phone;
+  if (input.address !== undefined) updateData.address = input.address;
+  if (input.city !== undefined) updateData.city = input.city;
+  if (input.state !== undefined) updateData.state = input.state;
+  if (input.zip_code !== undefined) updateData.zipCode = input.zip_code;
+  if (input.website !== undefined) updateData.website = input.website;
+  if (input.minimum_order !== undefined) updateData.minimumOrder = input.minimum_order;
+  if (input.delivery_fee !== undefined) updateData.deliveryFee = input.delivery_fee;
+  if (input.lead_time_days !== undefined) updateData.leadTimeDays = input.lead_time_days;
+
+  const updated = await prisma.supplier.update({
+    where: { id: context.supplierId },
+    data: updateData,
+  });
+
+  return {
+    success: true,
+    supplier: {
+      name: updated.name,
+      email: updated.email,
+      phone: updated.phone,
+      minimumOrder: updated.minimumOrder ? Number(updated.minimumOrder) : null,
+      deliveryFee: updated.deliveryFee ? Number(updated.deliveryFee) : null,
+      leadTimeDays: updated.leadTimeDays,
+    },
+    message: `Supplier settings updated.`,
+  };
+}
+
+async function getReturnDetails(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const returnRequest = await prisma.returnRequest.findFirst({
+    where: { id: input.return_id, order: { supplierId: context.supplierId } },
+    include: {
+      order: {
+        select: { id: true, orderNumber: true, restaurant: { select: { id: true, name: true } } },
+      },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      reviewedBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+  });
+
+  if (!returnRequest) return { error: "Return request not found or does not belong to your supplier." };
+
+  return {
+    id: returnRequest.id,
+    returnNumber: returnRequest.returnNumber,
+    type: returnRequest.type,
+    status: returnRequest.status,
+    reason: returnRequest.reason,
+    items: returnRequest.items,
+    creditAmount: returnRequest.creditAmount ? Number(returnRequest.creditAmount) : null,
+    creditNotes: returnRequest.creditNotes,
+    resolution: returnRequest.resolution,
+    order: { id: returnRequest.order.id, orderNumber: returnRequest.order.orderNumber, restaurant: returnRequest.order.restaurant.name },
+    createdBy: `${returnRequest.createdBy.firstName || ""} ${returnRequest.createdBy.lastName || ""}`.trim(),
+    reviewedBy: returnRequest.reviewedBy ? `${returnRequest.reviewedBy.firstName || ""} ${returnRequest.reviewedBy.lastName || ""}`.trim() : null,
+    reviewedAt: returnRequest.reviewedAt?.toISOString() || null,
+    createdAt: returnRequest.createdAt.toISOString(),
+  };
+}
+
+async function scheduleDelivery(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, supplierId: context.supplierId },
+    include: { restaurant: { select: { id: true, name: true } } },
+  });
+  if (!order) return { error: "Order not found or does not belong to your supplier." };
+
+  const deliveryDate = new Date(input.delivery_date);
+  if (isNaN(deliveryDate.getTime())) return { error: "Invalid delivery date format. Use ISO format (e.g., 2025-01-15)." };
+  if (deliveryDate < new Date()) return { error: "Delivery date cannot be in the past." };
+
+  const updateData: any = { deliveryDate };
+  if (input.delivery_notes !== undefined) updateData.deliveryNotes = input.delivery_notes;
+
+  await prisma.order.update({ where: { id: order.id }, data: updateData });
+
+  // Notify restaurant users
+  const restaurantUsers = await prisma.user.findMany({
+    where: { restaurantId: order.restaurant.id, role: { in: ["OWNER", "MANAGER"] } },
+    select: { id: true },
+  });
+
+  for (const user of restaurantUsers) {
+    await prisma.notification.create({
+      data: {
+        type: "DELIVERY_UPDATE",
+        title: "Delivery Scheduled",
+        message: `Delivery for order ${order.orderNumber} scheduled for ${deliveryDate.toISOString().split("T")[0]}.`,
+        userId: user.id,
+      },
+    });
+  }
+
+  return {
+    success: true,
+    order: {
+      id: order.id,
+      orderNumber: order.orderNumber,
+      deliveryDate: deliveryDate.toISOString(),
+    },
+    message: `Delivery for ${order.orderNumber} scheduled for ${deliveryDate.toISOString().split("T")[0]}.`,
+  };
+}
+
+async function exportSupplierData(
+  input: Record<string, any>,
+  context: SupplierToolContext
+) {
+  const days = input.time_range || 30;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  if (input.type === "customers") {
+    const restaurants = await prisma.restaurant.findMany({
+      where: { orders: { some: { supplierId: context.supplierId } } },
+      include: {
+        _count: { select: { orders: { where: { supplierId: context.supplierId } } } },
+        orders: {
+          where: { supplierId: context.supplierId, createdAt: { gte: startDate } },
+          select: { total: true },
+        },
+      },
+      take: 200,
+    });
+
+    return {
+      type: "customers",
+      period: `Last ${days} days`,
+      totalCustomers: restaurants.length,
+      customers: restaurants.map((r) => ({
+        name: r.name,
+        totalOrders: r._count.orders,
+        periodRevenue: r.orders.reduce((sum, o) => sum + Number(o.total), 0),
+      })),
+    };
+  }
+
+  if (input.type === "orders") {
+    const orders = await prisma.order.findMany({
+      where: { supplierId: context.supplierId, createdAt: { gte: startDate } },
+      include: { restaurant: { select: { name: true } } },
+      take: 500,
+    });
+
+    return {
+      type: "orders",
+      period: `Last ${days} days`,
+      totalOrders: orders.length,
+      orders: orders.map((o) => ({
+        orderNumber: o.orderNumber,
+        status: o.status,
+        customer: o.restaurant.name,
+        total: Number(o.total),
+        createdAt: o.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  if (input.type === "revenue") {
+    const orders = await prisma.order.findMany({
+      where: {
+        supplierId: context.supplierId,
+        status: { in: ["DELIVERED", "CONFIRMED", "PROCESSING", "SHIPPED", "IN_TRANSIT"] },
+        createdAt: { gte: startDate },
+      },
+      select: { total: true, status: true, createdAt: true },
+    });
+
+    const totalRevenue = orders.reduce((sum, o) => sum + Number(o.total), 0);
+    const delivered = orders.filter((o) => o.status === "DELIVERED");
+    const deliveredRevenue = delivered.reduce((sum, o) => sum + Number(o.total), 0);
+
+    return {
+      type: "revenue",
+      period: `Last ${days} days`,
+      totalOrders: orders.length,
+      totalRevenue,
+      deliveredRevenue,
+      pendingRevenue: totalRevenue - deliveredRevenue,
+    };
+  }
+
+  return { error: "Invalid export type. Use 'customers', 'orders', or 'revenue'." };
 }

@@ -28,6 +28,7 @@ export const TOOL_TIER: Record<string, PlanTier> = {
   get_negotiation_brief: "PROFESSIONAL",
   get_budget_forecast: "PROFESSIONAL",
   get_supplier_performance: "PROFESSIONAL",
+  export_report: "PROFESSIONAL",
 };
 
 export function getToolTier(name: string): PlanTier {
@@ -84,6 +85,7 @@ export const SUPPLIER_TOOL_TIER: Record<string, PlanTier> = {
   get_supplier_insights: "PROFESSIONAL",
   get_delivery_performance: "PROFESSIONAL",
   get_revenue_summary: "PROFESSIONAL",
+  export_supplier_data: "PROFESSIONAL",
 };
 
 export function getSupplierToolTier(name: string): PlanTier {

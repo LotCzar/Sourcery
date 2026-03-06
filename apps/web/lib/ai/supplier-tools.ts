@@ -833,4 +833,285 @@ export const supplierAiTools: Anthropic.Tool[] = [
       required: ["order_id", "estimated_delivery_at"],
     },
   },
+
+  // ─── New Tools ─────────────────────────────────────────────────────────────
+
+  {
+    name: "get_drivers",
+    description:
+      "List all drivers for your supplier with delivery counts.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "create_driver",
+    description:
+      "Add a new driver to your supplier. Requires SUPPLIER_ADMIN or SUPPLIER_REP role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        first_name: {
+          type: "string",
+          description: "Driver's first name",
+        },
+        email: {
+          type: "string",
+          description: "Driver's email address",
+        },
+        last_name: {
+          type: "string",
+          description: "Driver's last name",
+        },
+        phone: {
+          type: "string",
+          description: "Driver's phone number",
+        },
+      },
+      required: ["first_name", "email"],
+    },
+  },
+  {
+    name: "update_driver",
+    description:
+      "Update a driver's information.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        driver_id: {
+          type: "string",
+          description: "The driver's user ID",
+        },
+        first_name: {
+          type: "string",
+          description: "New first name",
+        },
+        last_name: {
+          type: "string",
+          description: "New last name",
+        },
+        phone: {
+          type: "string",
+          description: "New phone number",
+        },
+      },
+      required: ["driver_id"],
+    },
+  },
+  {
+    name: "get_delivery_zones",
+    description:
+      "List all delivery zones with zip codes, fees, and minimums.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "create_delivery_zone",
+    description:
+      "Create a new delivery zone. Requires SUPPLIER_ADMIN role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description: "Zone name",
+        },
+        zip_codes: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of zip codes in this zone",
+        },
+        delivery_fee: {
+          type: "number",
+          description: "Delivery fee for this zone",
+        },
+        minimum_order: {
+          type: "number",
+          description: "Minimum order amount for this zone",
+        },
+      },
+      required: ["name", "zip_codes", "delivery_fee"],
+    },
+  },
+  {
+    name: "update_delivery_zone",
+    description:
+      "Update an existing delivery zone. Requires SUPPLIER_ADMIN role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        zone_id: {
+          type: "string",
+          description: "The delivery zone ID",
+        },
+        name: {
+          type: "string",
+          description: "New zone name",
+        },
+        zip_codes: {
+          type: "array",
+          items: { type: "string" },
+          description: "New zip codes array",
+        },
+        delivery_fee: {
+          type: "number",
+          description: "New delivery fee",
+        },
+        minimum_order: {
+          type: "number",
+          description: "New minimum order amount",
+        },
+      },
+      required: ["zone_id"],
+    },
+  },
+  {
+    name: "get_order_messages",
+    description:
+      "Get message thread for a specific order.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The order ID to get messages for",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "get_supplier_team",
+    description:
+      "List team members (admins and reps) for your supplier. Requires SUPPLIER_ADMIN role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "manage_supplier_team",
+    description:
+      "Invite, update, or remove a supplier team member. Requires SUPPLIER_ADMIN role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        action: {
+          type: "string",
+          enum: ["invite", "update", "remove"],
+          description: "Action to perform",
+        },
+        email: {
+          type: "string",
+          description: "Email address (required for invite)",
+        },
+        member_id: {
+          type: "string",
+          description: "Member user ID (required for update/remove)",
+        },
+        first_name: {
+          type: "string",
+          description: "First name",
+        },
+        last_name: {
+          type: "string",
+          description: "Last name",
+        },
+        role: {
+          type: "string",
+          enum: ["SUPPLIER_ADMIN", "SUPPLIER_REP"],
+          description: "Role to assign",
+        },
+        phone: {
+          type: "string",
+          description: "Phone number",
+        },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "update_supplier_settings",
+    description:
+      "Update supplier business settings (name, contact info, delivery terms). Requires SUPPLIER_ADMIN role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: { type: "string", description: "Supplier name" },
+        description: { type: "string", description: "Business description" },
+        email: { type: "string", description: "Contact email" },
+        phone: { type: "string", description: "Contact phone" },
+        address: { type: "string", description: "Business address" },
+        city: { type: "string", description: "City" },
+        state: { type: "string", description: "State" },
+        zip_code: { type: "string", description: "Zip code" },
+        website: { type: "string", description: "Website URL" },
+        minimum_order: { type: "number", description: "Minimum order amount" },
+        delivery_fee: { type: "number", description: "Default delivery fee" },
+        lead_time_days: { type: "number", description: "Lead time in days" },
+      },
+    },
+  },
+  {
+    name: "get_return_details",
+    description:
+      "Get full details of a specific return request including order, items, and review info.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        return_id: {
+          type: "string",
+          description: "The return request ID",
+        },
+      },
+      required: ["return_id"],
+    },
+  },
+  {
+    name: "schedule_delivery",
+    description:
+      "Set or update a delivery date for an order and optionally add delivery notes.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The order ID",
+        },
+        delivery_date: {
+          type: "string",
+          description: "Delivery date (ISO format)",
+        },
+        delivery_notes: {
+          type: "string",
+          description: "Optional delivery notes",
+        },
+      },
+      required: ["order_id", "delivery_date"],
+    },
+  },
+  {
+    name: "export_supplier_data",
+    description:
+      "Export supplier data (customers, orders, revenue) as a summary. Professional plan required.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        type: {
+          type: "string",
+          enum: ["customers", "orders", "revenue"],
+          description: "Type of data to export",
+        },
+        time_range: {
+          type: "number",
+          enum: [7, 30, 90],
+          description: "Number of days to include (default 30)",
+        },
+      },
+      required: ["type"],
+    },
+  },
 ];

@@ -1012,6 +1012,327 @@ export const aiTools: Anthropic.Tool[] = [
       required: ["order_id", "delivery_date"],
     },
   },
+  {
+    name: "get_pending_approvals",
+    description:
+      "Get orders awaiting approval. Shows orders that need manager/owner sign-off before processing. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "approve_order",
+    description:
+      "Approve an order that is awaiting approval. Moves the order to PENDING status and notifies the supplier. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the order to approve",
+        },
+        notes: {
+          type: "string",
+          description: "Optional approval notes",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "reject_order",
+    description:
+      "Reject an order that is awaiting approval. Returns the order to DRAFT status. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The ID of the order to reject",
+        },
+        notes: {
+          type: "string",
+          description: "Optional rejection reason",
+        },
+      },
+      required: ["order_id"],
+    },
+  },
+  {
+    name: "get_price_alerts",
+    description:
+      "Get your active price alerts. Shows which products you're monitoring for price changes.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "delete_price_alert",
+    description:
+      "Delete a price alert to stop monitoring a product's price.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        alert_id: {
+          type: "string",
+          description: "The ID of the price alert to delete",
+        },
+      },
+      required: ["alert_id"],
+    },
+  },
+  {
+    name: "get_returns",
+    description:
+      "Get return requests for the restaurant. Can filter by status (PENDING, APPROVED, REJECTED, CREDIT_ISSUED, RESOLVED).",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        status: {
+          type: "string",
+          enum: ["PENDING", "APPROVED", "REJECTED", "CREDIT_ISSUED", "RESOLVED"],
+          description: "Filter by return status",
+        },
+      },
+    },
+  },
+  {
+    name: "create_return",
+    description:
+      "Create a return request for a delivered order. Specify the type of issue and reason.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        order_id: {
+          type: "string",
+          description: "The delivered order ID to create a return for",
+        },
+        type: {
+          type: "string",
+          enum: ["RETURN", "QUALITY_ISSUE", "DAMAGED", "WRONG_ITEM", "SHORT_DELIVERY"],
+          description: "Type of return or issue",
+        },
+        reason: {
+          type: "string",
+          description: "Detailed reason for the return",
+        },
+        items: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              productName: { type: "string" },
+              quantity: { type: "number" },
+              unitPrice: { type: "number" },
+            },
+            required: ["productName"],
+          },
+          description: "Optional list of specific items being returned",
+        },
+      },
+      required: ["order_id", "type", "reason"],
+    },
+  },
+  {
+    name: "export_report",
+    description:
+      "Export a spending, orders, or suppliers report. Returns data summary. Requires OWNER or MANAGER role. Professional plan required.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        type: {
+          type: "string",
+          enum: ["spending", "orders", "suppliers"],
+          description: "Type of report to export",
+        },
+        time_range: {
+          type: "number",
+          enum: [7, 30, 90],
+          description: "Number of days to include (default 30)",
+        },
+        format: {
+          type: "string",
+          enum: ["csv", "json"],
+          description: "Output format (default json)",
+        },
+      },
+      required: ["type"],
+    },
+  },
+  {
+    name: "create_menu_item",
+    description:
+      "Add a new menu item with optional ingredients. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        name: {
+          type: "string",
+          description: "Menu item name",
+        },
+        price: {
+          type: "number",
+          description: "Menu item price",
+        },
+        category: {
+          type: "string",
+          description: "Menu item category",
+        },
+        description: {
+          type: "string",
+          description: "Menu item description",
+        },
+        ingredients: {
+          type: "array",
+          items: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Ingredient name" },
+              quantity: { type: "number", description: "Amount needed" },
+              unit: { type: "string", description: "Unit of measurement" },
+              notes: { type: "string", description: "Optional notes" },
+            },
+            required: ["name"],
+          },
+          description: "List of ingredients",
+        },
+      },
+      required: ["name", "price"],
+    },
+  },
+  {
+    name: "update_menu_item",
+    description:
+      "Update an existing menu item. Find by ID or fuzzy name match. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        menu_item_id: {
+          type: "string",
+          description: "Menu item ID for exact lookup",
+        },
+        menu_item_name: {
+          type: "string",
+          description: "Menu item name for fuzzy lookup",
+        },
+        name: {
+          type: "string",
+          description: "New name",
+        },
+        price: {
+          type: "number",
+          description: "New price",
+        },
+        category: {
+          type: "string",
+          description: "New category",
+        },
+        description: {
+          type: "string",
+          description: "New description",
+        },
+        is_active: {
+          type: "boolean",
+          description: "Active status",
+        },
+      },
+    },
+  },
+  {
+    name: "delete_menu_item",
+    description:
+      "Delete a menu item. Find by ID or fuzzy name match. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        menu_item_id: {
+          type: "string",
+          description: "Menu item ID for exact lookup",
+        },
+        menu_item_name: {
+          type: "string",
+          description: "Menu item name for fuzzy lookup",
+        },
+      },
+    },
+  },
+  {
+    name: "get_team_members",
+    description:
+      "Get team members for the restaurant. Shows staff, managers, and owners. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
+  {
+    name: "manage_team_member",
+    description:
+      "Invite, update, or remove a team member. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        action: {
+          type: "string",
+          enum: ["invite", "update", "remove"],
+          description: "Action to perform",
+        },
+        email: {
+          type: "string",
+          description: "Email address (required for invite)",
+        },
+        member_id: {
+          type: "string",
+          description: "Member user ID (required for update/remove)",
+        },
+        first_name: {
+          type: "string",
+          description: "First name (for invite or update)",
+        },
+        last_name: {
+          type: "string",
+          description: "Last name (for invite or update)",
+        },
+        role: {
+          type: "string",
+          enum: ["MANAGER", "STAFF"],
+          description: "Role to assign (for invite or update)",
+        },
+      },
+      required: ["action"],
+    },
+  },
+  {
+    name: "update_restaurant_settings",
+    description:
+      "Update user profile or restaurant settings. Requires OWNER or MANAGER for restaurant section.",
+    input_schema: {
+      type: "object" as const,
+      properties: {
+        section: {
+          type: "string",
+          enum: ["profile", "restaurant"],
+          description: "Which settings section to update",
+        },
+        data: {
+          type: "object",
+          description: "Fields to update. Profile: firstName, lastName. Restaurant: name, address, city, state, zipCode, phone, website.",
+        },
+      },
+      required: ["section", "data"],
+    },
+  },
+  {
+    name: "get_pos_status",
+    description:
+      "Check POS integration status. Shows whether a POS system is connected and its details. Requires OWNER or MANAGER role.",
+    input_schema: {
+      type: "object" as const,
+      properties: {},
+    },
+  },
 ];
 
 // Org-admin-only tools — conditionally included for ORG_ADMIN users

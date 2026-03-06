@@ -30,6 +30,13 @@ const READ_ONLY_TOOLS = new Set([
   "get_menu_items",
   "get_delivery_status",
   "get_notifications",
+  // Restaurant read-only tools (new)
+  "get_pending_approvals",
+  "get_price_alerts",
+  "get_returns",
+  "export_report",
+  "get_team_members",
+  "get_pos_status",
   // Supplier read-only tools
   "get_supplier_orders",
   "get_order_details",
@@ -50,6 +57,13 @@ const READ_ONLY_TOOLS = new Set([
   "get_low_stock",
   "get_promotions",
   "generate_pick_list",
+  // Supplier read-only tools (new)
+  "get_drivers",
+  "get_delivery_zones",
+  "get_order_messages",
+  "get_supplier_team",
+  "get_return_details",
+  "export_supplier_data",
 ]);
 
 // Map mutating tools to the query keys they should invalidate
@@ -70,6 +84,16 @@ const TOOL_CACHE_MAP: Record<string, readonly (readonly string[])[]> = {
   duplicate_order: [queryKeys.orders.all, queryKeys.dashboard.all],
   mark_notifications_read: [queryKeys.notifications.all],
   schedule_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+  // Restaurant mutating tools (new)
+  approve_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+  reject_order: [queryKeys.orders.all, queryKeys.dashboard.all, queryKeys.approvals.pending],
+  delete_price_alert: [queryKeys.priceAlerts.all],
+  create_return: [queryKeys.returns.all, queryKeys.orders.all],
+  create_menu_item: [queryKeys.menuItems.all],
+  update_menu_item: [queryKeys.menuItems.all],
+  delete_menu_item: [queryKeys.menuItems.all],
+  manage_team_member: [queryKeys.team.all],
+  update_restaurant_settings: [queryKeys.settings.all],
   // Supplier mutating tools
   update_product: [queryKeys.supplier.products.all, queryKeys.supplier.dashboard],
   send_customer_message: [queryKeys.messages.unread],
@@ -86,6 +110,14 @@ const TOOL_CACHE_MAP: Record<string, readonly (readonly string[])[]> = {
   handle_dispute: [queryKeys.supplier.invoices.all],
   broadcast_message: [queryKeys.messages.unread],
   update_delivery_eta: [queryKeys.supplier.orders.all],
+  // Supplier mutating tools (new)
+  create_driver: [queryKeys.supplier.drivers],
+  update_driver: [queryKeys.supplier.drivers],
+  create_delivery_zone: [queryKeys.supplier.deliveryZones],
+  update_delivery_zone: [queryKeys.supplier.deliveryZones],
+  manage_supplier_team: [queryKeys.supplier.team],
+  update_supplier_settings: [queryKeys.supplier.settings],
+  schedule_delivery: [queryKeys.supplier.orders.all],
 };
 
 function invalidateCachesForTool(toolName: string, queryClient: QueryClient) {

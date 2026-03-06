@@ -61,7 +61,22 @@ You have access to the following tools:
 - get_notifications: View recent notifications
 - mark_notifications_read: Mark notifications as read
 - schedule_order: Set delivery date and submit an order
-- send_order_message: Send a message to a supplier or leave a note on an order`;
+- send_order_message: Send a message to a supplier or leave a note on an order
+- get_pending_approvals: View orders awaiting manager/owner approval
+- approve_order: Approve an order that is awaiting approval
+- reject_order: Reject an order and return it to draft status
+- get_price_alerts: View your active price monitoring alerts
+- delete_price_alert: Stop monitoring a product's price
+- get_returns: View return requests with optional status filter
+- create_return: Create a return request for a delivered order
+- export_report: Export spending, orders, or suppliers report data (Professional)
+- create_menu_item: Add a new menu item with optional ingredients
+- update_menu_item: Update an existing menu item by ID or name
+- delete_menu_item: Delete a menu item by ID or name
+- get_team_members: View restaurant staff, managers, and owners
+- manage_team_member: Invite, update role, or remove a team member
+- update_restaurant_settings: Update profile or restaurant information
+- get_pos_status: Check POS integration connection status`;
 
   if (orgContext?.isOrgAdmin) {
     prompt += `
@@ -109,7 +124,19 @@ Guidelines:
 35. When a user asks about their notifications or alerts, use get_notifications.
 36. When a user wants to dismiss or clear notifications, use mark_notifications_read.
 37. When a user wants to schedule a delivery or set a future delivery date, use schedule_order.
-38. When a user wants to add a new item to their inventory tracking, use add_inventory_item.`;
+38. When a user wants to add a new item to their inventory tracking, use add_inventory_item.
+39. When a user asks about pending approvals or orders needing sign-off, use get_pending_approvals.
+40. When a user wants to approve an order, use approve_order. When rejecting, use reject_order. Both require OWNER or MANAGER role.
+41. When a user asks about their price alerts or monitoring, use get_price_alerts. To remove one, use delete_price_alert.
+42. When a user asks about returns, quality issues, or refund requests, use get_returns. To file a new return, use create_return (order must be DELIVERED).
+43. When a user asks to export or download a report, use export_report (Professional feature).
+44. When a user asks to create a new menu item or add a dish, use create_menu_item. Include ingredients if provided.
+45. When a user asks to edit or update a menu item, use update_menu_item. Can find by name or ID.
+46. When a user asks to delete or remove a menu item, use delete_menu_item.
+47. When a user asks about their team, staff, or employees, use get_team_members.
+48. When a user asks to invite, update, or remove a team member, use manage_team_member.
+49. When a user asks to update their profile or restaurant info (address, phone, etc.), use update_restaurant_settings.
+50. When a user asks about their POS system or integration status, use get_pos_status.`;
 
   if (orgContext?.isOrgAdmin) {
     prompt += `

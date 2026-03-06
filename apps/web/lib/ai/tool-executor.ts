@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import { inngest } from "@/lib/inngest/client";
+import { sendEmail, emailTemplates } from "@/lib/email";
 import { type PlanTier, getToolTier, hasTier } from "@/lib/tier";
 import { generateOrderNumber } from "@/lib/order-number";
 
@@ -108,6 +109,36 @@ export async function executeTool(
         return await markNotificationsRead(input, context);
       case "schedule_order":
         return await scheduleOrder(input, context);
+      case "get_pending_approvals":
+        return await getPendingApprovals(input, context);
+      case "approve_order":
+        return await approveOrder(input, context);
+      case "reject_order":
+        return await rejectOrder(input, context);
+      case "get_price_alerts":
+        return await getPriceAlerts(input, context);
+      case "delete_price_alert":
+        return await deletePriceAlert(input, context);
+      case "get_returns":
+        return await getReturns(input, context);
+      case "create_return":
+        return await createReturn(input, context);
+      case "export_report":
+        return await exportReport(input, context);
+      case "create_menu_item":
+        return await createMenuItem(input, context);
+      case "update_menu_item":
+        return await updateMenuItem(input, context);
+      case "delete_menu_item":
+        return await deleteMenuItem(input, context);
+      case "get_team_members":
+        return await getTeamMembers(input, context);
+      case "manage_team_member":
+        return await manageTeamMember(input, context);
+      case "update_restaurant_settings":
+        return await updateRestaurantSettings(input, context);
+      case "get_pos_status":
+        return await getPosStatus(input, context);
       default:
         return { error: `Unknown tool: ${name}` };
     }
@@ -4036,5 +4067,734 @@ async function scheduleOrder(
     message: updatedOrder.status === "AWAITING_APPROVAL"
       ? `Order ${updatedOrder.orderNumber} scheduled for ${deliveryDate.toISOString().split("T")[0]} and requires approval.`
       : `Order ${updatedOrder.orderNumber} scheduled for delivery on ${deliveryDate.toISOString().split("T")[0]} and submitted.`,
+  };
+}
+
+// ─── Batch 1: Approvals, Price Alerts, Returns ─────────────────────────────
+
+async function getPendingApprovals(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can view pending approvals." };
+  }
+
+  const orders = await prisma.order.findMany({
+    where: { restaurantId: context.restaurantId, status: "AWAITING_APPROVAL" },
+    include: {
+      supplier: { select: { id: true, name: true } },
+      createdBy: { select: { id: true, firstName: true, lastName: true, email: true } },
+      approvals: {
+        where: { status: "PENDING" },
+        select: { id: true, createdAt: true, requestedBy: { select: { firstName: true, lastName: true } } },
+      },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    count: orders.length,
+    orders: orders.map((o) => ({
+      id: o.id,
+      orderNumber: o.orderNumber,
+      supplier: o.supplier.name,
+      requestedBy: `${o.createdBy?.firstName || ""} ${o.createdBy?.lastName || ""}`.trim(),
+      total: Number(o.total),
+      itemCount: 0, // items not included for speed
+      createdAt: o.createdAt.toISOString(),
+      approval: o.approvals[0] || null,
+    })),
+  };
+}
+
+async function approveOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can approve orders." };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findFirst({
+      where: { id: input.order_id, restaurantId: context.restaurantId, status: "AWAITING_APPROVAL" },
+      include: { supplier: true, restaurant: true },
+    });
+    if (!order) return { error: "Order not found or not awaiting approval." };
+
+    const approval = await tx.orderApproval.findFirst({
+      where: { orderId: order.id, status: "PENDING" },
+      include: { requestedBy: true },
+    });
+    if (!approval) return { error: "No pending approval found for this order." };
+
+    await tx.orderApproval.update({
+      where: { id: approval.id },
+      data: { status: "APPROVED", notes: input.notes || null, reviewedById: context.userId, reviewedAt: new Date() },
+    });
+
+    const deliveryDate = new Date();
+    deliveryDate.setDate(deliveryDate.getDate() + (order.supplier.leadTimeDays || 1));
+
+    const updatedOrder = await tx.order.update({
+      where: { id: order.id },
+      data: { status: "PENDING", deliveryDate: order.deliveryDate || deliveryDate },
+    });
+
+    await tx.notification.create({
+      data: {
+        type: "ORDER_UPDATE",
+        title: "Order Approved",
+        message: `Order ${order.orderNumber} has been approved.`,
+        userId: approval.requestedById,
+      },
+    });
+
+    return { order, updatedOrder, approval };
+  });
+
+  if ("error" in result) return result;
+
+  const { order, approval } = result;
+  const reviewerName = `${(await prisma.user.findUnique({ where: { id: context.userId }, select: { firstName: true, lastName: true } }))?.firstName || ""} ${(await prisma.user.findUnique({ where: { id: context.userId }, select: { firstName: true, lastName: true } }))?.lastName || ""}`.trim();
+
+  // Fire-and-forget emails
+  const orderPlacedEmail = emailTemplates.orderPlaced(order.orderNumber, order.restaurant.name, Number(order.total));
+  sendEmail({ to: order.supplier.email || "", subject: orderPlacedEmail.subject, html: orderPlacedEmail.html });
+
+  if (approval.requestedBy?.email) {
+    const decisionEmail = emailTemplates.approvalDecision(order.orderNumber, "APPROVED", reviewerName, input.notes);
+    sendEmail({ to: approval.requestedBy.email, subject: decisionEmail.subject, html: decisionEmail.html });
+  }
+
+  return {
+    success: true,
+    order: { id: order.id, orderNumber: order.orderNumber, status: "PENDING", total: Number(order.total) },
+    message: `Order ${order.orderNumber} approved and moved to PENDING status.`,
+  };
+}
+
+async function rejectOrder(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can reject orders." };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const order = await tx.order.findFirst({
+      where: { id: input.order_id, restaurantId: context.restaurantId, status: "AWAITING_APPROVAL" },
+      include: { restaurant: true },
+    });
+    if (!order) return { error: "Order not found or not awaiting approval." };
+
+    const approval = await tx.orderApproval.findFirst({
+      where: { orderId: order.id, status: "PENDING" },
+      include: { requestedBy: true },
+    });
+    if (!approval) return { error: "No pending approval found for this order." };
+
+    await tx.orderApproval.update({
+      where: { id: approval.id },
+      data: { status: "REJECTED", notes: input.notes || null, reviewedById: context.userId, reviewedAt: new Date() },
+    });
+
+    await tx.order.update({
+      where: { id: order.id },
+      data: { status: "DRAFT" },
+    });
+
+    await tx.notification.create({
+      data: {
+        type: "ORDER_UPDATE",
+        title: "Order Rejected",
+        message: `Order ${order.orderNumber} has been rejected.${input.notes ? ` Reason: ${input.notes}` : ""}`,
+        userId: approval.requestedById,
+      },
+    });
+
+    return { order, approval };
+  });
+
+  if ("error" in result) return result;
+
+  const { order, approval } = result;
+  const reviewer = await prisma.user.findUnique({ where: { id: context.userId }, select: { firstName: true, lastName: true } });
+  const reviewerName = `${reviewer?.firstName || ""} ${reviewer?.lastName || ""}`.trim();
+
+  if (approval.requestedBy?.email) {
+    const decisionEmail = emailTemplates.approvalDecision(order.orderNumber, "REJECTED", reviewerName, input.notes);
+    sendEmail({ to: approval.requestedBy.email, subject: decisionEmail.subject, html: decisionEmail.html });
+  }
+
+  return {
+    success: true,
+    order: { id: order.id, orderNumber: order.orderNumber, status: "DRAFT" },
+    message: `Order ${order.orderNumber} rejected and returned to DRAFT status.`,
+  };
+}
+
+async function getPriceAlerts(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  const alerts = await prisma.priceAlert.findMany({
+    where: { userId: context.userId },
+    include: {
+      product: {
+        include: { supplier: { select: { id: true, name: true } } },
+      },
+    },
+    take: 100,
+  });
+
+  return {
+    count: alerts.length,
+    alerts: alerts.map((a) => ({
+      id: a.id,
+      alertType: a.alertType,
+      targetPrice: Number(a.targetPrice),
+      isActive: a.isActive,
+      triggeredAt: a.triggeredAt?.toISOString() || null,
+      triggeredPrice: a.triggeredPrice ? Number(a.triggeredPrice) : null,
+      product: {
+        id: a.product.id,
+        name: a.product.name,
+        currentPrice: Number(a.product.price),
+        supplier: a.product.supplier.name,
+      },
+      createdAt: a.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function deletePriceAlert(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const alert = await prisma.priceAlert.findFirst({
+    where: { id: input.alert_id, userId: context.userId },
+    include: { product: { select: { name: true } } },
+  });
+  if (!alert) return { error: "Price alert not found or does not belong to you." };
+
+  await prisma.priceAlert.delete({ where: { id: alert.id } });
+
+  return {
+    success: true,
+    message: `Price alert for "${alert.product.name}" deleted.`,
+  };
+}
+
+async function getReturns(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const where: any = { order: { restaurantId: context.restaurantId } };
+  if (input.status) where.status = input.status;
+
+  const returns = await prisma.returnRequest.findMany({
+    where,
+    include: {
+      order: { select: { id: true, orderNumber: true, supplier: { select: { id: true, name: true } } } },
+      createdBy: { select: { id: true, firstName: true, lastName: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return {
+    count: returns.length,
+    returns: returns.map((r) => ({
+      id: r.id,
+      returnNumber: r.returnNumber,
+      type: r.type,
+      status: r.status,
+      reason: r.reason,
+      creditAmount: r.creditAmount ? Number(r.creditAmount) : null,
+      order: { id: r.order.id, orderNumber: r.order.orderNumber, supplier: r.order.supplier.name },
+      createdBy: `${r.createdBy.firstName || ""} ${r.createdBy.lastName || ""}`.trim(),
+      createdAt: r.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function createReturn(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const order = await prisma.order.findFirst({
+    where: { id: input.order_id, restaurantId: context.restaurantId },
+    include: { supplier: true },
+  });
+  if (!order) return { error: "Order not found or does not belong to your restaurant." };
+  if (order.status !== "DELIVERED") return { error: `Order status is ${order.status}. Only DELIVERED orders can have returns.` };
+
+  // Generate return number
+  const lastReturn = await prisma.returnRequest.findFirst({
+    orderBy: { returnNumber: "desc" },
+    select: { returnNumber: true },
+  });
+  let nextNum = 1;
+  if (lastReturn?.returnNumber) {
+    const match = lastReturn.returnNumber.match(/RET-(\d+)/);
+    if (match) nextNum = parseInt(match[1], 10) + 1;
+  }
+  const returnNumber = `RET-${String(nextNum).padStart(5, "0")}`;
+
+  const returnRequest = await prisma.returnRequest.create({
+    data: {
+      returnNumber,
+      type: input.type,
+      reason: input.reason,
+      items: input.items || undefined,
+      orderId: order.id,
+      createdById: context.userId,
+    },
+  });
+
+  inngest.send({
+    name: "return/status.changed",
+    data: {
+      returnId: returnRequest.id,
+      orderId: order.id,
+      previousStatus: "",
+      newStatus: "PENDING",
+      restaurantId: context.restaurantId,
+      supplierId: order.supplierId,
+    },
+  }).catch(() => {});
+
+  return {
+    success: true,
+    returnRequest: {
+      id: returnRequest.id,
+      returnNumber: returnRequest.returnNumber,
+      type: returnRequest.type,
+      status: returnRequest.status,
+    },
+    message: `Return request ${returnNumber} created for order ${order.orderNumber}.`,
+  };
+}
+
+// ─── Batch 2: Reports, Menu, Team, Settings ────────────────────────────────
+
+async function exportReport(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can export reports." };
+  }
+
+  const days = input.time_range || 30;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  if (input.type === "spending") {
+    const orders = await prisma.order.findMany({
+      where: {
+        restaurantId: context.restaurantId,
+        status: { in: ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "IN_TRANSIT", "DELIVERED"] },
+        createdAt: { gte: startDate },
+      },
+      include: { supplier: { select: { name: true } } },
+      take: 500,
+    });
+
+    const totalSpend = orders.reduce((sum, o) => sum + Number(o.total), 0);
+    const bySupplier: Record<string, number> = {};
+    for (const o of orders) {
+      bySupplier[o.supplier.name] = (bySupplier[o.supplier.name] || 0) + Number(o.total);
+    }
+
+    return {
+      type: "spending",
+      period: `Last ${days} days`,
+      totalOrders: orders.length,
+      totalSpend,
+      bySupplier: Object.entries(bySupplier).map(([name, total]) => ({ supplier: name, total })),
+    };
+  }
+
+  if (input.type === "orders") {
+    const orders = await prisma.order.findMany({
+      where: { restaurantId: context.restaurantId, createdAt: { gte: startDate } },
+      include: {
+        supplier: { select: { name: true } },
+        items: { include: { product: { select: { name: true, category: true } } } },
+      },
+      take: 500,
+    });
+
+    return {
+      type: "orders",
+      period: `Last ${days} days`,
+      totalOrders: orders.length,
+      orders: orders.map((o) => ({
+        orderNumber: o.orderNumber,
+        status: o.status,
+        supplier: o.supplier.name,
+        total: Number(o.total),
+        itemCount: o.items.length,
+        createdAt: o.createdAt.toISOString(),
+      })),
+    };
+  }
+
+  if (input.type === "suppliers") {
+    const suppliers = await prisma.supplier.findMany({
+      where: { orders: { some: { restaurantId: context.restaurantId } } },
+      include: {
+        _count: { select: { orders: { where: { restaurantId: context.restaurantId } } } },
+        orders: {
+          where: { restaurantId: context.restaurantId, createdAt: { gte: startDate } },
+          select: { total: true },
+        },
+      },
+      take: 100,
+    });
+
+    return {
+      type: "suppliers",
+      period: `Last ${days} days`,
+      suppliers: suppliers.map((s) => ({
+        name: s.name,
+        totalOrders: s._count.orders,
+        totalSpend: s.orders.reduce((sum, o) => sum + Number(o.total), 0),
+      })),
+    };
+  }
+
+  return { error: "Invalid report type. Use 'spending', 'orders', or 'suppliers'." };
+}
+
+const UNIT_MAP: Record<string, string> = {
+  pound: "POUND", lb: "POUND", lbs: "POUND",
+  ounce: "OUNCE", oz: "OUNCE",
+  kilogram: "KILOGRAM", kg: "KILOGRAM",
+  gram: "GRAM", g: "GRAM",
+  gallon: "GALLON", gal: "GALLON",
+  liter: "LITER", l: "LITER",
+  each: "EACH", ea: "EACH",
+  bunch: "BUNCH", case: "CASE",
+  dozen: "DOZEN", doz: "DOZEN",
+  box: "BOX", bag: "BAG",
+  quart: "QUART", qt: "QUART",
+  pint: "PINT", pt: "PINT",
+};
+
+function parseUnit(raw: string): string {
+  return UNIT_MAP[raw.toLowerCase().trim()] ?? "EACH";
+}
+
+async function createMenuItem(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can create menu items." };
+  }
+
+  const ingredients = (input.ingredients || []).map((ing: any) => ({
+    name: ing.name,
+    quantity: ing.quantity || 1,
+    unit: ing.unit ? parseUnit(ing.unit) : "EACH",
+    notes: ing.notes || null,
+  }));
+
+  const menuItem = await prisma.menuItem.create({
+    data: {
+      name: input.name,
+      price: input.price,
+      category: input.category || null,
+      description: input.description || null,
+      restaurantId: context.restaurantId,
+      ingredients: ingredients.length > 0 ? { create: ingredients } : undefined,
+    },
+    include: { ingredients: true },
+  });
+
+  return {
+    success: true,
+    menuItem: {
+      id: menuItem.id,
+      name: menuItem.name,
+      price: Number(menuItem.price),
+      category: menuItem.category,
+      ingredientCount: menuItem.ingredients.length,
+    },
+    message: `Menu item "${menuItem.name}" created at $${Number(menuItem.price).toFixed(2)}.`,
+  };
+}
+
+async function updateMenuItem(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can update menu items." };
+  }
+
+  let menuItem;
+  if (input.menu_item_id) {
+    menuItem = await prisma.menuItem.findFirst({
+      where: { id: input.menu_item_id, restaurantId: context.restaurantId },
+    });
+  } else if (input.menu_item_name) {
+    menuItem = await prisma.menuItem.findFirst({
+      where: { restaurantId: context.restaurantId, name: { contains: input.menu_item_name, mode: "insensitive" } },
+    });
+  }
+  if (!menuItem) return { error: "Menu item not found." };
+
+  const updateData: any = {};
+  if (input.name !== undefined) updateData.name = input.name;
+  if (input.price !== undefined) updateData.price = input.price;
+  if (input.category !== undefined) updateData.category = input.category;
+  if (input.description !== undefined) updateData.description = input.description;
+  if (input.is_active !== undefined) updateData.isActive = input.is_active;
+
+  const updated = await prisma.menuItem.update({
+    where: { id: menuItem.id },
+    data: updateData,
+  });
+
+  return {
+    success: true,
+    menuItem: {
+      id: updated.id,
+      name: updated.name,
+      price: Number(updated.price),
+      category: updated.category,
+      isActive: updated.isActive,
+    },
+    message: `Menu item "${updated.name}" updated.`,
+  };
+}
+
+async function deleteMenuItem(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can delete menu items." };
+  }
+
+  let menuItem;
+  if (input.menu_item_id) {
+    menuItem = await prisma.menuItem.findFirst({
+      where: { id: input.menu_item_id, restaurantId: context.restaurantId },
+    });
+  } else if (input.menu_item_name) {
+    menuItem = await prisma.menuItem.findFirst({
+      where: { restaurantId: context.restaurantId, name: { contains: input.menu_item_name, mode: "insensitive" } },
+    });
+  }
+  if (!menuItem) return { error: "Menu item not found." };
+
+  await prisma.menuItem.delete({ where: { id: menuItem.id } });
+
+  return {
+    success: true,
+    message: `Menu item "${menuItem.name}" deleted.`,
+  };
+}
+
+async function getTeamMembers(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can view team members." };
+  }
+
+  const members = await prisma.user.findMany({
+    where: { restaurantId: context.restaurantId, role: { in: ["OWNER", "MANAGER", "STAFF"] } },
+    select: { id: true, firstName: true, lastName: true, email: true, phone: true, role: true, clerkId: true, createdAt: true },
+    orderBy: { createdAt: "asc" },
+  });
+
+  return {
+    count: members.length,
+    members: members.map((m) => ({
+      id: m.id,
+      name: `${m.firstName || ""} ${m.lastName || ""}`.trim(),
+      email: m.email,
+      phone: m.phone,
+      role: m.role,
+      isPending: m.clerkId.startsWith("staff_pending_"),
+      joinedAt: m.createdAt.toISOString(),
+    })),
+  };
+}
+
+async function manageTeamMember(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can manage team members." };
+  }
+
+  if (input.action === "invite") {
+    if (!input.email) return { error: "Email is required to invite a team member." };
+
+    const existing = await prisma.user.findUnique({ where: { email: input.email } });
+    if (existing?.restaurantId === context.restaurantId) {
+      return { error: "This user is already a member of your restaurant." };
+    }
+    if (existing?.restaurantId) {
+      return { error: "This user belongs to another restaurant." };
+    }
+
+    const role = input.role || "STAFF";
+    const newMember = await prisma.user.create({
+      data: {
+        clerkId: `staff_pending_${crypto.randomUUID()}`,
+        email: input.email,
+        firstName: input.first_name || null,
+        lastName: input.last_name || null,
+        role,
+        restaurantId: context.restaurantId,
+      },
+    });
+
+    // Send invitation email
+    const inviter = await prisma.user.findUnique({ where: { id: context.userId }, select: { firstName: true, lastName: true } });
+    const restaurant = await prisma.restaurant.findUnique({ where: { id: context.restaurantId }, select: { name: true } });
+    const inviterName = `${inviter?.firstName || ""} ${inviter?.lastName || ""}`.trim();
+    const template = emailTemplates.staffInvitation(input.first_name || "Team Member", restaurant?.name || "", role, inviterName);
+    sendEmail({ to: input.email, subject: template.subject, html: template.html });
+
+    return {
+      success: true,
+      member: { id: newMember.id, email: newMember.email, role: newMember.role },
+      message: `Invitation sent to ${input.email} as ${role}.`,
+    };
+  }
+
+  if (input.action === "update") {
+    if (!input.member_id) return { error: "member_id is required to update a team member." };
+
+    const member = await prisma.user.findFirst({
+      where: { id: input.member_id, restaurantId: context.restaurantId },
+    });
+    if (!member) return { error: "Team member not found." };
+    if (member.role === "OWNER") return { error: "Cannot modify the owner's role." };
+    if (input.role === "MANAGER" && context.userRole !== "OWNER") {
+      return { error: "Only the owner can promote to MANAGER." };
+    }
+
+    const updateData: any = {};
+    if (input.first_name !== undefined) updateData.firstName = input.first_name;
+    if (input.last_name !== undefined) updateData.lastName = input.last_name;
+    if (input.role !== undefined) updateData.role = input.role;
+
+    const updated = await prisma.user.update({ where: { id: member.id }, data: updateData });
+
+    return {
+      success: true,
+      member: { id: updated.id, name: `${updated.firstName || ""} ${updated.lastName || ""}`.trim(), role: updated.role },
+      message: `Team member updated.`,
+    };
+  }
+
+  if (input.action === "remove") {
+    if (!input.member_id) return { error: "member_id is required to remove a team member." };
+
+    const member = await prisma.user.findFirst({
+      where: { id: input.member_id, restaurantId: context.restaurantId },
+    });
+    if (!member) return { error: "Team member not found." };
+    if (member.role === "OWNER") return { error: "Cannot remove the owner." };
+    if (member.id === context.userId) return { error: "Cannot remove yourself." };
+
+    await prisma.user.update({ where: { id: member.id }, data: { restaurantId: null, role: "STAFF" } });
+
+    return {
+      success: true,
+      message: `${member.firstName || member.email} has been removed from the team.`,
+    };
+  }
+
+  return { error: "Invalid action. Use 'invite', 'update', or 'remove'." };
+}
+
+async function updateRestaurantSettings(
+  input: Record<string, any>,
+  context: ToolContext
+) {
+  const data = input.data || {};
+
+  if (input.section === "profile") {
+    const updateData: any = {};
+    if (data.firstName !== undefined) updateData.firstName = data.firstName;
+    if (data.lastName !== undefined) updateData.lastName = data.lastName;
+
+    const updated = await prisma.user.update({ where: { id: context.userId }, data: updateData });
+    return {
+      success: true,
+      message: `Profile updated.`,
+      profile: { firstName: updated.firstName, lastName: updated.lastName },
+    };
+  }
+
+  if (input.section === "restaurant") {
+    if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+      return { error: "Only owners and managers can update restaurant settings." };
+    }
+
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.address !== undefined) updateData.address = data.address;
+    if (data.city !== undefined) updateData.city = data.city;
+    if (data.state !== undefined) updateData.state = data.state;
+    if (data.zipCode !== undefined) updateData.zipCode = data.zipCode;
+    if (data.phone !== undefined) updateData.phone = data.phone;
+    if (data.website !== undefined) updateData.website = data.website;
+
+    const updated = await prisma.restaurant.update({
+      where: { id: context.restaurantId },
+      data: updateData,
+    });
+
+    return {
+      success: true,
+      message: `Restaurant settings updated.`,
+      restaurant: { name: updated.name, address: updated.address, city: updated.city, state: updated.state, zipCode: updated.zipCode },
+    };
+  }
+
+  return { error: "Invalid section. Use 'profile' or 'restaurant'." };
+}
+
+async function getPosStatus(
+  _input: Record<string, any>,
+  context: ToolContext
+) {
+  if (!["OWNER", "MANAGER"].includes(context.userRole)) {
+    return { error: "Only owners and managers can view POS integration status." };
+  }
+
+  const integration = await prisma.pOSIntegration.findUnique({
+    where: { restaurantId: context.restaurantId },
+  });
+
+  if (!integration) {
+    return { connected: false, message: "No POS integration configured." };
+  }
+
+  return {
+    connected: true,
+    integration: {
+      id: integration.id,
+      provider: integration.provider,
+      storeId: integration.storeId,
+      isActive: integration.isActive,
+      lastSyncAt: integration.lastSyncAt?.toISOString() || null,
+      lastSyncError: integration.lastSyncError,
+    },
   };
 }
