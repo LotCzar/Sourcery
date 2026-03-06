@@ -168,7 +168,7 @@ export default function OrdersPage() {
   // Dialog states
   const [confirmDialog, setConfirmDialog] = useState<{
     open: boolean;
-    type: "submit" | "cancel" | "delete" | "reorder" | "confirm" | "ship" | "deliver" | null;
+    type: "submit" | "cancel" | "delete" | "reorder" | null;
     orderId: string | null;
     orderNumber: string | null;
   }>({ open: false, type: null, orderId: null, orderNumber: null });
@@ -194,7 +194,7 @@ export default function OrdersPage() {
 
   const handleOrderAction = async (
     orderId: string,
-    action: "submit" | "cancel" | "delete" | "reorder" | "confirm" | "ship" | "deliver"
+    action: "submit" | "cancel" | "delete" | "reorder"
   ) => {
     try {
       if (action === "delete") {
@@ -210,7 +210,7 @@ export default function OrdersPage() {
   };
 
   const openConfirmDialog = (
-    type: "submit" | "cancel" | "delete" | "reorder" | "confirm" | "ship" | "deliver",
+    type: "submit" | "cancel" | "delete" | "reorder",
     orderId: string,
     orderNumber: string
   ) => {
@@ -535,56 +535,14 @@ export default function OrdersPage() {
                         </>
                       )}
                       {order.status === "PENDING" && (
-                        <>
-                          <Button
-                            size="sm"
-                            onClick={() => openConfirmDialog("confirm", order.id, order.orderNumber)}
-                            disabled={isActionLoading}
-                          >
-                            {isActionLoading ? (
-                              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                            ) : (
-                              <CheckCircle className="mr-1 h-4 w-4" />
-                            )}
-                            Confirm
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => openConfirmDialog("cancel", order.id, order.orderNumber)}
-                            disabled={isActionLoading}
-                          >
-                            <XCircle className="mr-1 h-4 w-4" />
-                            Cancel
-                          </Button>
-                        </>
-                      )}
-                      {order.status === "CONFIRMED" && (
                         <Button
                           size="sm"
-                          onClick={() => openConfirmDialog("ship", order.id, order.orderNumber)}
+                          variant="outline"
+                          onClick={() => openConfirmDialog("cancel", order.id, order.orderNumber)}
                           disabled={isActionLoading}
                         >
-                          {isActionLoading ? (
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          ) : (
-                            <Truck className="mr-1 h-4 w-4" />
-                          )}
-                          Mark Shipped
-                        </Button>
-                      )}
-                      {order.status === "SHIPPED" && (
-                        <Button
-                          size="sm"
-                          onClick={() => openConfirmDialog("deliver", order.id, order.orderNumber)}
-                          disabled={isActionLoading}
-                        >
-                          {isActionLoading ? (
-                            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-                          ) : (
-                            <CheckCircle className="mr-1 h-4 w-4" />
-                          )}
-                          Mark Delivered
+                          <XCircle className="mr-1 h-4 w-4" />
+                          Cancel
                         </Button>
                       )}
                       {["DELIVERED", "CANCELLED"].includes(order.status) && (
@@ -673,9 +631,6 @@ export default function OrdersPage() {
               {confirmDialog.type === "cancel" && "Cancel Order"}
               {confirmDialog.type === "delete" && "Delete Order"}
               {confirmDialog.type === "reorder" && "Reorder"}
-              {confirmDialog.type === "confirm" && "Confirm Order"}
-              {confirmDialog.type === "ship" && "Mark as Shipped"}
-              {confirmDialog.type === "deliver" && "Mark as Delivered"}
             </DialogTitle>
             <DialogDescription>
               {confirmDialog.type === "submit" && (
@@ -700,24 +655,6 @@ export default function OrdersPage() {
                 <>
                   Create a new draft order with the same items as <strong>{confirmDialog.orderNumber}</strong>?
                   Prices will be updated to current rates.
-                </>
-              )}
-              {confirmDialog.type === "confirm" && (
-                <>
-                  Confirm order <strong>{confirmDialog.orderNumber}</strong>?
-                  This marks the order as accepted by the supplier.
-                </>
-              )}
-              {confirmDialog.type === "ship" && (
-                <>
-                  Mark order <strong>{confirmDialog.orderNumber}</strong> as shipped?
-                  This indicates the order is in transit.
-                </>
-              )}
-              {confirmDialog.type === "deliver" && (
-                <>
-                  Mark order <strong>{confirmDialog.orderNumber}</strong> as delivered?
-                  This will complete the order.
                 </>
               )}
             </DialogDescription>
@@ -745,9 +682,6 @@ export default function OrdersPage() {
               {confirmDialog.type === "cancel" && "Cancel Order"}
               {confirmDialog.type === "delete" && "Delete Order"}
               {confirmDialog.type === "reorder" && "Create New Order"}
-              {confirmDialog.type === "confirm" && "Confirm Order"}
-              {confirmDialog.type === "ship" && "Mark Shipped"}
-              {confirmDialog.type === "deliver" && "Mark Delivered"}
             </Button>
           </DialogFooter>
         </DialogContent>

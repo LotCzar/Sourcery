@@ -6,6 +6,10 @@ import { useRealtimeOrders } from "@/hooks/use-realtime-orders";
 import { useRealtimeNotifications } from "@/hooks/use-realtime-notifications";
 import { useRealtimePriceAlerts } from "@/hooks/use-realtime-price-alerts";
 import { useRealtimeInventory } from "@/hooks/use-realtime-inventory";
+import { useRealtimeInvoices } from "@/hooks/use-realtime-invoices";
+import { useRealtimeApprovals } from "@/hooks/use-realtime-approvals";
+import { useRealtimeMessages } from "@/hooks/use-realtime-messages";
+import { useRealtimeReturns } from "@/hooks/use-realtime-returns";
 
 interface UserContext {
   userId: string;
@@ -26,6 +30,10 @@ export function RealtimeProvider() {
   useRealtimeNotifications(userId);
   useRealtimePriceAlerts(userId);
   useRealtimeInventory(restaurantId);
+  useRealtimeInvoices(restaurantId);
+  useRealtimeApprovals(!!restaurantId);
+  useRealtimeMessages(!!restaurantId);
+  useRealtimeReturns(!!restaurantId);
 
   return null;
 }

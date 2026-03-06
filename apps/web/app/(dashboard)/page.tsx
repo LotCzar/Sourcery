@@ -160,7 +160,11 @@ export default function DashboardPage() {
   }
 
   const data = result?.data;
-  if (!data) return null;
+  if (!data) return (
+    <Card><CardContent className="pt-6 text-center text-muted-foreground">
+      No dashboard data available. Try refreshing the page.
+    </CardContent></Card>
+  );
 
   return (
     <div className="space-y-6">

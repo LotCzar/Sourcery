@@ -281,12 +281,6 @@ export const MatchIngredientsSchema = z.object({
   ).min(1).max(200),
 });
 
-// AI Parse Menu
-export const ParseMenuSchema = z.object({
-  menuText: z.string().min(1, "Menu text is required").max(50000),
-  menuType: z.string().max(255).optional(),
-});
-
 // Settings
 export const SettingsSectionSchema = z.enum([
   "profile",

@@ -6,10 +6,12 @@ import { SupplierMobileNav } from "@/components/supplier/mobile-nav";
 import { SupplierChatSidebar } from "@/components/supplier/chat-sidebar";
 import { Toaster } from "@/components/ui/toaster";
 import { SupplierChatProvider } from "@/lib/supplier-chat-context";
+import { SupplierRealtimeProvider } from "@/components/supplier-realtime-provider";
 
 export function SupplierLayoutClient({ children }: { children: React.ReactNode }) {
   return (
     <SupplierChatProvider>
+      <SupplierRealtimeProvider />
       <div className="flex h-screen overflow-hidden">
         {/* Mobile Navigation */}
         <SupplierMobileNav />

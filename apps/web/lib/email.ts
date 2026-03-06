@@ -306,7 +306,7 @@ export const emailTemplates = {
         ` : ''}
         <p>If you believe this was in error or have additional information to provide, please contact our support team.</p>
         <div style="text-align: center; margin: 24px 0;">
-          <a href="mailto:support@freshsheet.ai" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Contact Support</a>
+          <a href="mailto:support@freshsheet.app" style="background: #1a1a1a; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; display: inline-block;">Contact Support</a>
         </div>
         <p style="color: #666; font-size: 14px; margin-top: 24px;">
           This email was sent by FreshSheet. Please do not reply to this email.

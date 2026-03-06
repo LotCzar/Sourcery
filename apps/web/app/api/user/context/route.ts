@@ -11,7 +11,10 @@ export async function GET() {
 
     const user = await prisma.user.findUnique({
       where: { clerkId },
-      include: { restaurant: { select: { id: true, planTier: true } } },
+      include: {
+        restaurant: { select: { id: true, planTier: true } },
+        supplier: { select: { id: true } },
+      },
     });
 
     if (!user) {
@@ -33,6 +36,7 @@ export async function GET() {
       data: {
         userId: user.id,
         restaurantId: user.restaurant?.id || null,
+        supplierId: user.supplier?.id || null,
         planTier: user.restaurant?.planTier || "STARTER",
         role: user.role,
         organizationId: user.organizationId || null,
