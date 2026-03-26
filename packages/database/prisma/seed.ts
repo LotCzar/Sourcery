@@ -1071,6 +1071,602 @@ async function main() {
       },
     });
     console.log("Created expired promotion: Free delivery over $300");
+
+    // ============================================================
+    // SUPPLIER-SIDE EXPANDED SEED DATA
+    // ============================================================
+
+    // --- 19. Additional Supplier Users ---
+    console.log("\nSeeding additional supplier users...");
+
+    const supplierUserDefs = [
+      // Ocean Harvest team
+      { clerkId: "seed_supplier_admin_oh", email: "dave.nguyen@oceanharvest.com", firstName: "Dave", lastName: "Nguyen", role: "SUPPLIER_ADMIN" as any, supplierId: oceanHarvest.id },
+      { clerkId: "seed_supplier_rep_oh", email: "anna.santos@oceanharvest.com", firstName: "Anna", lastName: "Santos", role: "SUPPLIER_REP" as any, supplierId: oceanHarvest.id },
+      { clerkId: "seed_driver_oh", email: "brian.kelly@oceanharvest.com", firstName: "Brian", lastName: "Kelly", role: "DRIVER" as any, supplierId: oceanHarvest.id },
+      // Premium Meats team
+      { clerkId: "seed_supplier_admin_pm", email: "carlos.rivera@premiummeats.com", firstName: "Carlos", lastName: "Rivera", role: "SUPPLIER_ADMIN" as any, supplierId: premiumMeats.id },
+      { clerkId: "seed_supplier_rep_pm", email: "diane.wu@premiummeats.com", firstName: "Diane", lastName: "Wu", role: "SUPPLIER_REP" as any, supplierId: premiumMeats.id },
+      { clerkId: "seed_driver_pm", email: "frank.martinez@premiummeats.com", firstName: "Frank", lastName: "Martinez", role: "DRIVER" as any, supplierId: premiumMeats.id },
+      // Dairy Direct team
+      { clerkId: "seed_supplier_admin_dd", email: "grace.kim@dairydirect.com", firstName: "Grace", lastName: "Kim", role: "SUPPLIER_ADMIN" as any, supplierId: dairyDirect.id },
+      { clerkId: "seed_supplier_rep_dd", email: "henry.patel@dairydirect.com", firstName: "Henry", lastName: "Patel", role: "SUPPLIER_REP" as any, supplierId: dairyDirect.id },
+      // Valley Produce team
+      { clerkId: "seed_supplier_admin_vp", email: "irene.cho@valleyproduce.net", firstName: "Irene", lastName: "Cho", role: "SUPPLIER_ADMIN" as any, supplierId: valleyProduce.id },
+      { clerkId: "seed_supplier_rep_vp", email: "jack.thompson@valleyproduce.net", firstName: "Jack", lastName: "Thompson", role: "SUPPLIER_REP" as any, supplierId: valleyProduce.id },
+    ];
+
+    const supplierUsers: Record<string, any> = {};
+    for (const u of supplierUserDefs) {
+      const existing = await prisma.user.findUnique({ where: { clerkId: u.clerkId } });
+      if (!existing) {
+        supplierUsers[u.clerkId] = await prisma.user.create({ data: u });
+        console.log(`Created supplier user: ${u.firstName} ${u.lastName}`);
+      } else {
+        supplierUsers[u.clerkId] = existing;
+        console.log(`Supplier user already exists: ${u.clerkId}`);
+      }
+    }
+
+    // --- 20. Delivery Zones for Other Suppliers ---
+    console.log("\nSeeding additional delivery zones...");
+    const additionalZones = [
+      // Ocean Harvest
+      { name: "Bay Area Waterfront", zipCodes: ["94102", "94103", "94105", "94107", "94111", "94133"], deliveryFee: 20, minimumOrder: 150, supplierId: oceanHarvest.id },
+      { name: "East Bay", zipCodes: ["94601", "94602", "94607", "94608", "94609", "94612"], deliveryFee: 30, minimumOrder: 200, supplierId: oceanHarvest.id },
+      { name: "South Bay", zipCodes: ["95110", "95112", "95113", "95125", "95126"], deliveryFee: 40, minimumOrder: 250, supplierId: oceanHarvest.id },
+      // Premium Meats
+      { name: "Central SF", zipCodes: ["94102", "94103", "94108", "94109"], deliveryFee: 25, minimumOrder: 200, supplierId: premiumMeats.id },
+      { name: "Oakland/Berkeley", zipCodes: ["94601", "94602", "94607", "94703", "94704"], deliveryFee: 30, minimumOrder: 250, supplierId: premiumMeats.id },
+      // Dairy Direct
+      { name: "North Bay", zipCodes: ["94901", "94903", "94941", "94945"], deliveryFee: 10, minimumOrder: 50, supplierId: dairyDirect.id },
+      { name: "SF Metro", zipCodes: ["94102", "94103", "94104", "94105", "94107", "94108", "94109", "94110"], deliveryFee: 15, minimumOrder: 75, supplierId: dairyDirect.id },
+      // Valley Produce
+      { name: "Central Valley", zipCodes: ["93701", "93702", "93706", "93710", "93711"], deliveryFee: 15, minimumOrder: 75, supplierId: valleyProduce.id },
+      { name: "Bay Area Extended", zipCodes: ["94102", "94103", "94110", "94112", "94114", "94116", "94117", "94118", "94121", "94122"], deliveryFee: 25, minimumOrder: 100, supplierId: valleyProduce.id },
+    ];
+    for (const zone of additionalZones) {
+      const existing = await prisma.deliveryZone.findFirst({
+        where: { name: zone.name, supplierId: zone.supplierId },
+      });
+      if (!existing) {
+        await prisma.deliveryZone.create({ data: zone });
+        console.log(`Created delivery zone: ${zone.name}`);
+      }
+    }
+
+    // --- 21. Additional RestaurantSupplier Links ---
+    console.log("\nSeeding additional restaurant-supplier links...");
+    const artisanBakery = await prisma.supplier.findUnique({ where: { email: "wholesale@artisanbakery.com" } });
+    const globalSpice = await prisma.supplier.findUnique({ where: { email: "spices@globaltraders.com" } });
+    const bayAreaBev = await prisma.supplier.findUnique({ where: { email: "orders@bayareabev.com" } });
+
+    const additionalLinks = [
+      { restaurantId: goldenFork.id, supplierId: artisanBakery!.id, isPreferred: false, notes: "Bread & pastry supplier" },
+      { restaurantId: goldenFork.id, supplierId: globalSpice!.id, isPreferred: false, notes: "Spice & pantry staples" },
+      { restaurantId: goldenFork.id, supplierId: bayAreaBev!.id, isPreferred: false, notes: "Beverage supplier" },
+      { restaurantId: goldenFork.id, supplierId: valleyProduce.id, isPreferred: false, notes: "Backup produce" },
+      { restaurantId: bistroNouveau.id, supplierId: oceanHarvest.id, isPreferred: true, notes: "Primary seafood" },
+      { restaurantId: bistroNouveau.id, supplierId: dairyDirect.id, isPreferred: false, notes: "Dairy & eggs" },
+      { restaurantId: bistroNouveau.id, supplierId: premiumMeats.id, isPreferred: false, notes: "Meat supplier" },
+      { restaurantId: bistroNouveau.id, supplierId: artisanBakery!.id, isPreferred: true, notes: "Artisan bread for service" },
+      { restaurantId: bistroNouveau.id, supplierId: globalSpice!.id, isPreferred: false },
+    ];
+    for (const link of additionalLinks) {
+      const existing = await prisma.restaurantSupplier.findFirst({
+        where: { restaurantId: link.restaurantId, supplierId: link.supplierId },
+      });
+      if (!existing) {
+        await prisma.restaurantSupplier.create({ data: link });
+        console.log(`Linked restaurant → supplier (${link.notes ?? "no notes"})`);
+      }
+    }
+
+    // --- 22. Additional Orders from Bistro Nouveau (so suppliers see multiple customers) ---
+    console.log("\nSeeding Bistro Nouveau orders...");
+
+    const p_romaTomatoes = await getProduct("info@valleyproduce.net", "Roma Tomatoes");
+    const p_yellowOnions = await getProduct("info@valleyproduce.net", "Yellow Onions");
+    const p_celery = await getProduct("info@valleyproduce.net", "Celery");
+    const p_zucchini = await getProduct("info@valleyproduce.net", "Zucchini");
+    const p_sourdough = await getProduct("wholesale@artisanbakery.com", "Sourdough Bread");
+    const p_baguettes = await getProduct("wholesale@artisanbakery.com", "Baguettes");
+    const p_croissants = await getProduct("wholesale@artisanbakery.com", "Croissants");
+    const p_coffee = await getProduct("orders@bayareabev.com", "Coffee Beans");
+    const p_sparklingWater = await getProduct("orders@bayareabev.com", "Sparkling Water");
+    const p_blackPepper = await getProduct("spices@globaltraders.com", "Black Pepper");
+    const p_oliveOil = await getProduct("spices@globaltraders.com", "Olive Oil Extra Virgin");
+    const p_balsamicVinegar = await getProduct("spices@globaltraders.com", "Balsamic Vinegar");
+    const p_porkTenderloin = await getProduct("orders@premiummeats.com", "Pork Tenderloin");
+    const p_lambChops = await getProduct("orders@premiummeats.com", "Lamb Chops");
+    const p_duckBreast = await getProduct("orders@premiummeats.com", "Duck Breast");
+    const p_wholeMilk = await getProduct("hello@dairydirect.com", "Whole Milk");
+    const p_creamCheese = await getProduct("hello@dairydirect.com", "Cream Cheese");
+    const p_greekYogurt = await getProduct("hello@dairydirect.com", "Greek Yogurt");
+    const p_lobsterTail = await getProduct("sales@oceanharvest.com", "Lobster Tail");
+    const p_seaScallops = await getProduct("sales@oceanharvest.com", "Sea Scallops");
+    const p_freshTuna = await getProduct("sales@oceanharvest.com", "Fresh Tuna Steak");
+    const p_mussels = await getProduct("sales@oceanharvest.com", "Mussels");
+
+    const emmaDavis = users["seed_owner_2"];
+    const jamesBrown = users["seed_manager_2"];
+
+    const bistroOrderDefs: Array<{
+      orderNumber: string; status: string; supplierId: string;
+      createdById: string; deliveryDate: Date | null; deliveredAt: Date | null;
+      deliveryNotes: string | null; driverId: string | null; createdAt: Date;
+      items: Array<{ productId: string; quantity: number; unitPrice: number }>;
+    }> = [
+      {
+        orderNumber: "ORD-20001", status: "DELIVERED", supplierId: freshFarms.id,
+        createdById: emmaDavis.id, deliveryDate: daysAgo(10), deliveredAt: daysAgo(9),
+        deliveryNotes: "Delivered — all items fresh", driverId: mikeJohnson.id, createdAt: daysAgo(12),
+        items: [
+          { productId: p_mixedGreens.id, quantity: 10, unitPrice: 4.99 },
+          { productId: p_tomatoes.id, quantity: 8, unitPrice: 5.99 },
+          { productId: p_basil.id, quantity: 4, unitPrice: 2.99 },
+          { productId: p_mushrooms.id, quantity: 5, unitPrice: 5.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20002", status: "DELIVERED", supplierId: oceanHarvest.id,
+        createdById: jamesBrown.id, deliveryDate: daysAgo(8), deliveredAt: daysAgo(7),
+        deliveryNotes: "Keep on ice", driverId: supplierUsers["seed_driver_oh"]?.id ?? null, createdAt: daysAgo(10),
+        items: [
+          { productId: p_lobsterTail.id, quantity: 6, unitPrice: 29.99 },
+          { productId: p_seaScallops.id, quantity: 4, unitPrice: 22.99 },
+          { productId: p_freshTuna.id, quantity: 5, unitPrice: 18.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20003", status: "CONFIRMED", supplierId: premiumMeats.id,
+        createdById: emmaDavis.id, deliveryDate: daysAgo(-1), deliveredAt: null,
+        deliveryNotes: "French service cuts please", driverId: null, createdAt: daysAgo(2),
+        items: [
+          { productId: p_duckBreast.id, quantity: 8, unitPrice: 16.99 },
+          { productId: p_lambChops.id, quantity: 6, unitPrice: 19.99 },
+          { productId: p_porkTenderloin.id, quantity: 5, unitPrice: 8.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20004", status: "PENDING", supplierId: dairyDirect.id,
+        createdById: jamesBrown.id, deliveryDate: daysAgo(-2), deliveredAt: null,
+        deliveryNotes: "Temperature-sensitive — morning delivery preferred", driverId: null, createdAt: daysAgo(1),
+        items: [
+          { productId: p_cream.id, quantity: 6, unitPrice: 5.99 },
+          { productId: p_wholeMilk.id, quantity: 4, unitPrice: 4.49 },
+          { productId: p_creamCheese.id, quantity: 3, unitPrice: 4.99 },
+          { productId: p_greekYogurt.id, quantity: 5, unitPrice: 5.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20005", status: "DELIVERED", supplierId: artisanBakery!.id,
+        createdById: emmaDavis.id, deliveryDate: daysAgo(5), deliveredAt: daysAgo(4),
+        deliveryNotes: "Leave at back door — early AM delivery", driverId: null, createdAt: daysAgo(7),
+        items: [
+          { productId: p_sourdough.id, quantity: 10, unitPrice: 4.99 },
+          { productId: p_baguettes.id, quantity: 15, unitPrice: 3.49 },
+          { productId: p_croissants.id, quantity: 3, unitPrice: 18.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20006", status: "IN_TRANSIT", supplierId: globalSpice!.id,
+        createdById: jamesBrown.id, deliveryDate: now, deliveredAt: null,
+        deliveryNotes: "Pantry restock — bulk order", driverId: null, createdAt: daysAgo(3),
+        items: [
+          { productId: p_blackPepper.id, quantity: 2, unitPrice: 8.99 },
+          { productId: p_oliveOil.id, quantity: 3, unitPrice: 14.99 },
+          { productId: p_balsamicVinegar.id, quantity: 2, unitPrice: 9.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20007", status: "PROCESSING", supplierId: bayAreaBev!.id,
+        createdById: emmaDavis.id, deliveryDate: daysAgo(-1), deliveredAt: null,
+        deliveryNotes: null, driverId: null, createdAt: daysAgo(2),
+        items: [
+          { productId: p_coffee.id, quantity: 5, unitPrice: 14.99 },
+          { productId: p_sparklingWater.id, quantity: 4, unitPrice: 24.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20008", status: "DELIVERED", supplierId: valleyProduce.id,
+        createdById: jamesBrown.id, deliveryDate: daysAgo(6), deliveredAt: daysAgo(5),
+        deliveryNotes: null, driverId: null, createdAt: daysAgo(8),
+        items: [
+          { productId: p_romaTomatoes.id, quantity: 12, unitPrice: 3.99 },
+          { productId: p_yellowOnions.id, quantity: 10, unitPrice: 1.49 },
+          { productId: p_celery.id, quantity: 5, unitPrice: 2.49 },
+          { productId: p_zucchini.id, quantity: 8, unitPrice: 2.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20009", status: "DELIVERED", supplierId: oceanHarvest.id,
+        createdById: emmaDavis.id, deliveryDate: daysAgo(15), deliveredAt: daysAgo(14),
+        deliveryNotes: "Fresh catch order — excellent quality", driverId: supplierUsers["seed_driver_oh"]?.id ?? null, createdAt: daysAgo(17),
+        items: [
+          { productId: p_salmon.id, quantity: 8, unitPrice: 14.99 },
+          { productId: p_mussels.id, quantity: 6, unitPrice: 6.99 },
+          { productId: p_cod.id, quantity: 5, unitPrice: 12.99 },
+        ],
+      },
+      {
+        orderNumber: "ORD-20010", status: "DELIVERED", supplierId: freshFarms.id,
+        createdById: jamesBrown.id, deliveryDate: daysAgo(20), deliveredAt: daysAgo(19),
+        deliveryNotes: null, driverId: mikeJohnson.id, createdAt: daysAgo(22),
+        items: [
+          { productId: p_spinach.id, quantity: 8, unitPrice: 6.99 },
+          { productId: p_carrots.id, quantity: 10, unitPrice: 3.49 },
+          { productId: p_tomatoes.id, quantity: 12, unitPrice: 5.99 },
+        ],
+      },
+    ];
+
+    for (const od of bistroOrderDefs) {
+      const subtotal = od.items.reduce((sum, i) => sum + i.quantity * i.unitPrice, 0);
+      const tax = Math.round(subtotal * 0.0875 * 100) / 100;
+      const deliveryFee = 25;
+      const total = Math.round((subtotal + tax + deliveryFee) * 100) / 100;
+
+      await prisma.order.create({
+        data: {
+          orderNumber: od.orderNumber,
+          status: od.status as any,
+          subtotal, tax, deliveryFee, discount: 0, total,
+          deliveryDate: od.deliveryDate,
+          deliveredAt: od.deliveredAt,
+          deliveryNotes: od.deliveryNotes,
+          restaurantId: bistroNouveau.id,
+          supplierId: od.supplierId,
+          createdById: od.createdById,
+          driverId: od.driverId,
+          createdAt: od.createdAt,
+          items: {
+            create: od.items.map((i) => ({
+              productId: i.productId,
+              quantity: i.quantity,
+              unitPrice: i.unitPrice,
+              subtotal: Math.round(i.quantity * i.unitPrice * 100) / 100,
+            })),
+          },
+        },
+      });
+      console.log(`Created Bistro order: ${od.orderNumber} (${od.status})`);
+    }
+
+    // --- 23. Invoices for Bistro Nouveau orders ---
+    console.log("\nSeeding Bistro Nouveau invoices...");
+
+    const bistroOrders = await prisma.order.findMany({
+      where: { orderNumber: { in: ["ORD-20001", "ORD-20002", "ORD-20005", "ORD-20008", "ORD-20009", "ORD-20010"] } },
+    });
+
+    const bistroInvoiceDefs = [
+      { orderNumber: "ORD-20001", invoiceNumber: "INV-20010", status: "PAID" as const, paidAt: daysAgo(7), paymentMethod: "CREDIT_CARD" as const, paymentReference: "TXN-FF-20001" },
+      { orderNumber: "ORD-20002", invoiceNumber: "INV-20011", status: "PAID" as const, paidAt: daysAgo(5), paymentMethod: "BANK_TRANSFER" as const, paymentReference: "TXN-OH-20002" },
+      { orderNumber: "ORD-20005", invoiceNumber: "INV-20012", status: "PENDING" as const, paidAt: null, paymentMethod: null, paymentReference: null },
+      { orderNumber: "ORD-20008", invoiceNumber: "INV-20013", status: "PAID" as const, paidAt: daysAgo(3), paymentMethod: "BANK_TRANSFER" as const, paymentReference: "TXN-VP-20008" },
+      { orderNumber: "ORD-20009", invoiceNumber: "INV-20014", status: "PAID" as const, paidAt: daysAgo(12), paymentMethod: "CREDIT_CARD" as const, paymentReference: "TXN-OH-20009" },
+      { orderNumber: "ORD-20010", invoiceNumber: "INV-20015", status: "OVERDUE" as const, paidAt: null, paymentMethod: null, paymentReference: null },
+    ];
+
+    for (const inv of bistroInvoiceDefs) {
+      const order = bistroOrders.find((o) => o.orderNumber === inv.orderNumber);
+      if (!order) continue;
+      const existing = await prisma.invoice.findFirst({ where: { invoiceNumber: inv.invoiceNumber } });
+      if (!existing) {
+        await prisma.invoice.create({
+          data: {
+            invoiceNumber: inv.invoiceNumber,
+            status: inv.status as any,
+            subtotal: Number(order.subtotal),
+            tax: Number(order.tax),
+            total: Number(order.total),
+            dueDate: inv.status === "OVERDUE" ? daysAgo(5) : daysAgo(-14),
+            paidAt: inv.paidAt,
+            paidAmount: inv.paidAt ? Number(order.total) : null,
+            paymentMethod: inv.paymentMethod as any,
+            paymentReference: inv.paymentReference,
+            restaurantId: bistroNouveau.id,
+            supplierId: order.supplierId,
+            orderId: order.id,
+          },
+        });
+        console.log(`Created invoice: ${inv.invoiceNumber} (${inv.status})`);
+      }
+    }
+
+    // --- 24. Supplier Insights ---
+    console.log("\nSeeding supplier insights...");
+
+    const insightDefs = [
+      // Fresh Farms insights
+      {
+        supplierId: freshFarms.id, type: "DEMAND_FORECAST", title: "Produce demand surge expected",
+        summary: "Based on historical ordering patterns, demand for leafy greens and tomatoes typically increases 25-30% in the next 2 weeks as restaurants update spring menus. Consider increasing stock levels for Mixed Greens, Baby Spinach, and Heirloom Tomatoes.",
+        data: { products: ["Organic Mixed Greens", "Baby Spinach", "Heirloom Tomatoes"], expectedIncrease: "25-30%", timeframe: "2 weeks", confidence: 0.85 },
+        status: "ACTIVE",
+      },
+      {
+        supplierId: freshFarms.id, type: "CUSTOMER_HEALTH", title: "Bistro Nouveau order frequency declining",
+        summary: "Bistro Nouveau has reduced order frequency from weekly to bi-weekly over the past month. Their last order was 10 days ago compared to their usual 7-day cycle. Consider reaching out to check on their satisfaction.",
+        data: { restaurant: "Bistro Nouveau", previousCadence: "7 days", currentCadence: "14 days", riskLevel: "MEDIUM", lastOrderDaysAgo: 10 },
+        status: "ACTIVE",
+      },
+      {
+        supplierId: freshFarms.id, type: "PRICING_SUGGESTION", title: "Competitive pricing opportunity on mushrooms",
+        summary: "Your Mushrooms are priced at $5.99/lb while the market average is $5.49/lb. A 5% price reduction could increase order volume by an estimated 15% based on price elasticity analysis of similar products.",
+        data: { product: "Mushrooms", currentPrice: 5.99, marketAvg: 5.49, suggestedPrice: 5.69, estimatedVolumeIncrease: "15%" },
+        status: "ACTIVE",
+      },
+      // Ocean Harvest insights
+      {
+        supplierId: oceanHarvest.id, type: "DEMAND_FORECAST", title: "Weekend seafood demand peak",
+        summary: "Friday and Saturday orders historically account for 60% of weekly seafood volume. Salmon and Shrimp are the top sellers. Recommend pre-staging inventory for Thursday dispatch.",
+        data: { peakDays: ["Friday", "Saturday"], topProducts: ["Atlantic Salmon Fillet", "Jumbo Shrimp"], weekendShare: "60%", recommendation: "Pre-stage Thursday" },
+        status: "ACTIVE",
+      },
+      {
+        supplierId: oceanHarvest.id, type: "ANOMALY", title: "Unusual spike in lobster orders",
+        summary: "Lobster Tail orders jumped 150% this week compared to the 4-week average. This may be driven by seasonal menu changes at multiple restaurants. Monitor stock levels closely.",
+        data: { product: "Lobster Tail", increase: "150%", period: "this week vs 4-week avg", possibleCause: "seasonal menus" },
+        status: "ACTIVE",
+      },
+      // Premium Meats insights
+      {
+        supplierId: premiumMeats.id, type: "PRICING_SUGGESTION", title: "Premium cut bundling opportunity",
+        summary: "Restaurants that order Ribeye frequently also order Filet Mignon 78% of the time. Consider a premium steak bundle at a 5% discount to increase average order value.",
+        data: { products: ["USDA Prime Ribeye", "Filet Mignon"], correlation: 0.78, suggestedDiscount: "5%", estimatedAOVIncrease: "12%" },
+        status: "ACTIVE",
+      },
+      {
+        supplierId: premiumMeats.id, type: "CUSTOMER_HEALTH", title: "Golden Fork is a top customer at risk",
+        summary: "The Golden Fork has a pending order (ORD-10002) awaiting approval for 2 days. Their typical approval cycle is under 24 hours. This may indicate budget concerns or process changes.",
+        data: { restaurant: "The Golden Fork", pendingOrder: "ORD-10002", daysPending: 2, normalApprovalTime: "< 24 hours", riskLevel: "LOW" },
+        status: "ACTIVE",
+      },
+      // Dairy Direct insights
+      {
+        supplierId: dairyDirect.id, type: "DEMAND_FORECAST", title: "Brunch season approaching",
+        summary: "Egg and cream orders typically increase 40% during spring brunch season (April-May). Current stock levels may be insufficient. Recommend increasing inventory of Eggs, Heavy Cream, and Greek Yogurt.",
+        data: { season: "Spring brunch", expectedIncrease: "40%", products: ["Eggs", "Heavy Cream", "Greek Yogurt"], timeframe: "April-May" },
+        status: "ACTIVE",
+      },
+      {
+        supplierId: dairyDirect.id, type: "ESCALATION", title: "Pending order requires attention",
+        summary: "Order ORD-20004 from Bistro Nouveau has been in PENDING status for over 24 hours. The requested delivery date is approaching. Confirm or process the order promptly to meet the delivery window.",
+        data: { order: "ORD-20004", restaurant: "Bistro Nouveau", hoursPending: 28, deliveryDateApproaching: true },
+        status: "ACTIVE",
+      },
+      // Valley Produce insights
+      {
+        supplierId: valleyProduce.id, type: "PRICING_SUGGESTION", title: "Roma Tomatoes underpriced vs market",
+        summary: "Your Roma Tomatoes at $3.99/lb are 12% below market average ($4.49/lb). You can increase margin without impacting demand given your quality reputation and reliable delivery.",
+        data: { product: "Roma Tomatoes", currentPrice: 3.99, marketAvg: 4.49, suggestedPrice: 4.29, marginImprovement: "7.5%" },
+        status: "ACTIVE",
+      },
+    ];
+
+    for (const insight of insightDefs) {
+      const existing = await prisma.supplierInsight.findFirst({
+        where: { supplierId: insight.supplierId, title: insight.title },
+      });
+      if (!existing) {
+        await prisma.supplierInsight.create({
+          data: {
+            ...insight,
+            data: insight.data as any,
+            createdAt: daysAgo(Math.floor(Math.random() * 5)),
+            expiresAt: daysAgo(-14),
+          },
+        });
+        console.log(`Created insight: ${insight.title}`);
+      }
+    }
+
+    // --- 25. Additional Promotions ---
+    console.log("\nSeeding additional promotions...");
+
+    await prisma.promotion.create({
+      data: {
+        type: "PERCENTAGE_OFF" as any,
+        value: 15,
+        description: "15% off premium seafood! Fresh catch season special — Salmon, Tuna & Scallops.",
+        startDate: daysAgo(7),
+        endDate: daysAgo(-23),
+        isActive: true,
+        supplierId: oceanHarvest.id,
+        products: {
+          connect: [
+            { id: p_salmon.id },
+            { id: p_freshTuna.id },
+            { id: p_seaScallops.id },
+          ],
+        },
+      },
+    });
+    console.log("Created Ocean Harvest promotion: 15% off premium seafood");
+
+    await prisma.promotion.create({
+      data: {
+        type: "BUY_X_GET_Y" as any,
+        value: 0,
+        buyQuantity: 10,
+        getQuantity: 2,
+        description: "Buy 10 lbs of any steak cut, get 2 lbs free! Limited time offer.",
+        startDate: daysAgo(5),
+        endDate: daysAgo(-25),
+        isActive: true,
+        supplierId: premiumMeats.id,
+        products: {
+          connect: [
+            { id: p_ribeye.id },
+            { id: p_filet.id },
+          ],
+        },
+      },
+    });
+    console.log("Created Premium Meats promotion: Buy 10 get 2 free");
+
+    await prisma.promotion.create({
+      data: {
+        type: "FREE_DELIVERY" as any,
+        value: 0,
+        minOrderAmount: 200,
+        description: "Free delivery on dairy orders over $200. Farm-fresh, delivered free!",
+        startDate: daysAgo(10),
+        endDate: daysAgo(-20),
+        isActive: true,
+        supplierId: dairyDirect.id,
+      },
+    });
+    console.log("Created Dairy Direct promotion: Free delivery over $200");
+
+    await prisma.promotion.create({
+      data: {
+        type: "FLAT_DISCOUNT" as any,
+        value: 5,
+        minOrderAmount: 100,
+        description: "$5 off your next bakery order of $100+. Fresh-baked daily!",
+        startDate: daysAgo(3),
+        endDate: daysAgo(-27),
+        isActive: true,
+        supplierId: artisanBakery!.id,
+      },
+    });
+    console.log("Created Artisan Bakery promotion: $5 off $100+");
+
+    await prisma.promotion.create({
+      data: {
+        type: "PERCENTAGE_OFF" as any,
+        value: 20,
+        description: "20% off all spices and seasonings — stock up for the new menu season!",
+        startDate: daysAgo(30),
+        endDate: daysAgo(5),
+        isActive: false,
+        supplierId: globalSpice!.id,
+      },
+    });
+    console.log("Created expired Global Spice promotion: 20% off spices");
+
+    // --- 26. Supplier Notifications ---
+    console.log("\nSeeding supplier notifications...");
+
+    const supplierNotifDefs = [
+      // Fresh Farms notifications
+      { type: "ORDER_UPDATE" as any, title: "New Order Received", message: "The Golden Fork placed order ORD-10001 ($192.12). Review and confirm.", userId: tomWilson.id, createdAt: daysAgo(1) },
+      { type: "ORDER_UPDATE" as any, title: "Order Delivered", message: "Order ORD-10007 was delivered successfully to The Golden Fork.", userId: tomWilson.id, createdAt: daysAgo(5), isRead: true },
+      { type: "SYSTEM" as any, title: "New Customer", message: "Bistro Nouveau has been linked as a new customer.", userId: tomWilson.id, createdAt: daysAgo(12), isRead: true },
+      { type: "ORDER_UPDATE" as any, title: "Return Request Filed", message: "The Golden Fork filed return request RET-30001 for Organic Mixed Greens on order ORD-10007.", userId: tomWilson.id, createdAt: daysAgo(4) },
+      { type: "PRICE_ALERT" as any, title: "Insight: Demand Forecast", message: "AI predicts a 25-30% demand surge for leafy greens in the next 2 weeks. Review your stock levels.", userId: tomWilson.id, createdAt: daysAgo(2) },
+      // Ocean Harvest notifications
+      { type: "ORDER_UPDATE" as any, title: "New Order Received", message: "The Golden Fork placed order ORD-10003 ($284.85). Pending confirmation.", userId: supplierUsers["seed_supplier_admin_oh"].id, createdAt: daysAgo(3) },
+      { type: "ORDER_UPDATE" as any, title: "Large Order Alert", message: "Bistro Nouveau ordered $371.85 of premium seafood (ORD-20002). Lobster tails and scallops in high demand.", userId: supplierUsers["seed_supplier_admin_oh"].id, createdAt: daysAgo(10) },
+      { type: "SYSTEM" as any, title: "Promotion Live", message: "Your '15% off premium seafood' promotion is now active. 3 products included.", userId: supplierUsers["seed_supplier_admin_oh"].id, createdAt: daysAgo(7), isRead: true },
+      // Premium Meats notifications
+      { type: "ORDER_UPDATE" as any, title: "Order Awaiting Approval", message: "Order ORD-10002 ($594.82) from The Golden Fork is awaiting approval — large meat order.", userId: supplierUsers["seed_supplier_admin_pm"].id, createdAt: daysAgo(2) },
+      { type: "ORDER_UPDATE" as any, title: "New Order from Bistro Nouveau", message: "Bistro Nouveau placed order ORD-20003 — duck breast, lamb chops, pork tenderloin.", userId: supplierUsers["seed_supplier_admin_pm"].id, createdAt: daysAgo(2) },
+      { type: "DELIVERY_UPDATE" as any, title: "Return Resolved", message: "Return RET-30002 has been resolved. $34.95 credit issued to The Golden Fork.", userId: supplierUsers["seed_supplier_admin_pm"].id, createdAt: daysAgo(8), isRead: true },
+      // Dairy Direct notifications
+      { type: "ORDER_UPDATE" as any, title: "New Order Received", message: "Bistro Nouveau placed order ORD-20004 for dairy products. Review and confirm.", userId: supplierUsers["seed_supplier_admin_dd"].id, createdAt: daysAgo(1) },
+      { type: "PRICE_ALERT" as any, title: "Brunch Season Alert", message: "AI forecasts 40% increase in egg and cream demand for spring brunch season. Prepare inventory.", userId: supplierUsers["seed_supplier_admin_dd"].id, createdAt: daysAgo(3) },
+      // Valley Produce notifications
+      { type: "ORDER_UPDATE" as any, title: "Order Delivered", message: "Order ORD-20008 delivered to Bistro Nouveau. All items accepted.", userId: supplierUsers["seed_supplier_admin_vp"].id, createdAt: daysAgo(5), isRead: true },
+      { type: "PRICE_ALERT" as any, title: "Pricing Opportunity", message: "AI analysis suggests Roma Tomatoes can be priced 7% higher without impacting demand.", userId: supplierUsers["seed_supplier_admin_vp"].id, createdAt: daysAgo(2) },
+    ];
+
+    for (const n of supplierNotifDefs) {
+      await prisma.notification.create({
+        data: {
+          type: n.type,
+          title: n.title,
+          message: n.message,
+          userId: n.userId,
+          isRead: (n as any).isRead ?? false,
+          createdAt: n.createdAt,
+        },
+      });
+    }
+    console.log(`Created ${supplierNotifDefs.length} supplier notifications`);
+
+    // --- 27. Additional Price History (more suppliers) ---
+    console.log("\nSeeding additional price history...");
+
+    const additionalPriceHistory = [
+      { productId: p_lobsterTail.id, entries: [{ price: 27.99, daysAgo: 60 }, { price: 28.99, daysAgo: 30 }, { price: 29.99, daysAgo: 7 }] },
+      { productId: p_seaScallops.id, entries: [{ price: 21.99, daysAgo: 30 }, { price: 22.49, daysAgo: 15 }] },
+      { productId: p_duckBreast.id, entries: [{ price: 15.99, daysAgo: 45 }, { price: 16.49, daysAgo: 20 }, { price: 16.99, daysAgo: 5 }] },
+      { productId: p_lambChops.id, entries: [{ price: 18.99, daysAgo: 30 }, { price: 19.49, daysAgo: 15 }] },
+      { productId: p_butter.id, entries: [{ price: 6.49, daysAgo: 45 }, { price: 6.79, daysAgo: 20 }] },
+      { productId: p_eggs.id, entries: [{ price: 3.99, daysAgo: 60 }, { price: 4.49, daysAgo: 30 }, { price: 4.79, daysAgo: 10 }] },
+      { productId: p_romaTomatoes.id, entries: [{ price: 3.49, daysAgo: 30 }, { price: 3.79, daysAgo: 15 }] },
+      { productId: p_oliveOil.id, entries: [{ price: 12.99, daysAgo: 60 }, { price: 13.99, daysAgo: 30 }, { price: 14.49, daysAgo: 10 }] },
+      { productId: p_coffee.id, entries: [{ price: 13.99, daysAgo: 30 }, { price: 14.49, daysAgo: 15 }] },
+    ];
+    for (const ph of additionalPriceHistory) {
+      for (const entry of ph.entries) {
+        await prisma.priceHistory.create({
+          data: { price: entry.price, productId: ph.productId, recordedAt: daysAgo(entry.daysAgo) },
+        });
+      }
+    }
+    console.log("Created additional price history entries");
+
+    // --- 28. Stock Quantity Updates (some products low/out of stock) ---
+    console.log("\nSeeding product stock quantities...");
+
+    const stockUpdates = [
+      { email: "orders@freshfarms.co", name: "Fresh Basil", stockQuantity: 12, reorderPoint: 20 },
+      { email: "orders@freshfarms.co", name: "Asparagus", stockQuantity: 5, reorderPoint: 15 },
+      { email: "orders@freshfarms.co", name: "Organic Mixed Greens", stockQuantity: 45, reorderPoint: 30 },
+      { email: "orders@freshfarms.co", name: "Mushrooms", stockQuantity: 8, reorderPoint: 15 },
+      { email: "sales@oceanharvest.com", name: "Lobster Tail", stockQuantity: 0, reorderPoint: 10, inStock: false },
+      { email: "sales@oceanharvest.com", name: "Sea Scallops", stockQuantity: 4, reorderPoint: 8 },
+      { email: "sales@oceanharvest.com", name: "Atlantic Salmon Fillet", stockQuantity: 35, reorderPoint: 20 },
+      { email: "orders@premiummeats.com", name: "Duck Breast", stockQuantity: 3, reorderPoint: 10 },
+      { email: "orders@premiummeats.com", name: "USDA Prime Ribeye", stockQuantity: 25, reorderPoint: 15 },
+      { email: "orders@premiummeats.com", name: "Filet Mignon", stockQuantity: 18, reorderPoint: 12 },
+      { email: "hello@dairydirect.com", name: "Eggs", stockQuantity: 60, reorderPoint: 40 },
+      { email: "hello@dairydirect.com", name: "Heavy Cream", stockQuantity: 22, reorderPoint: 15 },
+      { email: "hello@dairydirect.com", name: "Greek Yogurt", stockQuantity: 0, reorderPoint: 10, inStock: false },
+      { email: "info@valleyproduce.net", name: "Roma Tomatoes", stockQuantity: 50, reorderPoint: 30 },
+      { email: "wholesale@artisanbakery.com", name: "Croissants", stockQuantity: 6, reorderPoint: 12 },
+      { email: "spices@globaltraders.com", name: "Olive Oil Extra Virgin", stockQuantity: 15, reorderPoint: 10 },
+      { email: "orders@bayareabev.com", name: "Coffee Beans", stockQuantity: 20, reorderPoint: 15 },
+    ];
+
+    for (const su of stockUpdates) {
+      const product = await findProduct(su.email, su.name);
+      if (product) {
+        await prisma.supplierProduct.update({
+          where: { id: product.id },
+          data: {
+            stockQuantity: su.stockQuantity,
+            reorderPoint: su.reorderPoint,
+            inStock: (su as any).inStock ?? true,
+          },
+        });
+      }
+    }
+    console.log(`Updated stock quantities for ${stockUpdates.length} products`);
+
+    // --- 29. AI Usage Logs (supplier side) ---
+    console.log("\nSeeding supplier AI usage logs...");
+
+    const aiUsageDefs = [
+      { feature: "SUPPLIER_CHAT" as any, supplierId: freshFarms.id, inputTokens: 1250, outputTokens: 890, model: "claude-sonnet-4-5-20250514", durationMs: 2100, periodStart: daysAgo(1) },
+      { feature: "SUPPLIER_DIGEST" as any, supplierId: freshFarms.id, inputTokens: 3200, outputTokens: 1800, model: "claude-sonnet-4-5-20250514", durationMs: 4500, periodStart: daysAgo(7) },
+      { feature: "SUPPLIER_CHAT" as any, supplierId: freshFarms.id, inputTokens: 980, outputTokens: 650, model: "claude-sonnet-4-5-20250514", durationMs: 1800, periodStart: daysAgo(3) },
+      { feature: "SUPPLIER_CHAT" as any, supplierId: oceanHarvest.id, inputTokens: 1100, outputTokens: 780, model: "claude-sonnet-4-5-20250514", durationMs: 1950, periodStart: daysAgo(2) },
+      { feature: "SUPPLIER_DIGEST" as any, supplierId: oceanHarvest.id, inputTokens: 2800, outputTokens: 1500, model: "claude-sonnet-4-5-20250514", durationMs: 3800, periodStart: daysAgo(7) },
+      { feature: "SUPPLIER_CHAT" as any, supplierId: premiumMeats.id, inputTokens: 1500, outputTokens: 920, model: "claude-sonnet-4-5-20250514", durationMs: 2300, periodStart: daysAgo(1) },
+      { feature: "SUPPLIER_CHAT" as any, supplierId: dairyDirect.id, inputTokens: 850, outputTokens: 520, model: "claude-sonnet-4-5-20250514", durationMs: 1500, periodStart: daysAgo(4) },
+    ];
+
+    for (const log of aiUsageDefs) {
+      await prisma.aiUsageLog.create({ data: log });
+    }
+    console.log(`Created ${aiUsageDefs.length} AI usage logs for suppliers`);
+
   } else {
     console.log(`Skipping orders/related data — ${existingOrderCount} orders already exist`);
   }

@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Loader2,
   AlertCircle,
@@ -32,6 +33,9 @@ import {
   RotateCcw,
   DollarSign,
   Zap,
+  Wrench,
+  Database,
+  Trash2,
 } from "lucide-react";
 import {
   AreaChart,
@@ -66,6 +70,63 @@ export default function SupplierSettingsPage() {
   const updateSettings = useUpdateSupplierSettings();
 
   const settings = result?.data;
+  const isAdmin = settings ? true : false; // Supplier admins can access settings
+
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [seedResult, setSeedResult] = useState<any>(null);
+
+  const handleSeedTestData = async () => {
+    setIsSeeding(true);
+    setSeedResult(null);
+    try {
+      const response = await fetch("/api/supplier/seed-test-data", {
+        method: "POST",
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setSeedResult(result.data);
+        toast({ title: result.message });
+      } else {
+        const errorMessage = result.details
+          ? `${result.error}: ${result.details}`
+          : result.error || "Failed to seed test data";
+        toast({ title: "Seed failed", description: errorMessage, variant: "destructive" });
+      }
+    } catch (err: any) {
+      toast({
+        title: "Failed to seed test data",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleClearTestData = async () => {
+    setIsClearing(true);
+    try {
+      const response = await fetch("/api/supplier/seed-test-data", {
+        method: "DELETE",
+      });
+      const result = await response.json();
+      if (response.ok) {
+        setSeedResult(null);
+        toast({ title: "Test data cleared successfully" });
+      } else {
+        throw new Error(result.error || "Failed to clear test data");
+      }
+    } catch (err: any) {
+      toast({
+        title: "Failed to clear test data",
+        description: err.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: "",
@@ -158,217 +219,386 @@ export default function SupplierSettingsPage() {
         </div>
       </div>
 
-      {/* Business Information */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Business Information
-          </CardTitle>
-          <CardDescription>
-            Your company details visible to restaurants
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="name">Company Name</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="email">Business Email</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-              />
-            </div>
+      <Tabs defaultValue="settings" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="settings" className="flex items-center gap-2">
+            <Building className="h-4 w-4" />
+            <span className="hidden sm:inline">Settings</span>
+          </TabsTrigger>
+          <TabsTrigger value="usage" className="flex items-center gap-2">
+            <Zap className="h-4 w-4" />
+            <span className="hidden sm:inline">Usage</span>
+          </TabsTrigger>
+          <TabsTrigger value="developer" className="flex items-center gap-2">
+            <Wrench className="h-4 w-4" />
+            <span className="hidden sm:inline">Developer</span>
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Settings Tab */}
+        <TabsContent value="settings" className="space-y-6">
+          {/* Business Information */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building className="h-5 w-5" />
+                Business Information
+              </CardTitle>
+              <CardDescription>
+                Your company details visible to restaurants
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Company Name</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) =>
+                      setFormData({ ...formData, name: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="email">Business Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description">Description</Label>
+                <Input
+                  id="description"
+                  placeholder="Brief description of your business..."
+                  value={formData.description}
+                  onChange={(e) =>
+                    setFormData({ ...formData, description: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input
+                    id="phone"
+                    value={formData.phone}
+                    onChange={(e) =>
+                      setFormData({ ...formData, phone: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="website">Website</Label>
+                  <Input
+                    id="website"
+                    placeholder="https://..."
+                    value={formData.website}
+                    onChange={(e) =>
+                      setFormData({ ...formData, website: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Address */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MapPin className="h-5 w-5" />
+                Address
+              </CardTitle>
+              <CardDescription>
+                Your business location
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Street Address</Label>
+                <Input
+                  id="address"
+                  value={formData.address}
+                  onChange={(e) =>
+                    setFormData({ ...formData, address: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={formData.city}
+                    onChange={(e) =>
+                      setFormData({ ...formData, city: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="state">State</Label>
+                  <Input
+                    id="state"
+                    value={formData.state}
+                    onChange={(e) =>
+                      setFormData({ ...formData, state: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="zipCode">ZIP Code</Label>
+                  <Input
+                    id="zipCode"
+                    value={formData.zipCode}
+                    onChange={(e) =>
+                      setFormData({ ...formData, zipCode: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Delivery Settings */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Truck className="h-5 w-5" />
+                Delivery Settings
+              </CardTitle>
+              <CardDescription>
+                Configure your ordering and delivery preferences
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-2">
+                  <Label htmlFor="minimumOrder">Minimum Order ($)</Label>
+                  <Input
+                    id="minimumOrder"
+                    type="number"
+                    placeholder="No minimum"
+                    value={formData.minimumOrder}
+                    onChange={(e) =>
+                      setFormData({ ...formData, minimumOrder: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="deliveryFee">Delivery Fee ($)</Label>
+                  <Input
+                    id="deliveryFee"
+                    type="number"
+                    placeholder="0"
+                    value={formData.deliveryFee}
+                    onChange={(e) =>
+                      setFormData({ ...formData, deliveryFee: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="leadTimeDays">Lead Time (days)</Label>
+                  <Input
+                    id="leadTimeDays"
+                    type="number"
+                    min="1"
+                    value={formData.leadTimeDays}
+                    onChange={(e) =>
+                      setFormData({ ...formData, leadTimeDays: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+
+              <p className="text-sm text-muted-foreground">
+                Lead time is the number of days in advance that orders must be placed.
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Guided Tour */}
+          <GuidedTourCard />
+
+          {/* Save Button */}
+          <div className="flex justify-end">
+            <Button onClick={handleSave} disabled={updateSettings.isPending}>
+              {updateSettings.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
           </div>
+        </TabsContent>
 
-          <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
-            <Input
-              id="description"
-              placeholder="Brief description of your business..."
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-            />
-          </div>
+        {/* Usage Tab */}
+        <TabsContent value="usage" className="space-y-6">
+          <PlanAndUsageSection planTier={settings.planTier} stripeSubscriptionId={settings.stripeSubscriptionId} />
+        </TabsContent>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="website">Website</Label>
-              <Input
-                id="website"
-                placeholder="https://..."
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+        {/* Developer Tab */}
+        <TabsContent value="developer" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5" />
+                Test Data Management
+              </CardTitle>
+              <CardDescription>
+                Seed sample data to test supplier portal features without requiring real restaurant interactions
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="rounded-lg border border-blue-200 bg-blue-50/80 p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>Note:</strong> The seed function creates sample orders, invoices,
+                  delivery zones, insights, promotions, and customer links for your supplier.
+                  This allows you to test features like analytics, order management, and AI insights.
+                </p>
+              </div>
 
-      {/* Address */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5" />
-            Address
-          </CardTitle>
-          <CardDescription>
-            Your business location
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="address">Street Address</Label>
-            <Input
-              id="address"
-              value={formData.address}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
-            />
-          </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between rounded-lg border p-4">
+                  <div>
+                    <p className="font-medium">Seed Test Data</p>
+                    <p className="text-sm text-muted-foreground">
+                      Create sample orders, invoices, insights, promotions, and delivery zones
+                    </p>
+                  </div>
+                  <Button
+                    onClick={handleSeedTestData}
+                    disabled={isSeeding || isClearing}
+                  >
+                    {isSeeding ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Database className="mr-2 h-4 w-4" />
+                    )}
+                    Seed Data
+                  </Button>
+                </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="city">City</Label>
-              <Input
-                id="city"
-                value={formData.city}
-                onChange={(e) =>
-                  setFormData({ ...formData, city: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="state">State</Label>
-              <Input
-                id="state"
-                value={formData.state}
-                onChange={(e) =>
-                  setFormData({ ...formData, state: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="zipCode">ZIP Code</Label>
-              <Input
-                id="zipCode"
-                value={formData.zipCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, zipCode: e.target.value })
-                }
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+                {seedResult && (
+                  <div className={`rounded-lg border p-4 ${seedResult.errors?.length > 0 ? 'border-amber-200 bg-amber-50' : 'border-emerald-200 bg-emerald-50'}`}>
+                    <p className={`font-medium mb-2 ${seedResult.errors?.length > 0 ? 'text-amber-800' : 'text-emerald-800'}`}>
+                      Data Created:
+                    </p>
+                    <ul className={`text-sm space-y-1 ${seedResult.errors?.length > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+                      <li>Orders: {seedResult.orders}</li>
+                      <li>Invoices: {seedResult.invoices}</li>
+                      <li>Products: {seedResult.products}</li>
+                      <li>Delivery Zones: {seedResult.deliveryZones}</li>
+                      <li>Insights: {seedResult.insights}</li>
+                      <li>Promotions: {seedResult.promotions}</li>
+                      <li>Customers: {seedResult.customers}</li>
+                      {seedResult.notifications !== undefined && (
+                        <li>Notifications: {seedResult.notifications}</li>
+                      )}
+                      {seedResult.priceHistoryRecords !== undefined && (
+                        <li>Price History Records: {seedResult.priceHistoryRecords}</li>
+                      )}
+                    </ul>
+                    {seedResult.errors?.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-amber-300">
+                        <p className="font-medium text-amber-800 mb-1">Errors:</p>
+                        <ul className="text-xs text-amber-700 space-y-1">
+                          {seedResult.errors.map((err: string, idx: number) => (
+                            <li key={idx}>{err}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
 
-      {/* Delivery Settings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5" />
-            Delivery Settings
-          </CardTitle>
-          <CardDescription>
-            Configure your ordering and delivery preferences
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="minimumOrder">Minimum Order ($)</Label>
-              <Input
-                id="minimumOrder"
-                type="number"
-                placeholder="No minimum"
-                value={formData.minimumOrder}
-                onChange={(e) =>
-                  setFormData({ ...formData, minimumOrder: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="deliveryFee">Delivery Fee ($)</Label>
-              <Input
-                id="deliveryFee"
-                type="number"
-                placeholder="0"
-                value={formData.deliveryFee}
-                onChange={(e) =>
-                  setFormData({ ...formData, deliveryFee: e.target.value })
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="leadTimeDays">Lead Time (days)</Label>
-              <Input
-                id="leadTimeDays"
-                type="number"
-                min="1"
-                value={formData.leadTimeDays}
-                onChange={(e) =>
-                  setFormData({ ...formData, leadTimeDays: e.target.value })
-                }
-              />
-            </div>
-          </div>
+                <Separator />
 
-          <p className="text-sm text-muted-foreground">
-            Lead time is the number of days in advance that orders must be placed.
-          </p>
-        </CardContent>
-      </Card>
+                <div className="flex items-center justify-between rounded-lg border border-red-200 p-4">
+                  <div>
+                    <p className="font-medium text-red-600">Clear Test Data</p>
+                    <p className="text-sm text-muted-foreground">
+                      Remove all orders, invoices, insights, promotions, and delivery zones for your supplier
+                    </p>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    onClick={handleClearTestData}
+                    disabled={isSeeding || isClearing}
+                  >
+                    {isClearing ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="mr-2 h-4 w-4" />
+                    )}
+                    Clear Data
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
-      {/* Plan & Usage */}
-      <PlanAndUsageSection planTier={settings.planTier} stripeSubscriptionId={settings.stripeSubscriptionId} />
-
-      {/* Guided Tour */}
-      <GuidedTourCard />
-
-      {/* Save Button */}
-      <div className="flex justify-end">
-        <Button onClick={handleSave} disabled={updateSettings.isPending}>
-          {updateSettings.isPending ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Saving...
-            </>
-          ) : (
-            <>
-              <Save className="mr-2 h-4 w-4" />
-              Save Changes
-            </>
-          )}
-        </Button>
-      </div>
+          <Card>
+            <CardHeader>
+              <CardTitle>What Gets Created</CardTitle>
+              <CardDescription>
+                Overview of the sample data that will be generated
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <p className="font-medium">Orders (7)</p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <li>Various statuses (Delivered, Confirmed, Pending, etc.)</li>
+                    <li>From connected restaurant customers</li>
+                    <li>Calculated totals with tax and delivery</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium">Invoices (3+)</p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <li>Linked to delivered orders</li>
+                    <li>Mix of paid, pending, and overdue</li>
+                    <li>Realistic amounts and due dates</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium">AI Insights (5)</p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <li>Demand forecasts and pricing suggestions</li>
+                    <li>Customer health and anomaly alerts</li>
+                    <li>Escalation notifications</li>
+                  </ul>
+                </div>
+                <div className="space-y-2">
+                  <p className="font-medium">Promotions & More</p>
+                  <ul className="text-sm text-muted-foreground list-disc list-inside">
+                    <li>3 promotions (active and expired)</li>
+                    <li>3 delivery zones with zip codes</li>
+                    <li>Price history for trend analysis</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
