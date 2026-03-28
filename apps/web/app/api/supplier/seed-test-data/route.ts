@@ -4,8 +4,8 @@ import prisma from "@/lib/prisma";
 
 // POST - Seed test data for the current user's supplier
 export async function POST() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  if (process.env.ENABLE_SEED_DATA === "false") {
+    return NextResponse.json({ error: "Seed data is disabled" }, { status: 403 });
   }
 
   try {
@@ -410,8 +410,8 @@ export async function POST() {
 
 // DELETE - Clear test data for the current user's supplier
 export async function DELETE() {
-  if (process.env.NODE_ENV === "production") {
-    return NextResponse.json({ error: "Not available in production" }, { status: 403 });
+  if (process.env.ENABLE_SEED_DATA === "false") {
+    return NextResponse.json({ error: "Seed data is disabled" }, { status: 403 });
   }
 
   try {
