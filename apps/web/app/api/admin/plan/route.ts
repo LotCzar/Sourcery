@@ -8,6 +8,42 @@ const updatePlanSchema = z.object({
   planTier: z.enum(["STARTER", "PROFESSIONAL", "ENTERPRISE"]),
 });
 
+export async function GET() {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { restaurant: true },
+    });
+
+    if (!user?.restaurant) {
+      return NextResponse.json({ error: "Restaurant not found" }, { status: 404 });
+    }
+
+    if (user.role !== "OWNER" && user.role !== "ORG_ADMIN") {
+      return NextResponse.json(
+        { error: "Only owners and admins can view the plan" },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: { planTier: user.restaurant.planTier },
+    });
+  } catch (error: any) {
+    console.error("Get plan error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch plan" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(request: Request) {
   try {
     const { userId } = await auth();

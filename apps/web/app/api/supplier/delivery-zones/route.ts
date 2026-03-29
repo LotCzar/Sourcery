@@ -83,7 +83,7 @@ export async function POST(request: Request) {
         deliveryFee: Number(zone.deliveryFee),
         minimumOrder: zone.minimumOrder ? Number(zone.minimumOrder) : null,
       },
-    });
+    }, { status: 201 });
   } catch (error: any) {
     console.error("Delivery zone POST error:", error);
     return NextResponse.json(

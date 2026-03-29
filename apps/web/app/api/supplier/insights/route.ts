@@ -22,13 +22,18 @@ export async function GET(request: Request) {
     const type = searchParams.get("type");
     const status = searchParams.get("status");
 
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
+    const validSortFields = ["createdAt", "priority", "status"];
+    const orderByField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
+
     const where: any = { supplierId: user.supplier.id };
     if (type) where.type = type;
     if (status) where.status = status;
 
     const insights = await prisma.supplierInsight.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: { [orderByField]: sortOrder },
       take: 50,
     });
 

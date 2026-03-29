@@ -183,7 +183,7 @@ describe("POST /api/orders", () => {
     );
     const { status, data } = await parseResponse(response);
 
-    expect(status).toBe(200);
+    expect(status).toBe(201);
     expect(data.success).toBe(true);
     expect(typeof data.data.subtotal).toBe("number");
     expect(typeof data.data.total).toBe("number");

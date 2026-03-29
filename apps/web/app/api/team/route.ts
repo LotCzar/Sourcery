@@ -166,7 +166,7 @@ export async function POST(request: Request) {
         role: member.role,
         isPending: true,
       },
-    });
+    }, { status: 201 });
   } catch (error: any) {
     console.error("Create staff member error:", error);
     return NextResponse.json(

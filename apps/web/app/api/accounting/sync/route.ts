@@ -34,6 +34,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "No active accounting integration" }, { status: 400 });
     }
 
+    // Prevent concurrent syncs — block if last sync was within 60 seconds
+    if (integration.lastSyncAt) {
+      const secondsSinceLastSync = (Date.now() - new Date(integration.lastSyncAt).getTime()) / 1000;
+      if (secondsSinceLastSync < 60) {
+        return NextResponse.json(
+          { error: "A sync is already in progress. Please wait before starting another." },
+          { status: 429 }
+        );
+      }
+    }
+
     const body = await request.json().catch(() => ({}));
     const validation = validateBody(AccountingSyncSchema, body);
     if (!validation.success) return validation.response;

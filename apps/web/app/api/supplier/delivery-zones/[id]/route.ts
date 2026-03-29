@@ -4,6 +4,52 @@ import prisma from "@/lib/prisma";
 import { validateBody } from "@/lib/validations/validate";
 import { UpdateDeliveryZoneSchema } from "@/lib/validations";
 
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { clerkId: userId },
+      include: { supplier: true },
+    });
+
+    if (!user?.supplier) {
+      return NextResponse.json({ error: "Supplier not found" }, { status: 404 });
+    }
+
+    const { id } = await params;
+
+    const zone = await prisma.deliveryZone.findFirst({
+      where: { id, supplierId: user.supplier.id },
+    });
+
+    if (!zone) {
+      return NextResponse.json({ error: "Delivery zone not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...zone,
+        deliveryFee: Number(zone.deliveryFee),
+        minimumOrder: zone.minimumOrder ? Number(zone.minimumOrder) : null,
+      },
+    });
+  } catch (error: any) {
+    console.error("Delivery zone GET error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch delivery zone" },
+      { status: 500 }
+    );
+  }
+}
+
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

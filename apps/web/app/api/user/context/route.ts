@@ -13,7 +13,7 @@ export async function GET() {
       where: { clerkId },
       include: {
         restaurant: { select: { id: true, planTier: true } },
-        supplier: { select: { id: true } },
+        supplier: { select: { id: true, planTier: true } },
       },
     });
 
@@ -37,7 +37,7 @@ export async function GET() {
         userId: user.id,
         restaurantId: user.restaurant?.id || null,
         supplierId: user.supplier?.id || null,
-        planTier: user.restaurant?.planTier || "STARTER",
+        planTier: user.restaurant?.planTier || user.supplier?.planTier || "STARTER",
         role: user.role,
         organizationId: user.organizationId || null,
         orgRestaurants,

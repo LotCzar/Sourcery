@@ -20,6 +20,8 @@ export async function GET(request: Request) {
       });
     }
 
+    const limit = Math.min(Math.max(parseInt(searchParams.get("limit") || "10") || 10, 1), 50);
+
     // Get user's restaurant
     const user = await prisma.user.findUnique({
       where: { clerkId: userId },
@@ -47,6 +49,7 @@ export async function GET(request: Request) {
       prisma.supplierProduct.findMany({
         where: {
           supplierId: { in: allowedSupplierIds },
+          isActive: true,
           OR: [
             { name: { contains: query, mode: "insensitive" } },
             { description: { contains: query, mode: "insensitive" } },
@@ -58,7 +61,7 @@ export async function GET(request: Request) {
             select: { id: true, name: true },
           },
         },
-        take: 5,
+        take: limit,
         orderBy: { name: "asc" },
       }),
 
@@ -79,7 +82,7 @@ export async function GET(request: Request) {
           state: true,
           _count: { select: { products: true } },
         },
-        take: 5,
+        take: limit,
         orderBy: { name: "asc" },
       }),
 
@@ -98,7 +101,7 @@ export async function GET(request: Request) {
           },
           _count: { select: { items: true } },
         },
-        take: 5,
+        take: limit,
         orderBy: { createdAt: "desc" },
       }),
     ]);

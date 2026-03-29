@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 // GET - List return requests for supplier's orders
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const { userId } = await auth();
 
@@ -22,6 +22,12 @@ export async function GET() {
         { status: 404 }
       );
     }
+
+    const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
+    const validSortFields = ["createdAt", "status"];
+    const orderByField = validSortFields.includes(sortBy) ? sortBy : "createdAt";
 
     const returns = await prisma.returnRequest.findMany({
       where: {
@@ -44,7 +50,7 @@ export async function GET() {
           select: { id: true, firstName: true, lastName: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { [orderByField]: sortOrder },
     });
 
     return NextResponse.json({

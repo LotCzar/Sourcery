@@ -40,6 +40,7 @@ export async function GET(request: Request) {
     // Build where clause — scoped to restaurant's suppliers
     const where: any = {
       supplierId: { in: allowedSupplierIds },
+      isActive: true,
     };
 
     if (search) {

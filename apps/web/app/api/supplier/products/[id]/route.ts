@@ -220,33 +220,15 @@ export async function DELETE(
       );
     }
 
-    // Check if product is used in any orders
-    const orderItemCount = await prisma.orderItem.count({
-      where: { productId: id },
-    });
-
-    if (orderItemCount > 0) {
-      return NextResponse.json(
-        {
-          error: "Cannot delete product that has been ordered. Consider marking it as out of stock instead.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // Delete price history first
-    await prisma.priceHistory.deleteMany({
-      where: { productId: id },
-    });
-
-    // Delete product
-    await prisma.supplierProduct.delete({
+    // Soft delete — mark as inactive instead of hard delete
+    await prisma.supplierProduct.update({
       where: { id: id },
+      data: { isActive: false, inStock: false },
     });
 
     return NextResponse.json({
       success: true,
-      message: "Product deleted",
+      message: "Product archived",
     });
   } catch (error: any) {
     console.error("Delete product error:", error);

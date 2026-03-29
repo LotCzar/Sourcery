@@ -135,6 +135,14 @@ export async function DELETE(
       );
     }
 
+    // Cannot remove the admin — transfer ownership first
+    if (targetMember.role === "SUPPLIER_ADMIN") {
+      return NextResponse.json(
+        { error: "Cannot remove the admin. Transfer ownership first." },
+        { status: 403 }
+      );
+    }
+
     // Cannot remove self
     if (targetMember.id === user.id) {
       return NextResponse.json(

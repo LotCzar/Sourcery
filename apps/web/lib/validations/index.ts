@@ -628,6 +628,11 @@ export const AccountingSyncSchema = z.object({
   invoiceIds: z.array(z.string().min(1)).max(200).optional(),
 });
 
+// Ownership Transfer
+export const TransferOwnershipSchema = z.object({
+  targetUserId: z.string().min(1, "Target user ID is required"),
+});
+
 // Supplier Onboarding
 export const SupplierOnboardingSchema = z.object({
   companyName: z.string().min(1, "Company name is required").max(255),

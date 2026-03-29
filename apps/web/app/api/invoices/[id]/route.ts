@@ -289,6 +289,14 @@ export async function DELETE(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    const protectedStatuses = ["PAID", "PARTIALLY_PAID", "SYNCED"];
+    if (protectedStatuses.includes(invoice.status)) {
+      return NextResponse.json(
+        { error: `Cannot delete invoice with status ${invoice.status}. Only draft or unpaid invoices can be deleted.` },
+        { status: 409 }
+      );
+    }
+
     await prisma.invoice.delete({
       where: { id: id },
     });

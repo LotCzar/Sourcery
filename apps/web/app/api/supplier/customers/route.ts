@@ -25,6 +25,10 @@ export async function GET(request: Request) {
 
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
+    const page = Math.max(parseInt(searchParams.get("page") || "1") || 1, 1);
+    const pageSize = Math.min(Math.max(parseInt(searchParams.get("pageSize") || "50") || 50, 1), 200);
+    const sortBy = searchParams.get("sortBy") || "spend"; // spend, orders, lastOrder
+    const sortOrder = searchParams.get("sortOrder") === "asc" ? "asc" : "desc";
 
     const supplierId = user.supplier.id;
 
@@ -43,7 +47,6 @@ export async function GET(request: Request) {
         },
       },
       orderBy: { createdAt: "desc" },
-      take: 5000,
     });
 
     const now = new Date();
@@ -111,7 +114,13 @@ export async function GET(request: Request) {
             .map(([name, qty]) => ({ name, quantity: qty })),
         };
       })
-      .sort((a, b) => b.totalSpend - a.totalSpend);
+      .sort((a, b) => {
+        let cmp = 0;
+        if (sortBy === "orders") cmp = a.orderCount - b.orderCount;
+        else if (sortBy === "lastOrder") cmp = a.lastOrderDate.getTime() - b.lastOrderDate.getTime();
+        else cmp = a.totalSpend - b.totalSpend;
+        return sortOrder === "asc" ? cmp : -cmp;
+      });
 
     // Apply search filter
     if (search) {
@@ -123,9 +132,15 @@ export async function GET(request: Request) {
       );
     }
 
+    // Paginate
+    const totalCount = customers.length;
+    const totalPages = Math.ceil(totalCount / pageSize);
+    const paginatedCustomers = customers.slice((page - 1) * pageSize, page * pageSize);
+
     return NextResponse.json({
       success: true,
-      data: customers,
+      data: paginatedCustomers,
+      pagination: { page, pageSize, totalCount, totalPages },
     });
   } catch (error: any) {
     console.error("Supplier customers error:", error);

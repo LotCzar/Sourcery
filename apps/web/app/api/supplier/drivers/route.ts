@@ -159,7 +159,7 @@ export async function POST(request: Request) {
         email: driver.email,
         phone: driver.phone,
       },
-    });
+    }, { status: 201 });
   } catch (error: any) {
     console.error("Create driver error:", error);
     return NextResponse.json(

@@ -31,6 +31,9 @@ import {
 } from "lucide-react";
 import { useSupplierDashboard } from "@/hooks/use-supplier-dashboard";
 import { useSupplierChat } from "@/lib/supplier-chat-context";
+import { usePlanTier } from "@/lib/org-context";
+import { hasTier } from "@/lib/tier";
+import { ProBadge } from "@/components/pro-badge";
 
 const statusConfig: Record<
   string,
@@ -79,6 +82,8 @@ export default function SupplierDashboardPage() {
   const { user } = useUser();
   const { data: result, isLoading, error } = useSupplierDashboard();
   const { openChatWithMessage } = useSupplierChat();
+  const currentTier = usePlanTier();
+  const isPro = hasTier(currentTier, "PROFESSIONAL");
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -336,31 +341,43 @@ export default function SupplierDashboardPage() {
               Revenue summary
             </button>
             <button
-              onClick={() => openChatWithMessage("Which customers are at risk of churning? Show me their health scores and suggest follow-up actions")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("Which customers are at risk of churning? Show me their health scores and suggest follow-up actions") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Users className="h-4 w-4 text-primary" />
               </div>
-              Customer insights
+              <span className="flex items-center gap-1.5">
+                Customer insights
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
-              onClick={() => openChatWithMessage("What pricing adjustments should I consider based on order volume trends and market demand?")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("What pricing adjustments should I consider based on order volume trends and market demand?") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <Tag className="h-4 w-4 text-primary" />
               </div>
-              Pricing suggestions
+              <span className="flex items-center gap-1.5">
+                Pricing suggestions
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
-              onClick={() => openChatWithMessage("What's the demand forecast for my products this week? Flag any items I should stock up on")}
-              className="flex items-center gap-2 rounded-lg border border-primary/20 bg-background/80 px-3 py-2.5 text-sm text-left transition-colors hover:bg-background"
+              onClick={isPro ? () => openChatWithMessage("What's the demand forecast for my products this week? Flag any items I should stock up on") : undefined}
+              disabled={!isPro}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-2.5 text-sm text-left transition-colors ${isPro ? "border-primary/20 bg-background/80 hover:bg-background" : "border-muted bg-muted/50 opacity-60 cursor-not-allowed"}`}
             >
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-primary/10">
                 <BarChart3 className="h-4 w-4 text-primary" />
               </div>
-              Demand forecast
+              <span className="flex items-center gap-1.5">
+                Demand forecast
+                {!isPro && <ProBadge />}
+              </span>
             </button>
             <button
               onClick={() => openChatWithMessage("Which invoices are overdue? Show me the escalation status and recommended next steps")}

@@ -34,6 +34,7 @@ export async function GET(request: Request) {
     // Build where clause
     const where: any = {
       supplierId: user.supplier.id,
+      isActive: true,
     };
 
     if (category) {

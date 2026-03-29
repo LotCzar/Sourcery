@@ -95,7 +95,7 @@ describe("Team API", () => {
       const response = await POST(request);
       const { status, data } = await parseResponse(response);
 
-      expect(status).toBe(200);
+      expect(status).toBe(201);
       expect(data.success).toBe(true);
       expect(data.data.isPending).toBe(true);
       expect(prismaMock.user.create).toHaveBeenCalledWith(

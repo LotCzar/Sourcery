@@ -195,33 +195,13 @@ describe("DELETE /api/supplier/products/[id]", () => {
     expect(data.error).toBe("Product not found");
   });
 
-  it("returns 400 when product has been ordered", async () => {
+  it("soft deletes (archives) product successfully", async () => {
     const user = createMockSupplierUserWithSupplier();
     prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
 
     const product = createMockProduct();
     prismaMock.supplierProduct.findFirst.mockResolvedValueOnce(product as any);
-    prismaMock.orderItem.count.mockResolvedValueOnce(5);
-
-    const response = await DELETE(
-      createRequest("http://localhost/api/supplier/products/prod_1", { method: "DELETE" }),
-      mockParams
-    );
-    const { status, data } = await parseResponse(response);
-
-    expect(status).toBe(400);
-    expect(data.error).toContain("Cannot delete product");
-  });
-
-  it("deletes product successfully when no orders", async () => {
-    const user = createMockSupplierUserWithSupplier();
-    prismaMock.user.findUnique.mockResolvedValueOnce(user as any);
-
-    const product = createMockProduct();
-    prismaMock.supplierProduct.findFirst.mockResolvedValueOnce(product as any);
-    prismaMock.orderItem.count.mockResolvedValueOnce(0);
-    prismaMock.priceHistory.deleteMany.mockResolvedValueOnce({ count: 1 } as any);
-    prismaMock.supplierProduct.delete.mockResolvedValueOnce(product as any);
+    prismaMock.supplierProduct.update.mockResolvedValueOnce({ ...product, isActive: false, inStock: false } as any);
 
     const response = await DELETE(
       createRequest("http://localhost/api/supplier/products/prod_1", { method: "DELETE" }),
@@ -231,6 +211,6 @@ describe("DELETE /api/supplier/products/[id]", () => {
 
     expect(status).toBe(200);
     expect(data.success).toBe(true);
-    expect(data.message).toBe("Product deleted");
+    expect(data.message).toBe("Product archived");
   });
 });
