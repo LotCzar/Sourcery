@@ -9,6 +9,7 @@ import {
 } from "@/hooks/use-integration";
 import {
   useAccountingIntegration,
+  useDisconnectAccounting,
   useAccountingMappings,
   useUpdateMappings,
   useSyncInvoices,
@@ -345,12 +346,22 @@ function POSSection() {
 function AccountingSection() {
   const { data: integrationResult, isLoading } = useAccountingIntegration();
   const syncInvoices = useSyncInvoices();
+  const disconnectAccounting = useDisconnectAccounting();
   const { toast } = useToast();
 
   const integration = integrationResult?.data;
 
   const handleConnect = (provider: "QUICKBOOKS" | "XERO") => {
     window.location.href = `/api/accounting/connect?provider=${provider.toLowerCase()}`;
+  };
+
+  const handleDisconnect = async () => {
+    try {
+      await disconnectAccounting.mutateAsync();
+      toast({ title: "Accounting integration disconnected" });
+    } catch (err: any) {
+      toast({ title: "Disconnect failed", description: err?.message, variant: "destructive" });
+    }
   };
 
   const handleSync = async () => {
@@ -408,6 +419,16 @@ function AccountingSection() {
                 {syncInvoices.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 <RefreshCw className="mr-2 h-4 w-4" />
                 Sync Now
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleDisconnect}
+                disabled={disconnectAccounting.isPending}
+              >
+                {disconnectAccounting.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Unplug className="mr-2 h-4 w-4" />
+                Disconnect
               </Button>
             </div>
             <AccountingMappingsSection />

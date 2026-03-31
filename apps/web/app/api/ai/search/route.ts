@@ -124,6 +124,7 @@ Examples:
       case "products": {
         const products = await prisma.supplierProduct.findMany({
           where: {
+            isActive: true,
             name: { contains: searchTerms, mode: "insensitive" },
             ...(validCategory
               ? { category: validCategory }

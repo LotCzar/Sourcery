@@ -159,6 +159,7 @@ async function searchProducts(
   });
   const where: any = {
     supplierId: { in: linkedSupplierIds.map((s) => s.supplierId) },
+    isActive: true,
   };
 
   if (input.query) {
@@ -316,7 +317,7 @@ async function createDraftOrder(
 
   const productIds = input.items.map((i: any) => i.product_id);
   const products = await prisma.supplierProduct.findMany({
-    where: { id: { in: productIds } },
+    where: { id: { in: productIds }, isActive: true },
   });
 
   const productMap = new Map(products.map((p) => [p.id, p]));
@@ -386,6 +387,7 @@ async function createDraftOrder(
 async function comparePrices(input: Record<string, any>) {
   const where: any = {
     name: { contains: input.product_name, mode: "insensitive" },
+    isActive: true,
   };
 
   if (input.category) {
@@ -484,6 +486,7 @@ async function createPriceAlert(
   });
 
   if (!product) return { error: "Product not found" };
+  if (product.isActive === false) return { error: "Product has been archived" };
 
   const existing = await prisma.priceAlert.findFirst({
     where: {
@@ -1102,6 +1105,7 @@ async function generateRestockList(
         where: {
           name: { contains: item.name, mode: "insensitive" },
           inStock: true,
+          isActive: true,
         },
         include: { supplier: { select: { id: true, name: true, deliveryFee: true } } },
         orderBy: { price: "asc" },
@@ -1363,6 +1367,7 @@ async function calculateMenuCost(input: Record<string, any>) {
       where: {
         name: { contains: ingredient.name, mode: "insensitive" },
         inStock: true,
+        isActive: true,
       },
       include: { supplier: { select: { name: true } } },
       orderBy: { price: "asc" },
@@ -1423,7 +1428,7 @@ async function recommendSupplier(
   input: Record<string, any>,
   context: ToolContext
 ) {
-  const where: any = {};
+  const where: any = { isActive: true };
   if (input.product_name) {
     where.name = { contains: input.product_name, mode: "insensitive" };
   }
@@ -2322,6 +2327,7 @@ async function findSubstitutes(
   const where: any = {
     name: { contains: input.product_name, mode: "insensitive" },
     inStock: true,
+    isActive: true,
   };
 
   if (input.category) {
@@ -2384,13 +2390,16 @@ async function getPriceTrends(
     });
   } else if (input.product_name) {
     product = await prisma.supplierProduct.findFirst({
-      where: { name: { contains: input.product_name, mode: "insensitive" } },
+      where: { name: { contains: input.product_name, mode: "insensitive" }, isActive: true },
       include: { supplier: { select: { name: true } } },
     });
   }
 
   if (!product) {
     return { error: "Product not found. Check the name or ID and try again." };
+  }
+  if (product.isActive === false) {
+    return { error: "Product has been archived" };
   }
 
   const since = new Date();
@@ -2909,6 +2918,7 @@ async function getNegotiationBrief(
       where: {
         name: { contains: firstWord, mode: "insensitive" },
         inStock: true,
+        isActive: true,
         supplierId: { not: supplier.id },
         price: { lt: product.price },
       },
@@ -3864,7 +3874,7 @@ async function duplicateOrder(
       where: { id: item.productId },
     });
 
-    if (!currentProduct || !currentProduct.inStock) continue;
+    if (!currentProduct || !currentProduct.inStock || currentProduct.isActive === false) continue;
 
     const quantity = adjustments.get(item.productId) ?? Number(item.quantity);
     if (quantity <= 0) continue;

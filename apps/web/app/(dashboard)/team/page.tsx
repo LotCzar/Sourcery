@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTeamMembers, useAddStaffMember, useRemoveStaffMember } from "@/hooks/use-team";
 import { useSettings } from "@/hooks/use-settings";
 import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -30,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Users, Loader2, Plus, Mail, X, ShieldAlert } from "lucide-react";
+import { Users, Loader2, Plus, Mail, X, ShieldAlert, ArrowRightLeft } from "lucide-react";
 
 export default function TeamPage() {
   const { data: settingsData } = useSettings();
@@ -52,7 +53,11 @@ function TeamContent() {
   const { data: teamData, isLoading } = useTeamMembers();
   const addMember = useAddStaffMember();
   const removeMember = useRemoveStaffMember();
+  const { data: settingsData } = useSettings();
+  const isOwner = settingsData?.data?.user?.role === "OWNER";
   const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState("");
   const [newMember, setNewMember] = useState({
     firstName: "",
     lastName: "",
@@ -82,6 +87,23 @@ function TeamContent() {
         description: err?.message,
         variant: "destructive",
       });
+    }
+  };
+
+  const handleTransferOwnership = async () => {
+    if (!transferTargetId) return;
+    try {
+      await apiFetch("/api/team/transfer-ownership", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId: transferTargetId }),
+      });
+      setShowTransferDialog(false);
+      setTransferTargetId("");
+      toast({ title: "Ownership transferred successfully" });
+      // Reload to reflect new roles
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Transfer failed", description: err?.message, variant: "destructive" });
     }
   };
 
@@ -115,10 +137,18 @@ function TeamContent() {
             Manage your restaurant staff and their roles
           </p>
         </div>
-        <Button onClick={() => setShowAddDialog(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Member
-        </Button>
+        <div className="flex items-center gap-2">
+          {isOwner && (
+            <Button variant="outline" onClick={() => setShowTransferDialog(true)}>
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              Transfer Ownership
+            </Button>
+          )}
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Member
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -272,6 +302,63 @@ function TeamContent() {
             >
               {addMember.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Send Invitation
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Ownership Dialog */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer Ownership</DialogTitle>
+            <DialogDescription>
+              Transfer restaurant ownership to another team member. You will be
+              demoted to a Manager role.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>New Owner</Label>
+              <Select
+                value={transferTargetId}
+                onValueChange={setTransferTargetId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members
+                    .filter((m: any) => m.role !== "OWNER")
+                    .map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.firstName} {m.lastName || ""} ({m.email})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-sm text-destructive">
+              This action cannot be undone. The new owner will have full control
+              over the restaurant account.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTransferDialog(false);
+                setTransferTargetId("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleTransferOwnership}
+              disabled={!transferTargetId}
+            >
+              Transfer Ownership
             </Button>
           </DialogFooter>
         </DialogContent>

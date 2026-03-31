@@ -112,6 +112,7 @@ export async function GET() {
 
       // Products available from multiple suppliers (price comparison opportunities)
       prisma.supplierProduct.groupBy({
+        where: { isActive: true },
         by: ["name"],
         _count: { name: true },
         _min: { price: true },

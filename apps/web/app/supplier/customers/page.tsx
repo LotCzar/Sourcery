@@ -55,7 +55,11 @@ export default function SupplierCustomersPage() {
   const [sortField, setSortField] = useState<SortField>("totalSpend");
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
 
-  const { data: result, isLoading, error } = useSupplierCustomers(debouncedSearch);
+  const { data: result, isLoading, error } = useSupplierCustomers({
+    search: debouncedSearch,
+    sortBy: sortField === "totalSpend" ? "spend" : sortField === "orderCount" ? "orders" : "lastOrder",
+    sortOrder: sortDirection,
+  });
   const customers: Customer[] = result?.data ?? [];
 
   // Debounce search

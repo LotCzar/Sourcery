@@ -52,6 +52,7 @@ export const proactiveOrdering = inngest.createFunction(
 
         for (const item of items) {
           if (!item.supplierProduct) continue;
+          if (item.supplierProduct.isActive === false) continue;
 
           const supplier = item.supplierProduct.supplier;
           const insight = item.consumptionInsights[0];

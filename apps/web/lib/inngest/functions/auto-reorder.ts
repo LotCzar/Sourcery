@@ -27,7 +27,7 @@ export const autoReorder = inngest.createFunction(
         },
       });
 
-      if (!item?.supplierProduct) {
+      if (!item?.supplierProduct || item.supplierProduct.isActive === false) {
         // No linked supplier product, just create a notification
         if (ownerUser) {
           await prisma.notification.create({

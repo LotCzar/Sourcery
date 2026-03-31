@@ -61,7 +61,7 @@ export const contractPriceAlerts = inngest.createFunction(
             include: { supplier: { select: { name: true } } },
           });
 
-          if (!product) continue;
+          if (!product || product.isActive === false) continue;
 
           // Get price history
           const priceHistory = await prisma.priceHistory.findMany({

@@ -7,6 +7,9 @@ import {
   useUpdateSupplierStaff,
   useRemoveSupplierStaff,
 } from "@/hooks/use-supplier-team";
+import { useSupplierSettings } from "@/hooks/use-supplier-settings";
+import { useToast } from "@/hooks/use-toast";
+import { apiFetch } from "@/lib/api";
 import {
   Card,
   CardContent,
@@ -47,17 +50,23 @@ import {
   Loader2,
   Pencil,
   Trash2,
+  ArrowRightLeft,
 } from "lucide-react";
 
 export default function SupplierTeamPage() {
   const { data, isLoading } = useSupplierTeam();
+  const { data: settingsData } = useSupplierSettings();
+  const isAdmin = settingsData?.data?.userRole === "SUPPLIER_ADMIN";
   const addStaff = useAddSupplierStaff();
   const updateStaff = useUpdateSupplierStaff();
   const removeStaff = useRemoveSupplierStaff();
+  const { toast } = useToast();
 
   const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editMember, setEditMember] = useState<any>(null);
+  const [showTransferDialog, setShowTransferDialog] = useState(false);
+  const [transferTargetId, setTransferTargetId] = useState("");
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -105,6 +114,22 @@ export default function SupplierTeamPage() {
     setEditOpen(true);
   }
 
+  const handleTransferOwnership = async () => {
+    if (!transferTargetId) return;
+    try {
+      await apiFetch("/api/supplier/team/transfer-ownership", {
+        method: "POST",
+        body: JSON.stringify({ targetUserId: transferTargetId }),
+      });
+      setShowTransferDialog(false);
+      setTransferTargetId("");
+      toast({ title: "Ownership transferred successfully" });
+      window.location.reload();
+    } catch (err: any) {
+      toast({ title: "Transfer failed", description: err?.message, variant: "destructive" });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
@@ -120,13 +145,20 @@ export default function SupplierTeamPage() {
           <h1 className="text-2xl font-bold">Team Management</h1>
           <p className="text-muted-foreground">Manage your supplier team members</p>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={resetForm}>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Member
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button variant="outline" onClick={() => setShowTransferDialog(true)}>
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              Transfer Ownership
             </Button>
-          </DialogTrigger>
+          )}
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Member
+              </Button>
+            </DialogTrigger>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Add Team Member</DialogTitle>
@@ -175,6 +207,7 @@ export default function SupplierTeamPage() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Card>
@@ -290,6 +323,63 @@ export default function SupplierTeamPage() {
             <Button onClick={handleUpdate} disabled={!firstName || updateStaff.isPending}>
               {updateStaff.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Transfer Ownership Dialog */}
+      <Dialog open={showTransferDialog} onOpenChange={setShowTransferDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Transfer Ownership</DialogTitle>
+            <DialogDescription>
+              Transfer admin ownership to another team member. You will be
+              demoted to a Rep role.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>New Admin Owner</Label>
+              <Select
+                value={transferTargetId}
+                onValueChange={setTransferTargetId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a team member" />
+                </SelectTrigger>
+                <SelectContent>
+                  {members
+                    .filter((m: any) => m.role !== "SUPPLIER_ADMIN")
+                    .map((m: any) => (
+                      <SelectItem key={m.id} value={m.id}>
+                        {m.firstName} {m.lastName || ""} ({m.email})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <p className="text-sm text-destructive">
+              This action cannot be undone. The new admin will have full control
+              over the supplier account.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowTransferDialog(false);
+                setTransferTargetId("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleTransferOwnership}
+              disabled={!transferTargetId}
+            >
+              Transfer Ownership
             </Button>
           </DialogFooter>
         </DialogContent>

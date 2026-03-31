@@ -18,6 +18,7 @@ export const supplierLowStockAlerts = inngest.createFunction(
         const lowStockProducts = await prisma.supplierProduct.findMany({
           where: {
             supplierId: supplier.id,
+            isActive: true,
             stockQuantity: { not: null },
             reorderPoint: { not: null },
           },
@@ -43,6 +44,7 @@ export const supplierLowStockAlerts = inngest.createFunction(
         const expiringProducts = await prisma.supplierProduct.findMany({
           where: {
             supplierId: supplier.id,
+            isActive: true,
             expirationDate: {
               gte: now,
               lte: sevenDaysFromNow,

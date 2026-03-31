@@ -63,6 +63,7 @@ export const substitutionSuggestions = inngest.createFunction(
               category: item.supplierProduct.category,
               name: { contains: firstWord, mode: "insensitive" },
               inStock: true,
+              isActive: true,
               supplierId: { not: item.supplierProduct.supplierId },
             },
             include: {

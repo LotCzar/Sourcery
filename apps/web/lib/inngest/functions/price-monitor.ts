@@ -20,6 +20,8 @@ export const priceMonitor = inngest.createFunction(
       let triggeredCount = 0;
 
       for (const alert of alerts) {
+        if (alert.product.isActive === false) continue;
+
         const currentPrice = Number(alert.product.price);
         const targetPrice = Number(alert.targetPrice);
         const previousTriggeredPrice = alert.triggeredPrice

@@ -32,7 +32,7 @@ export function GlobalSearch() {
     queryKey: queryKeys.search.query(debouncedQuery),
     queryFn: () =>
       apiFetch<{ success: boolean; data: SearchResult }>(
-        `/api/search?q=${encodeURIComponent(debouncedQuery)}`
+        `/api/search?q=${encodeURIComponent(debouncedQuery)}&limit=20`
       ),
     enabled: debouncedQuery.length >= 2,
   });

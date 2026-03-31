@@ -31,6 +31,8 @@ export const consumptionAnalysis = inngest.createFunction(
         const seasonalNotifications: Array<{ itemName: string; factor: number; direction: string }> = [];
 
         for (const item of items) {
+          if (item.supplierProduct && item.supplierProduct.isActive === false) continue;
+
           const thirtyDaysAgo = new Date();
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 

@@ -42,7 +42,7 @@ export async function GET() {
     ] = await Promise.all([
       // Total products
       prisma.supplierProduct.count({
-        where: { supplierId },
+        where: { supplierId, isActive: true },
       }),
 
       // Pending orders count
@@ -108,13 +108,14 @@ export async function GET() {
 
       // Out-of-stock products
       prisma.supplierProduct.count({
-        where: { supplierId, inStock: false },
+        where: { supplierId, inStock: false, isActive: true },
       }),
 
       // Low stock products (fetch both fields and filter in JS)
       prisma.supplierProduct.findMany({
         where: {
           supplierId,
+          isActive: true,
           stockQuantity: { not: null },
           reorderPoint: { not: null },
         },
@@ -125,6 +126,7 @@ export async function GET() {
       prisma.supplierProduct.count({
         where: {
           supplierId,
+          isActive: true,
           expirationDate: {
             gte: new Date(),
             lte: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -201,6 +203,7 @@ export async function GET() {
     const topProductDetails = await prisma.supplierProduct.findMany({
       where: {
         id: { in: topProducts.map((p) => p.productId) },
+        isActive: true,
       },
       select: {
         id: true,

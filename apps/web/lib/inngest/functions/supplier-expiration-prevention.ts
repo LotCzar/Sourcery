@@ -23,6 +23,7 @@ export const supplierExpirationPrevention = inngest.createFunction(
         const products = await prisma.supplierProduct.findMany({
           where: {
             supplierId: supplier.id,
+            isActive: true,
             expirationDate: { not: null },
             inStock: true,
             stockQuantity: { gt: 0 },

@@ -84,6 +84,7 @@ export function createMockProduct(overrides?: Record<string, unknown>) {
     unit: "POUND" as const,
     packSize: null,
     inStock: true,
+    isActive: true,
     stockQuantity: 100,
     supplierId: "sup_1",
     createdAt: new Date("2024-01-01"),

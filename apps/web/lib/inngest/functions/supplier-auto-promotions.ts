@@ -27,6 +27,7 @@ export const supplierAutoPromotions = inngest.createFunction(
         const products = await prisma.supplierProduct.findMany({
           where: {
             supplierId: supplier.id,
+            isActive: true,
             inStock: true,
             stockQuantity: { gt: 0 },
           },

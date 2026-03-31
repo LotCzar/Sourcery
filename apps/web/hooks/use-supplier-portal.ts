@@ -12,11 +12,26 @@ export function useSupplierAnalytics(period?: string) {
   });
 }
 
-export function useSupplierCustomers(search?: string) {
+export function useSupplierCustomers(params?: {
+  search?: string;
+  page?: number;
+  pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
+}) {
+  const { search, page, pageSize, sortBy, sortOrder } = params || {};
+  const queryString = new URLSearchParams();
+  if (search) queryString.set("search", search);
+  if (page) queryString.set("page", String(page));
+  if (pageSize) queryString.set("pageSize", String(pageSize));
+  if (sortBy) queryString.set("sortBy", sortBy);
+  if (sortOrder) queryString.set("sortOrder", sortOrder);
+  const qs = queryString.toString();
+
   return useQuery({
-    queryKey: queryKeys.supplier.customers(search),
+    queryKey: queryKeys.supplier.customers(qs || undefined),
     queryFn: () =>
-      apiFetch<any>(`/api/supplier/customers${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+      apiFetch<any>(`/api/supplier/customers${qs ? `?${qs}` : ""}`),
   });
 }
 

@@ -24,7 +24,7 @@ export const supplierPricingSuggestions = inngest.createFunction(
 
         // Get products with order data
         const products = await prisma.supplierProduct.findMany({
-          where: { supplierId: supplier.id },
+          where: { supplierId: supplier.id, isActive: true },
           select: {
             id: true,
             name: true,

@@ -33,6 +33,19 @@ export function useSyncInvoices() {
   });
 }
 
+export function useDisconnectAccounting() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: () =>
+      apiFetch<any>("/api/accounting/integration", {
+        method: "DELETE",
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.accounting.integration });
+    },
+  });
+}
+
 export function useUpdateMappings() {
   const queryClient = useQueryClient();
   return useMutation({

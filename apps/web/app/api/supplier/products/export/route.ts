@@ -19,7 +19,7 @@ export async function GET() {
     }
 
     const products = await prisma.supplierProduct.findMany({
-      where: { supplierId: user.supplier.id },
+      where: { supplierId: user.supplier.id, isActive: true },
       orderBy: { name: "asc" },
     });
 

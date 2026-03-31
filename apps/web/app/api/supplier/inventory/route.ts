@@ -32,7 +32,7 @@ export async function GET(request: Request) {
 
     // Fetch all products with stock info
     const products = await prisma.supplierProduct.findMany({
-      where: { supplierId },
+      where: { supplierId, isActive: true },
       select: {
         id: true,
         name: true,

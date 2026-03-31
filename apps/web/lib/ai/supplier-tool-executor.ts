@@ -332,7 +332,7 @@ async function getSupplierProducts(
   input: Record<string, any>,
   context: SupplierToolContext
 ) {
-  const where: any = { supplierId: context.supplierId };
+  const where: any = { supplierId: context.supplierId, isActive: true };
 
   if (input.category) where.category = input.category;
   if (input.in_stock_only) where.inStock = true;
@@ -364,7 +364,7 @@ async function updateProduct(
   context: SupplierToolContext
 ) {
   const product = await prisma.supplierProduct.findFirst({
-    where: { id: input.product_id, supplierId: context.supplierId },
+    where: { id: input.product_id, supplierId: context.supplierId, isActive: true },
   });
 
   if (!product) return { error: "Product not found" };
@@ -523,7 +523,7 @@ async function getCustomerDetails(
 
   const productIds = topProducts.map((p) => p.productId);
   const products = await prisma.supplierProduct.findMany({
-    where: { id: { in: productIds } },
+    where: { id: { in: productIds }, isActive: true },
     select: { id: true, name: true },
   });
   const productMap = new Map(products.map((p) => [p.id, p.name]));
@@ -679,7 +679,7 @@ async function getTopProducts(
 
   const productIds = grouped.map((g) => g.productId);
   const products = await prisma.supplierProduct.findMany({
-    where: { id: { in: productIds } },
+    where: { id: { in: productIds }, isActive: true },
     select: { id: true, name: true, category: true, price: true },
   });
   const productMap = new Map(products.map((p) => [p.id, p]));
@@ -1041,7 +1041,7 @@ async function adjustSupplierInventory(
   context: SupplierToolContext
 ) {
   const product = await prisma.supplierProduct.findFirst({
-    where: { id: input.product_id, supplierId: context.supplierId },
+    where: { id: input.product_id, supplierId: context.supplierId, isActive: true },
   });
 
   if (!product) return { error: "Product not found" };
@@ -1086,7 +1086,7 @@ async function createPromotion(
   // Verify products belong to this supplier
   if (input.product_ids?.length > 0) {
     const products = await prisma.supplierProduct.findMany({
-      where: { id: { in: input.product_ids }, supplierId: context.supplierId },
+      where: { id: { in: input.product_ids }, supplierId: context.supplierId, isActive: true },
       select: { id: true },
     });
     if (products.length !== input.product_ids.length) {
@@ -1595,7 +1595,7 @@ async function bulkUpdatePrices(
     // Mode A: explicit product_id + price pairs
     const productIds = input.updates.map((u: any) => u.product_id);
     const products = await prisma.supplierProduct.findMany({
-      where: { id: { in: productIds }, supplierId: context.supplierId },
+      where: { id: { in: productIds }, supplierId: context.supplierId, isActive: true },
     });
     const productMap = new Map(products.map((p) => [p.id, p]));
 
@@ -1624,7 +1624,7 @@ async function bulkUpdatePrices(
   } else if (input.category && input.percentage !== undefined) {
     // Mode B: category + percentage
     const products = await prisma.supplierProduct.findMany({
-      where: { supplierId: context.supplierId, category: input.category },
+      where: { supplierId: context.supplierId, category: input.category, isActive: true },
     });
 
     for (const product of products) {
@@ -1661,6 +1661,7 @@ async function getLowStock(
 ) {
   const where: any = {
     supplierId: context.supplierId,
+    isActive: true,
     stockQuantity: { not: null },
     reorderPoint: { not: null },
   };

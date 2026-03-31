@@ -395,7 +395,7 @@ export default function SupplierInvoicesPage() {
         open={!!selectedInvoice}
         onOpenChange={(open) => !open && setSelectedInvoice(null)}
       >
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Invoice {selectedInvoice?.invoiceNumber}</DialogTitle>
             <DialogDescription>
@@ -484,7 +484,7 @@ export default function SupplierInvoicesPage() {
             </div>
           )}
 
-          <DialogFooter className="flex-col sm:flex-row gap-2">
+          <DialogFooter className="flex-col sm:flex-row flex-wrap gap-2">
             {selectedInvoice && (
               <Button
                 variant="outline"
