@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.78.0",
-    "@clerk/nextjs": "^6.37.4",
+    "@clerk/nextjs": "^6.39.2",
     "@freshsheet/database": "*",
     "@freshsheet/shared": "*",
     "@prisma/client": "^5.14.0",
