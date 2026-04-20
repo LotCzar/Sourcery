@@ -15,28 +15,61 @@ import {
   Users2,
   Tag,
   Lightbulb,
-  Bell,
   Warehouse,
   RotateCcw,
+  MapPin,
+  Truck,
 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const navigation = [
-  { name: "Dashboard", href: "/supplier", icon: LayoutDashboard },
-  { name: "Orders", href: "/supplier/orders", icon: ShoppingCart },
-  { name: "Products", href: "/supplier/products", icon: Package },
-  { name: "Inventory", href: "/supplier/inventory", icon: Warehouse },
-  { name: "Invoices", href: "/supplier/invoices", icon: FileText },
-  { name: "Returns", href: "/supplier/returns", icon: RotateCcw },
-  { name: "Analytics", href: "/supplier/analytics", icon: BarChart3 },
-  { name: "AI Insights", href: "/supplier/insights", icon: Lightbulb },
-  { name: "Notifications", href: "/supplier/notifications", icon: Bell },
-  { name: "Team", href: "/supplier/team", icon: Users2 },
-  { name: "Customers", href: "/supplier/customers", icon: Users },
-  { name: "Promotions", href: "/supplier/promotions", icon: Tag },
-  { name: "Settings", href: "/supplier/settings", icon: Settings },
+interface NavItem {
+  name: string;
+  href: string;
+  icon: any;
+}
+
+interface NavSection {
+  label: string;
+  items: NavItem[];
+}
+
+const navSections: NavSection[] = [
+  {
+    label: "Core",
+    items: [
+      { name: "Dashboard", href: "/supplier", icon: LayoutDashboard },
+      { name: "Orders", href: "/supplier/orders", icon: ShoppingCart },
+      { name: "Customers", href: "/supplier/customers", icon: Users },
+      { name: "Products", href: "/supplier/products", icon: Package },
+    ],
+  },
+  {
+    label: "Operations",
+    items: [
+      { name: "Inventory", href: "/supplier/inventory", icon: Warehouse },
+      { name: "Invoices", href: "/supplier/invoices", icon: FileText },
+      { name: "Returns", href: "/supplier/returns", icon: RotateCcw },
+      { name: "Delivery Zones", href: "/supplier/delivery-zones", icon: MapPin },
+      { name: "Drivers", href: "/supplier/drivers", icon: Truck },
+    ],
+  },
+  {
+    label: "Intelligence",
+    items: [
+      { name: "Analytics", href: "/supplier/analytics", icon: BarChart3 },
+      { name: "AI Insights", href: "/supplier/insights", icon: Lightbulb },
+      { name: "Promotions", href: "/supplier/promotions", icon: Tag },
+    ],
+  },
+  {
+    label: "Admin",
+    items: [
+      { name: "Team", href: "/supplier/team", icon: Users2 },
+      { name: "Settings", href: "/supplier/settings", icon: Settings },
+    ],
+  },
 ];
 
 export function SupplierMobileNav() {
@@ -63,7 +96,7 @@ export function SupplierMobileNav() {
           />
 
           {/* Drawer */}
-          <div className="fixed inset-y-0 left-0 z-50 w-64 bg-card shadow-lg">
+          <div className="fixed inset-y-0 left-0 z-50 w-64 overflow-y-auto bg-card shadow-lg">
             {/* Logo */}
             <div className="flex h-16 items-center border-b px-6">
               <Link
@@ -86,31 +119,40 @@ export function SupplierMobileNav() {
             </div>
 
             {/* Navigation */}
-            <nav className="space-y-1 px-3 py-4">
-              {navigation.map((item) => {
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== "/supplier" && pathname.startsWith(item.href));
-                return (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Button
-                      variant={isActive ? "secondary" : "ghost"}
-                      className={cn(
-                        "w-full justify-start gap-3",
-                        isActive &&
-                          "bg-primary/10 text-primary hover:bg-primary/20"
-                      )}
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {item.name}
-                    </Button>
-                  </Link>
-                );
-              })}
+            <nav className="px-3 py-4">
+              {navSections.map((section) => (
+                <div key={section.label} className="mt-4 first:mt-0">
+                  <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+                    {section.label}
+                  </p>
+                  <div className="space-y-1">
+                    {section.items.map((item) => {
+                      const isActive =
+                        pathname === item.href ||
+                        (item.href !== "/supplier" && pathname.startsWith(item.href));
+                      return (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                        >
+                          <Button
+                            variant={isActive ? "secondary" : "ghost"}
+                            className={cn(
+                              "w-full justify-start gap-3",
+                              isActive &&
+                                "bg-primary/10 text-primary hover:bg-primary/20"
+                            )}
+                          >
+                            <item.icon className="h-5 w-5" />
+                            {item.name}
+                          </Button>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </nav>
           </div>
         </>
